@@ -1,3 +1,2 @@
-# Keep the bundled media tools below GitHub's regular-file size path.
-vendor/bin/ffmpeg.exe filter=lfs diff=lfs merge=lfs -text
-vendor/bin/ffprobe.exe filter=lfs diff=lfs merge=lfs -text
+# Keep the bundled Windows binaries as ordinary Git files.
+vendor/bin/*.exe -filter -diff -merge binary
