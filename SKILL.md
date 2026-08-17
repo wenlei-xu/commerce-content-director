@@ -68,9 +68,11 @@ Read the content library only when the user explicitly asks to avoid recent cont
   is the MCP boundary; never call Omni's private `/internal/mcp/v1` bridge as a
   substitute for the MCP tools. If the health response does not show the Flow
   bridge as healthy, stop and report the connection problem.
-- The local Windows registration launches
-  `python -m flow2api_mcp.mcp_stdio` from `E:\AIGC短视频带货\flow2api-mcp`; its
-  secrets remain in ignored `.env` files. MCP configuration changes require a
+- The local Windows registration must launch
+  `python -m flow2api_mcp.mcp_stdio` from the configured local `flow2api-mcp`
+  workspace (this workspace uses `E:\AIGC短视频带货\flow2api-mcp` as an example);
+  each operator must set that path in their own MCP registration. Its secrets
+  remain in ignored `.env` files. MCP configuration changes require a
   Codex/Hermes restart because tool discovery has no hot reload. Do not print,
   copy, or commit either the bridge token or the gateway key.
 - Use Flow2API MCP only: **Banana Pro** for images and **Omni** for final video. In the MCP, Banana Pro's exact portrait image key is `gemini-3.0-pro-image-portrait`; Omni's exact portrait video key is `omni_portrait`. Do not silently substitute another model.
