@@ -1,0 +1,23 @@
+# Local credentials and environment files
+.env
+.env.*
+!.env.example
+
+# Python and local tooling caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local run artifacts and logs
+runs/
+outputs/
+artifacts/
+*.log
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

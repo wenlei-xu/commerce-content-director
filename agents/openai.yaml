@@ -1,0 +1,4 @@
+interface:
+  display_name: "UGC 带货分镜策划"
+  short_description: "支持内容母题扩散、UGC 分镜与飞书审核的带货工作流"
+  default_prompt: "使用 $auto-video-storyboard-v3 从飞书内容母题扩散创意候选并收敛为任务，或从内容策划任务创建原创、钩子、结构与全量复刻分镜。"

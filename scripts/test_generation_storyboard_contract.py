@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+"""Regression checks for the Flow2API portrait-panel board validator."""
+
+from __future__ import annotations
+
+import tempfile
+from pathlib import Path
+
+from PIL import Image
+
+from validate_generation_storyboards import validate_image
+
+
+def expect_failure(path: Path, expected: str) -> None:
+    try:
+        validate_image(path)
+    except ValueError as error:
+        if expected not in str(error):
+            raise AssertionError(f"expected {expected!r}, got {error!r}") from error
+    else:
+        raise AssertionError(f"expected validation failure containing {expected!r}")
+
+
+def main() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        root = Path(temp_dir)
+        valid = root / "valid.png"
+        landscape = root / "landscape.png"
+        Image.new("RGB", (1080, 1920), "white").save(valid)
+        Image.new("RGB", (1920, 1080), "white").save(landscape)
+
+        assert validate_image(valid) == (1080, 1920, 540, 960)
+        expect_failure(landscape, "panel ratio")
+
+    print("generation storyboard contract tests passed")
+
+
+if __name__ == "__main__":
+    main()
