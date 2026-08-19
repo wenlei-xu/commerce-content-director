@@ -49,7 +49,8 @@ def _env_file_values(env_path: str | Path | None) -> dict[str, str]:
                 raise FileNotFoundError(path)
             return read_env(path)
 
-    for candidate in (Path.cwd() / ".hermes" / ".env", Path.cwd() / ".env"):
+    skill_env = Path(__file__).resolve().parents[1] / ".env"
+    for candidate in (skill_env, Path.cwd() / ".hermes" / ".env", Path.cwd() / ".env"):
         if candidate.is_file():
             return read_env(candidate)
     return {}
@@ -110,6 +111,8 @@ class FeishuAttachmentUploader:
             )
             body = self._require_ok(response, "get tenant access token")
             token = body.get("tenant_access_token")
+            if not token and isinstance(body.get("data"), dict):
+                token = body["data"].get("tenant_access_token")
             if not token:
                 raise RuntimeError("get tenant access token failed: missing token")
         self._headers = {"Authorization": f"Bearer {token}"}
@@ -124,7 +127,10 @@ class FeishuAttachmentUploader:
             raise RuntimeError(f"{step} failed: Feishu returned non-JSON data") from exc
         if body.get("code") != 0:
             raise RuntimeError(f"{step} failed: {body.get('msg', 'unknown error')}")
-        return body.get("data", {})
+        # Feishu auth responses expose tenant_access_token at the top level,
+        # while most other endpoints wrap their payload in ``data``.
+        data = body.get("data")
+        return body if data is None else data
 
     def _upload_all(
         self,

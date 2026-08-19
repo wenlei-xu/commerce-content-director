@@ -40,7 +40,7 @@ def main() -> None:
     parser.add_argument(
         "--env",
         default=None,
-        help="dotenv file; defaults to FEISHU_ENV_FILE, .hermes/.env, or .env",
+        help="dotenv file; defaults to the skill-local .env, then FEISHU_ENV_FILE/HERMES_ENV_FILE overrides",
     )
     parser.add_argument(
         "--app-token",
