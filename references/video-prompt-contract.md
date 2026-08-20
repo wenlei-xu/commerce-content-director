@@ -1,6 +1,6 @@
 # Final-generation video prompt contract
 
-Read this contract before writing any `视频生成 Prompt` for an Omni raw video Segment. It is not the contract for the Banana Pro storyboard-image Job: that Job has no storyboard-board input yet and must use the actual role map prepared by [module-storyboard-product.md](module-storyboard-product.md).
+Read this contract before writing any video-generation prompt for a portrait-video Segment. It is not the contract for the storyboard-image Job: that Job has no storyboard-board input yet and must use the actual role map prepared by [storyboard-generation.md](workflows/storyboard-generation.md).
 
 ## Language and source-of-truth gate
 

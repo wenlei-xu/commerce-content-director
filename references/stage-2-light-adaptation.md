@@ -2,7 +2,7 @@
 
 Turn every source MF into a same-time RF. The MF is authoritative for camera, crop, subject distance, background placement, occlusion, lighting, action phase, motion, and rhythm. Replace only product-related pixels and fact-incompatible action.
 
-Write `plan/product-interaction-facts.md` first. Record visible parts, connections, valid contact points, allowed actions, prohibited actions, and evidence source. User-stated product mechanics override source actions and model assumptions. Use existing product assets; do not make six-views unless requested.
+Write `plan/product-interaction-facts.md` first. Record visible parts, connections, valid contact points, allowed actions, prohibited actions, and evidence source. User-stated product mechanics override source actions and model assumptions. Use only the routed product assets defined by the product contract.
 
 Copy user constraints verbatim to `plan/user-constraints.md`. When an action conflicts, create `plan/interaction-substitutions.md` before generation. Keep the original hand position, camera, background, and pacing while making the valid mechanism visually unambiguous.
 

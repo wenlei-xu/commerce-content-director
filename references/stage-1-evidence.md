@@ -25,7 +25,7 @@
 
 `reference_style_profile.json` 必须包含原生 `source_resolution`、`source_aspect_ratio`、`capture_style`、`platform_aesthetic`、`subject_camera_distance`、`composition_discipline`、`lighting`、`white_balance`、`exposure`、`contrast`、`sharpness`、`motion_blur`、`camera_stability`、`depth_of_field`、`image_degradation`、`style_fingerprint` 与 `anti_style_constraints`。
 
-其中 `style_fingerprint` 是一段可直接下传的完整正向指令，具体锁定原片的画幅取景、平台质感、机位、镜头运动、压缩、模糊、曝光、构图、主体距离和真实光影；`anti_style_constraints` 只写原片证据明确排除的视觉方向。二者不能用“高级”“电影感”“UGC”等泛化词替代，且必须在后续生图和 Seeddance 提示词中逐字保留。
+其中 `style_fingerprint` 是一段可直接下传的完整正向指令，具体锁定原片的画幅取景、平台质感、机位、镜头运动、压缩、模糊、曝光、构图、主体距离和真实光影；`anti_style_constraints` 只写原片证据明确排除的视觉方向。二者不能用“高级”“电影感”“UGC”等泛化词替代，且必须在后续 storyboard-image prompts 中逐字保留。
 
 ## 原视频动态母版拆解报告
 

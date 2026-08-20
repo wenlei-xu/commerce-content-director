@@ -1,9 +1,9 @@
 # Stage 3: reviewed batches and default master delivery
 
-Read `delivery-contract.md` and `dynamic-master-review.md`. Do not generate Seeddance prompts, subtitles, video, six-views, or single replacement frames unless explicitly requested.
+Read `delivery-contract.md` and `dynamic-master-review.md`. This stage produces reviewed replacement batches and chronological masters only; final video, subtitles, and voiceover belong to the final-video workflow.
 
 1. Process `plan/reference-batches.json` in order. A full batch has six adjacent RFs in a 3x2 source sheet; a tail batch is horizontal.
-2. Use Flow2API MCP Banana Pro (`flow_submit_image`, model `gemini-3.0-pro-image-landscape`) for local product replacement and save `replacement-contact-sheet.png`. This file is the reviewed batch artifact; do not split, crop, or resubmit it before it passes.
+2. Use the current catalog-selected `storyboard_image` capability through the registered Flow2API MCP for local product replacement and save `replacement-contact-sheet.png`. Record the returned model key in the run snapshot. This file is the reviewed batch artifact; do not split, crop, or resubmit it before it passes.
 3. Save `batch-image-prompt.md`, `batch-review.md`, and `manifest.json`. Review product facts, shot fidelity, product relative scale, full-sheet aspect, and 9:16 panel geometry. Regenerate a failed batch once only.
 4. Calculate `plan/master-groups.json` before assembly. With `N` valid RFs, create `K = ceil(N/15)` chronological groups; distribute RFs as evenly as possible so counts differ by at most one. Validate exact coverage, unique RF IDs, chronological order, and a maximum of 15 per group.
 5. After all batches pass, run `scripts/assemble_storyboard_masters.py <run> --out masters`. It must refuse unreviewed/failed or materially geometry-drifted inputs and must read only the current run's accepted batch sheets.

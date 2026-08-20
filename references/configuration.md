@@ -1,22 +1,9 @@
-# 内容系统配置与 Base 架构
+# Active content-system configuration
 
-运行前必须 fresh-read `内容系统配置` 中**唯一**一条“生效”记录，并将记录 ID、配置 ID、权重、允许时长、分段秒数、分镜行列数及 Flow2API 模型目录摘要写入本次 package 的 `plan/content-system-config-snapshot.json`。没有记录、有多条生效记录、数值为空、评分权重之和不为 100、时长不能被原始分段时长整除，或当前模型目录不支持该配置，均停止，不得猜测回退。
+Fresh-read exactly one active `system_config` record and validate it against the current model catalog before creative work. Write `plan/content-system-config-snapshot.json` with the record/config IDs, weights, allowed target durations, raw segment duration, storyboard geometry, selected capability keys, and input limits.
 
-快照至少包含 `config_record_id`、`config_id`、`target_duration_seconds`、`allowed_durations_seconds`、`raw_segment_seconds` 和 `storyboard`。其中 `storyboard` 至少包含 `columns`、`rows`、`panel_ratio`，并记录所选 image/video 模型键及各自输入上限。`target_duration_seconds` 是本次母题或任务的数值时长，必须属于允许列表；不是配置表里的另一个默认值。
+The snapshot is the authority for target duration, raw-segment duration, storyboard rows/columns/ratio, scoring weights, rotation defaults, execution limits, and model capability selection for the run. A target duration must be allowed by both the business configuration and the current model catalog; never guess a fallback.
 
-调用模型目录后，用 `scripts/snapshot_content_system_config.py` 生成快照；将目录实际返回的模型键和输入上限传给该脚本。脚本只读飞书配置并拒绝无效配置或不允许的目标时长，不修改任何记录。
+Use `scripts/snapshot_content_system_config.py` to validate and write the snapshot. It must remain read-only against Feishu. If there are zero or multiple active records, invalid weights, incompatible durations, or unsupported model capabilities, stop.
 
-配置的用途与优先级：
-
-- `内容系统配置`是业务控制面：评分权重、默认轮换上限、默认执行次数上限、可选总时长、每段时长和分镜网格都从这里读取。任务里的轮换上限、内容库里的执行次数上限仍可作为单条记录显式覆盖；为空时才使用活动配置默认值。
-- 当前 Flow2API 模型目录是能力控制面：只在模型可提交、支持当前目标时长与所需输入数量时执行。业务配置允许不代表模型一定可执行。
-- `config/base-schema.json`是飞书接入控制面：Base、table ID、字段名和受控状态值只在这里维护。其它说明文档与脚本引用逻辑键，禁止复制 ID、字段名或状态文本。
-- `产品`记录是产品事实控制面：结构、装粮路径、出粮/漏食路径、禁忌、生成提示和产品专属审核要求只能从当前产品记录读取；不得在本 skill 或配置中保存任何具体产品事实。
-
-评分时，Agent 用活动配置的三个权重计算并写入候选的“配置综合评分”与“评分配置ID”。自动 Top N 只按“配置综合评分”排序。“综合评分”是旧的固定飞书公式，仅用于查看历史，绝不能作为自动决策依据。
-
-母题和任务使用“目标时长（秒）”；旧“视频时长”下拉仅兼容历史记录。生成前，目标时长必须在活动配置允许列表内，并写入内容库的时长字段。每个原始段的图板网格、面板数量和单面板比例由配置快照决定；将该快照作为 `validate_generation_storyboards.py --profile` 的输入。
-
-重复执行只使用内容库的两个计数字段：`已执行次数`和`执行次数上限`。每次实际提交一次视频生成任务前，先把已执行次数加一；失败任务也计数，因为执行机会已经消耗。达到上限后归档该内容库版本。每次成功的完整执行直接创建一条`最终成片`记录，并通过已有的`最终成片.内容版本`关联回同一内容库版本；不创建执行记录表，也不维护抽卡状态。
-
-修改业务参数时，先新建一条“停用”配置并完成字段校验。随后在暂停新运行的维护窗口内停用旧记录并启用新记录；任何中断导致零条或多条生效配置时，所有运行都会安全停止，修复为唯一生效记录后再继续。修改 Base 结构时，先更新 `config/base-schema.json`，再运行生命周期脚本的 `--check-schema`；结构映射不是供日常运营编辑的业务参数。
+Schema resolution is separate from business configuration: `config/base-schema.json` owns mappings; this record owns current limits and capabilities. Update the schema before changing structure, and run the lifecycle script's schema check before resuming operations.

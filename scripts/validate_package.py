@@ -214,16 +214,16 @@ def validate(root: Path) -> list[str]:
     total_duration = float(package["total_duration_seconds"])
     if total_duration <= 0:
         raise ValueError("total_duration_seconds must be positive")
-    product = require_file(root, package["product_six_view"], "product six-view")
-    require_image_size(product, (2048, 2048), "product six-view")
+    product_anchor = package.get("product_anchor")
+    if product_anchor:
+        require_file(root, product_anchor, "product anchor")
 
     subject_required = bool(package.get("subject_required"))
-    subject_value = package.get("subject_six_view")
-    if subject_required and not subject_value:
-        raise ValueError("subject_required is true but subject_six_view is missing")
-    if subject_value:
-        subject = require_file(root, subject_value, "subject six-view")
-        require_image_size(subject, (2048, 2048), "subject six-view")
+    subject_anchor = package.get("subject_anchor")
+    if subject_required and not subject_anchor:
+        raise ValueError("subject_required is true but subject_anchor is missing")
+    if subject_anchor:
+        require_file(root, subject_anchor, "subject anchor")
 
     segments = package.get("segments")
     if not isinstance(segments, list) or not segments:

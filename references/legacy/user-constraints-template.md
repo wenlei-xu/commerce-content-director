@@ -21,7 +21,7 @@
 [verbatim user timing blocks]
 ```
 
-当前用户已提供的基础锚点可直接记录为：一位年轻成年男性；浅色皮肤、灰绿色眼睛、浓密蓬松的深棕卷发、轻微自然胡茬、同一件白色敞领衬衫；无鼻环和项链；脸、发型、眼睛、服装、手部肤色、左右手及抓握/贴合/指向/擦拭接触点跨格稳定。产品为两片深紫色、薄、柔软、可弯曲并贴合牙弓的牙贴，分别用于上牙和下牙。包装为深紫色硬质长方体盒，包含已提供的固定英文包装文字。场景为暖米色高级浴室，暖色灯光与正面手机补光稳定照亮人物、牙齿、双手和产品。完整逐时段提示词尚未收到，不能臆补其余动作。
+This archive template intentionally contains no project-specific subject, product, packaging, scene, or timing facts. Populate the sections only from the current user's run input.
 
 ## 时间段脚本语法
 

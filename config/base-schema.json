@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "tables": {
@@ -43,13 +43,23 @@
     },
     "original_rules": {
       "table_id": "tblOeAQHZeY9sr0y",
-      "name": "原创规则"
+      "name": "原创规则",
+      "fields": {
+        "compliance_boundaries": "平台合规禁忌",
+        "expression_boundaries": "通用表达边界",
+        "required_checks": "必须检查项",
+        "account_positioning": "账号长期定位"
+      }
     },
     "subject_assets": {
       "table_id": "tbldo07eIN3HSFHi",
       "name": "主体资产库",
       "status_field": "状态",
-      "status_active": "可用"
+      "status_active": "可用",
+      "fields": {
+        "anchor": "主体锚点",
+        "identity_description": "身份描述"
+      }
     },
     "mother_topics": {
       "table_id": "tblostUgRA3B19CY",
@@ -65,6 +75,19 @@
       "candidate_link_field": "创意候选列表",
       "duration_field": "目标时长（秒）",
       "legacy_duration_field": "视频时长",
+      "fields": {
+        "name": "母题名称",
+        "topic_id": "母题ID",
+        "product_link": "产品",
+        "platform_account": "平台 / 账号",
+        "subject_pool": "主体资产池",
+        "description": "母题描述",
+        "commercial_goal": "商业目标",
+        "special_requirements": "特殊要求",
+        "requested_candidate_count": "期望候选数",
+        "convergence_method": "收敛方式",
+        "automatic_selection_count": "自动入选数"
+      },
       "process_values": {
         "draft": "草稿",
         "pending_expansion": "待扩散",
@@ -90,6 +113,19 @@
       "score_config_id_field": "评分配置ID",
       "configured_score_field": "配置综合评分",
       "legacy_score_field": "综合评分",
+      "fields": {
+        "audience": "目标人群",
+        "pain_point": "痛点",
+        "core_benefit": "核心卖点",
+        "content_format": "内容形式",
+        "core_idea": "核心创意",
+        "hook": "钩子",
+        "narrative_structure": "叙事结构",
+        "proof_action": "主要证明动作",
+        "cta": "互动 / CTA",
+        "admission_result": "准入结果",
+        "rejection_reason": "淘汰原因"
+      },
       "candidate_status_values": {
         "backup": "备选",
         "selected": "入选",
@@ -109,7 +145,23 @@
       "count_formula_field": "内容版本数（自动计数）",
       "limit_field": "轮换上限",
       "source_task_link_field": "轮换来源任务",
-      "duration_field": "目标时长（秒）"
+      "duration_field": "目标时长（秒）",
+      "mode_field": "策划模式",
+      "mode_values": {
+        "original": "原创",
+        "hook_replication": "钩子复刻",
+        "structure_replication": "结构复刻",
+        "full_replication": "全量复刻"
+      },
+      "fields": {
+        "name": "任务名称",
+        "product_link": "产品",
+        "platform_account": "平台 / 账号",
+        "priority": "优先级",
+        "subject_link": "主体资产",
+        "creative_requirements": "创作要求",
+        "source_candidate_link": "来源创意候选"
+      }
     },
     "content_library": {
       "table_id": "tblGPsdyzMG0o6zP",
@@ -126,12 +178,28 @@
       "protect_field": "归档保护",
       "duration_field": "时长（秒）",
       "executed_count_field": "已执行次数",
-      "execution_limit_field": "执行次数上限"
+      "execution_limit_field": "执行次数上限",
+      "fields": {
+        "content_id": "content_id",
+        "task_link": "内容策划任务",
+        "product_link": "产品",
+        "subject_link": "主体资产",
+        "storyboard_attachments": "最终分镜图",
+        "script": "脚本",
+        "video_prompt": "视频生成 Prompt",
+        "review_notes": "审核意见"
+      }
     },
     "final_films": {
       "table_id": "tblZZDu01Ib4OuHT",
       "name": "最终成片",
-      "content_link_field": "内容版本"
+      "content_link_field": "内容版本",
+      "fields": {
+        "film_id": "成片ID",
+        "video_attachment": "最终视频",
+        "duration_seconds": "视频时长（秒）",
+        "generated_at": "生成时间"
+      }
     },
     "tiktok_ingestion": {
       "source_app_token": "Idevbt7JWaPEW7smj1dc7Ws8n7g",
