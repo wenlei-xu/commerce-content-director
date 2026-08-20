@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "tables": {
@@ -126,6 +126,9 @@
         "narrative_structure": "叙事结构",
         "proof_action": "主要证明动作",
         "cta": "互动 / CTA",
+        "legacy_subject_link": "主体资产",
+        "person_subject_link": "人物主体资产",
+        "animal_subject_link": "动物主体资产",
         "admission_result": "准入结果",
         "rejection_reason": "淘汰原因"
       },
@@ -161,7 +164,9 @@
         "product_link": "产品",
         "platform_account": "平台 / 账号",
         "priority": "优先级",
-        "subject_link": "主体资产",
+        "legacy_subject_link": "主体资产",
+        "person_subject_link": "人物主体资产",
+        "animal_subject_link": "动物主体资产",
         "content_format": "内容形式",
         "selected_core_benefits": "核心卖点",
         "core_idea": "核心创意",
@@ -170,7 +175,8 @@
         "cta": "互动 / CTA",
         "creative_requirements": "创作要求",
         "source_candidate_link": "来源创意候选"
-      }
+      },
+      "legacy_manual_count_field": "已生成版本数"
     },
     "content_library": {
       "table_id": "tblGPsdyzMG0o6zP",
@@ -192,12 +198,16 @@
         "content_id": "content_id",
         "task_link": "内容策划任务",
         "product_link": "产品",
-        "subject_link": "主体资产",
+        "legacy_subject_link": "主体资产",
+        "person_subject_link": "人物主体资产",
+        "animal_subject_link": "动物主体资产",
+        "content_format": "内容形式",
         "storyboard_attachments": "最终分镜图",
         "script": "脚本",
         "video_prompt": "视频生成 Prompt",
         "review_notes": "审核意见"
-      }
+      },
+      "legacy_content_format_field": "创意类型"
     },
     "final_films": {
       "table_id": "tblZZDu01Ib4OuHT",

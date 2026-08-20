@@ -26,6 +26,7 @@ Read these only when the selected workflow names them:
 
 - [authority.md](references/invariants/authority.md): source precedence and schema resolution.
 - [content-field-contract.md](references/invariants/content-field-contract.md): ownership and boundaries for core benefits, core idea, and creative requirements.
+- [table-field-hygiene.md](references/invariants/table-field-hygiene.md): canonical versus compatibility fields, counters, formats, durations, and subject-role cardinality.
 - [execution-accounting.md](references/invariants/execution-accounting.md): attempts, accepted films, and count semantics.
 - [mutation-and-recovery.md](references/invariants/mutation-and-recovery.md): staging, idempotency, and resumable failure handling.
 

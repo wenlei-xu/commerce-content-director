@@ -1,6 +1,6 @@
 # Authority and schema resolution
 
-This is the shared authority contract. Resolve every logical key through `config/base-schema.json` at runtime; references must not copy Feishu table IDs, localized field names, or localized status values.
+This is the shared authority contract. Resolve every logical key through `config/base-schema.json` at runtime; references must not copy Feishu table IDs, localized field names, or localized status values. When a live Base contains compatibility columns, also read [table-field-hygiene.md](table-field-hygiene.md) and use only its canonical mappings.
 
 ## Source precedence
 
