@@ -44,11 +44,11 @@ Do not deliver six-views, `replacement-frames/`, crop manifests, Seeddance promp
 
 Reference evidence masters are audit artifacts and may contain up to 15 RFs. They are not Flow2API inputs. Deliver separate final-generation boards in `generation-storyboards/`:
 
-- Target exactly 20, 30, or 40 seconds. Omni outputs 10-second raw segments, so generate 2, 3, or 4 chronological segments (20, 30, or 40 raw seconds) respectively. Assemble them to the exact approved target; no terminal trim is required.
+- Use the target duration and raw-segment duration from `plan/content-system-config-snapshot.json`, after confirming the current model catalog can execute them. Assemble the configured chronological segments to the exact approved target.
 - Deliver exactly one PNG board per raw segment, named `Segment-XX_start-end.png`.
-- Each board has exactly four chronological **portrait 9:16** panels in a 2x2, zero-gutter grid. Set explicit start/end times for all four panels that sum to the raw segment's 10 seconds; panel durations may vary with the action and must not be forced to 2.5 seconds. Generate the complete board in one Banana Pro request. State the layout, reading order, timing, zero gutter, and no-text/no-watermark/no-UI constraints in that one board prompt. Do not crop, split, resize, or locally compose its returned board; record the board prompt and all panel timings in the package manifest.
+- Each board has the chronological panel count, grid, ratio and raw duration specified in `plan/content-system-config-snapshot.json`. Set explicit start/end times that sum to the raw segment duration; panel durations may vary with the action. Generate the complete board in one image request. State the layout, reading order, timing, zero gutter, and no-text/no-watermark/no-UI constraints in that prompt. Do not crop, split, resize, or locally compose its returned board; record the board prompt and all panel timings in the package manifest.
 - Upload every board to the linked Feishu record's `最终分镜图` attachment field. Re-read the record and verify its attachment count, filenames, and file tokens before setting `待审核`.
-- Do not create, update, or upload any `内容库` record or attachment until every required board exists locally and has passed the 2x2 / four-panel / per-panel 9:16 validator. A missing, pending, failed, or unvalidated board is a local-only blocked package, not a partial content record.
+- Do not create, update, or upload any `内容库` record or attachment until every required board exists locally and has passed the configuration-profile validator. A missing, pending, failed, or unvalidated board is a local-only blocked package, not a partial content record.
 
 ## Acceptance
 
@@ -57,6 +57,6 @@ Reference evidence masters are audit artifacts and may contain up to 15 RFs. The
 - New product identity, connections, relative position, and user-stated usage are visible. No old product, old packaging, UI, watermark, subtitle, or incompatible copy remains.
 - For filling, opening, disassembly, or cleaning, provide an interaction substitution record and visible proof. Wrong hole, direction, cap, lid, separated piece, opaque lattice, or implausible drainage fails.
 - For `全量复刻`, masters are balanced chronological partitions with full, unique coverage of all valid RFs. A master may not import a batch or master from another run.
-- Each Flow2API board contains exactly four chronological panels and maps to one 10-second raw Omni segment. The 20-, 30-, or 40-second delivery has exactly 2, 3, or 4 boards, respectively; the assembled output is the requested duration.
+- Each Flow2API board maps to one configured raw segment. The complete board set must cover the configured target duration exactly.
 - Feishu `最终分镜图` contains all matching board attachments before `待审核` is set.
 - Regenerate a failed batch once only. If it still fails, mark it FAIL and stop rather than changing batch boundaries.

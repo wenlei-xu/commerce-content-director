@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
+  "base_name": "短视频内容创意库",
+  "tables": {
+    "system_config": {
+      "table_id": "tblYLhuiGBAf01kd",
+      "name": "内容系统配置",
+      "status_field": "配置状态",
+      "status_active": "生效",
+      "fields": {
+        "name": "配置名称",
+        "config_id": "配置ID",
+        "rotation_limit_default": "默认轮换上限",
+        "execution_limit_default": "默认执行次数上限",
+        "retention_weight": "停留潜力权重",
+        "conversion_weight": "证明与转化权重",
+        "execution_weight": "平台感与执行权重",
+        "allowed_durations_seconds": "允许视频时长（秒）",
+        "raw_segment_seconds": "原始分段时长（秒）",
+        "storyboard_columns": "每段分镜列数",
+        "storyboard_rows": "每段分镜行数",
+        "panel_ratio": "单格画幅比例",
+        "effective_at": "生效时间",
+        "notes": "备注"
+      }
+    },
+    "products": {
+      "table_id": "tbl025LGPiG2WyGp",
+      "name": "产品",
+      "status_field": "状态",
+      "status_active": "可用",
+      "fields": {
+        "name": "产品名称",
+        "product_id": "产品ID",
+        "hard_facts": "产品硬事实与禁忌",
+        "generation_notes": "生成注意事项",
+        "review_requirements": "产品审核要求",
+        "default_anchor": "默认产品锚点",
+        "detail_assets": "产品细节图",
+        "scene_assets": "产品场景图"
+      }
+    },
+    "original_rules": {
+      "table_id": "tblOeAQHZeY9sr0y",
+      "name": "原创规则"
+    },
+    "subject_assets": {
+      "table_id": "tbldo07eIN3HSFHi",
+      "name": "主体资产库",
+      "status_field": "状态",
+      "status_active": "可用"
+    },
+    "mother_topics": {
+      "table_id": "tblostUgRA3B19CY",
+      "name": "内容母题",
+      "status_field": "记录状态",
+      "status_active": "活跃",
+      "status_archived": "已归档",
+      "status_pending": "待清理",
+      "archive_time_field": "归档时间",
+      "archive_reason_field": "归档原因",
+      "protect_field": "归档保护",
+      "process_field": "流程状态",
+      "candidate_link_field": "创意候选列表",
+      "duration_field": "目标时长（秒）",
+      "legacy_duration_field": "视频时长",
+      "process_values": {
+        "draft": "草稿",
+        "pending_expansion": "待扩散",
+        "expanding": "扩散中",
+        "awaiting_selection": "候选待确认",
+        "selection_locked": "选择已锁定",
+        "creating_tasks": "任务创建中",
+        "converged": "已收敛",
+        "failed": "处理失败"
+      }
+    },
+    "candidates": {
+      "table_id": "tbltUkkNOrgo7SgP",
+      "name": "创意候选",
+      "status_field": "记录状态",
+      "status_archived": "已归档",
+      "archive_time_field": "归档时间",
+      "archive_reason_field": "归档原因",
+      "protect_field": "归档保护",
+      "candidate_status_field": "候选状态",
+      "task_link_field": "落地内容策划任务",
+      "mother_link_field": "内容母题",
+      "score_config_id_field": "评分配置ID",
+      "configured_score_field": "配置综合评分",
+      "legacy_score_field": "综合评分",
+      "candidate_status_values": {
+        "backup": "备选",
+        "selected": "入选",
+        "rejected": "淘汰"
+      }
+    },
+    "planning_tasks": {
+      "table_id": "tblW0M6Td3rZm7L9",
+      "name": "内容策划任务",
+      "status_field": "任务状态",
+      "status_active": "活跃",
+      "status_archived": "已归档",
+      "archive_time_field": "归档时间",
+      "archive_reason_field": "归档原因",
+      "protect_field": "归档保护",
+      "version_link_field": "内容库版本列表",
+      "count_formula_field": "内容版本数（自动计数）",
+      "limit_field": "轮换上限",
+      "source_task_link_field": "轮换来源任务",
+      "duration_field": "目标时长（秒）"
+    },
+    "content_library": {
+      "table_id": "tblGPsdyzMG0o6zP",
+      "name": "内容库",
+      "status_field": "版本状态",
+      "status_active": "活跃",
+      "status_archived": "已归档",
+      "review_field": "审核状态",
+      "review_pass": "通过",
+      "review_reject": "拒绝",
+      "task_link_field": "内容策划任务",
+      "archive_time_field": "归档时间",
+      "archive_reason_field": "归档原因",
+      "protect_field": "归档保护",
+      "duration_field": "时长（秒）",
+      "executed_count_field": "已执行次数",
+      "execution_limit_field": "执行次数上限"
+    },
+    "final_films": {
+      "table_id": "tblZZDu01Ib4OuHT",
+      "name": "最终成片",
+      "content_link_field": "内容版本"
+    },
+    "tiktok_ingestion": {
+      "source_app_token": "Idevbt7JWaPEW7smj1dc7Ws8n7g",
+      "source_table_id": "tblCVGnSI7mHKa31",
+      "target_app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
+      "target_table_id": "tblUsj7XFrRTbUpK"
+    }
+  }
+}

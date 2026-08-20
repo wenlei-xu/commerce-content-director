@@ -10,10 +10,12 @@ import requests
 
 
 API_ROOT = "https://open.feishu.cn/open-apis"
-SOURCE_APP = "Idevbt7JWaPEW7smj1dc7Ws8n7g"
-SOURCE_TABLE = "tblCVGnSI7mHKa31"
-TARGET_APP = "QQ1ib0FTHahCUhstRH8cVx9in7S"
-TARGET_TABLE = "tblUsj7XFrRTbUpK"
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / "config" / "base-schema.json"
+INGESTION_SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))["tables"]["tiktok_ingestion"]
+SOURCE_APP = INGESTION_SCHEMA["source_app_token"]
+SOURCE_TABLE = INGESTION_SCHEMA["source_table_id"]
+TARGET_APP = INGESTION_SCHEMA["target_app_token"]
+TARGET_TABLE = INGESTION_SCHEMA["target_table_id"]
 
 
 def load_uploader():

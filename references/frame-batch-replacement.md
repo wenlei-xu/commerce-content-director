@@ -13,6 +13,6 @@ Use chronological fixed batches: RF01-RF06, RF07-RF12, and so on. Only the last 
 
 For every panel state its source composition anchor, expected product width/height and position relative to the panel, allowed replacement, prohibited changes, action, and transition. Preserve source camera, crop, exposure, blur, compression, full-sheet aspect ratio, and 9:16 cell geometry.
 
-For filling, opening, cleaning, or hand-contact panels, state the proven product mechanism literally. For a bottom-hole feeder, show the side lattice and bottom hole as one coherent connected structure (the whole product need not be visible), with treats entering the bottom hole from above. Prohibit side-lattice filling, top openings, lids, smooth closed bottoms, and separable parts. For rinsing, keep the item whole and make water pass through the transparent lattice and naturally downward.
+For filling, opening, cleaning, or hand-contact panels, state the proven product mechanism literally from the current product record. List every prohibited alternative from that record; do not reuse a mechanism, part name, or visual rule from another product.
 
 Review source and replacement sheets side by side for product identity, hard interaction facts, source order, recognizable composition, source visual texture, output sheet aspect, per-panel 9:16 geometry, and each approved product relative size. Fail geometry or scale drift that prevents deterministic master assembly; regenerate the same batch once only.

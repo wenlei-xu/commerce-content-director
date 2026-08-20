@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import tempfile
 from pathlib import Path
@@ -45,16 +46,20 @@ def main() -> None:
     parser.add_argument("--subtitles", required=True, type=Path)
     parser.add_argument("--voiceover", type=Path, help="Aligned narration track from align_voiceover.py")
     parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument(
-        "--target-duration",
-        type=int,
-        choices=(20, 30, 40),
-        help="Trim the assembled candidate to this exact delivery duration in seconds.",
-    )
+    parser.add_argument("--profile", required=True, type=Path, help="content-system-config-snapshot.json")
     parser.add_argument("--font-name", default="Microsoft YaHei", help="Default: Microsoft YaHei Bold")
     parser.add_argument("--subtitle-margin-v", type=int, default=95, help="Bottom subtitle margin in pixels; smaller is lower")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
+
+    try:
+        profile = json.loads(args.profile.read_text(encoding="utf-8"))
+        target_duration = int(profile["target_duration_seconds"])
+        allowed = {int(value) for value in profile["allowed_durations_seconds"]}
+        if target_duration <= 0 or target_duration not in allowed:
+            raise ValueError("target_duration_seconds must be one of allowed_durations_seconds")
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise SystemExit(f"Invalid content-system configuration profile: {error}") from error
 
     ffmpeg, ffprobe = find_binary("ffmpeg"), find_binary("ffprobe")
     if not ffmpeg or not ffprobe:
@@ -113,8 +118,7 @@ def main() -> None:
             "-c:v", "libx264", "-crf", "18", "-preset", "medium",
             "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(output),
         ])
-        if args.target_duration:
-            command[-1:-1] = ["-t", str(args.target_duration)]
+        command[-1:-1] = ["-t", str(target_duration)]
         subprocess.run(command, check=True)
     finally:
         if list_path and list_path.exists():

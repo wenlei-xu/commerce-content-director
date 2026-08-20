@@ -128,7 +128,36 @@ def now_ms() -> int:
 
 
 def load_config() -> dict[str, Any]:
-    return json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    policy = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    schema_path = CONFIG_PATH.parent / policy["schema"]
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    tables: dict[str, dict[str, Any]] = {}
+    for key, policy_table in policy["tables"].items():
+        table = {**schema["tables"][key], **policy_table}
+        values = table.get("candidate_status_values", {})
+        if "rejected_status_keys" in table:
+            table["rejected_values"] = [values[value] for value in table.pop("rejected_status_keys")]
+        if "selected_status_keys" in table:
+            table["selected_values"] = [values[value] for value in table.pop("selected_status_keys")]
+        if "terminal_process_keys" in table:
+            process_values = table.get("process_values", {})
+            table["terminal_process_values"] = [process_values[value] for value in table.pop("terminal_process_keys")]
+        tables[key] = table
+    return {**policy, "app_token": schema["app_token"], "tables": tables, "system_config": schema["tables"]["system_config"]}
+
+
+def active_system_config(api: Feishu, config: dict[str, Any]) -> dict[str, Any]:
+    table = config["system_config"]
+    fields = table["fields"]
+    matches = [record for record in api.records(table["table_id"])
+               if text(record.get("fields", {}).get(table["status_field"])) == table["status_active"]]
+    if len(matches) != 1:
+        raise ValueError(f"内容系统配置必须恰好有一条{table['status_active']}记录，当前为 {len(matches)} 条")
+    values = matches[0].get("fields", {})
+    limit = number(values.get(fields["rotation_limit_default"]), 0)
+    if limit <= 0:
+        raise ValueError("内容系统配置的默认轮换上限必须为正数")
+    return {"record_id": matches[0]["record_id"], "default_rotation_limit": limit}
 
 
 def schema_check(api: Feishu, config: dict[str, Any]) -> dict[str, Any]:
@@ -140,7 +169,7 @@ def schema_check(api: Feishu, config: dict[str, Any]) -> dict[str, Any]:
         for name_key in ("status_field", "archive_time_field", "archive_reason_field", "protect_field"):
             if table.get(name_key):
                 required.append(table[name_key])
-        for name_key in ("process_field", "candidate_link_field", "candidate_status_field", "task_link_field", "mother_link_field", "version_link_field", "count_formula_field", "limit_field", "source_task_link_field", "review_field", "content_link_field", "validation_field"):
+        for name_key in ("process_field", "candidate_link_field", "candidate_status_field", "task_link_field", "mother_link_field", "version_link_field", "count_formula_field", "limit_field", "source_task_link_field", "review_field", "content_link_field"):
             if table.get(name_key):
                 required.append(table[name_key])
         missing = sorted({name for name in required if name not in by_name})
@@ -184,18 +213,17 @@ def run(config: dict[str, Any], apply: bool, check_only: bool) -> dict[str, Any]
     task_cfg = tables["planning_tasks"]
     candidate_cfg = tables["candidates"]
     mother_cfg = tables["mother_topics"]
-    films_cfg = tables["final_films"]
+    try:
+        system_config = active_system_config(api, config)
+    except ValueError as exc:
+        report["deferred"].append({"reason": "system_config_invalid", "message": str(exc)})
+        return report
+    report["system_config"] = system_config
     content = api.records(content_cfg["table_id"])
     tasks = api.records(task_cfg["table_id"])
     candidates = api.records(candidate_cfg["table_id"])
     mothers = api.records(mother_cfg["table_id"])
-    films = api.records(films_cfg["table_id"])
     by_id = {"content": {r["record_id"]: r for r in content}, "tasks": {r["record_id"]: r for r in tasks}, "candidates": {r["record_id"]: r for r in candidates}, "mothers": {r["record_id"]: r for r in mothers}}
-    valid_film_content_ids: set[str] = set()
-    for film in films:
-        f = film.get("fields", {})
-        if text(f.get(films_cfg["validation_field"])) == films_cfg["validation_valid"]:
-            valid_film_content_ids |= linked_ids(f.get(films_cfg["content_link_field"]))
 
     def consider(action: dict[str, Any]) -> None:
         if action["protected"]:
@@ -203,8 +231,9 @@ def run(config: dict[str, Any], apply: bool, check_only: bool) -> dict[str, Any]
             return
         report["actions"].append(action)
 
-    # Content versions: only clear rejection with a newer version, or an already
-    # validated final-film handoff. Pending/broken records are deliberately kept.
+    # Content versions: only clear rejection with a newer version. Pending/
+    # broken records are deliberately kept; final-film creation is not a
+    # lifecycle-archive signal.
     for record in content:
         f = record.get("fields", {})
         if text(f.get(content_cfg["status_field"])) != content_cfg["status_active"]:
@@ -215,8 +244,6 @@ def run(config: dict[str, Any], apply: bool, check_only: bool) -> dict[str, Any]
         review = text(f.get(content_cfg["review_field"]))
         if review == content_cfg["review_reject"] and newer:
             consider(archive_action(content_cfg, record, "审核拒绝且同任务已有更新版本"))
-        elif record_id in valid_film_content_ids:
-            consider(archive_action(content_cfg, record, "已由有效最终成片接收"))
 
     # Tasks: never invent a replacement. Rotation is archivable only when the
     # replacement explicitly links back through 轮换来源任务.
@@ -225,7 +252,7 @@ def run(config: dict[str, Any], apply: bool, check_only: bool) -> dict[str, Any]
         if text(f.get(task_cfg["status_field"])) != task_cfg["status_active"]:
             continue
         count = len(linked_ids(f.get(task_cfg["version_link_field"])))
-        limit = number(f.get(task_cfg["limit_field"]), 5)
+        limit = number(f.get(task_cfg["limit_field"]), system_config["default_rotation_limit"])
         replacement = any(record["record_id"] in linked_ids(other.get("fields", {}).get(task_cfg["source_task_link_field"])) and text(other.get("fields", {}).get(task_cfg["status_field"])) == task_cfg["status_active"] for other in tasks)
         if count >= limit and replacement:
             consider(archive_action(task_cfg, record, f"自动计数 {int(count)} 达到轮换上限 {int(limit)}，已有明确替代任务"))

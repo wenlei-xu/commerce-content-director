@@ -23,6 +23,4 @@
 3. Review the conflicting panels before accepting their replacement contact sheet. If a viewer can still read the image as a cap opening, disassembly, wrong-hole filling, or wrong orientation, the batch fails.
 4. The contact-sheet image prompt must state the substitution action and prohibited imagery literally; never replace this with a vague instruction such as "use correctly".
 
-## 示例：一体式漏食玩具
-
-若用户明确“商品不能拆盖，只能倒置并从底部单孔装粮”，而原片展示开盖装粮：保留原片的手部近景、时间位置和装粮节奏；将商品保持为一体式连贯结构，侧面格栅与底部单孔同时可见，食物落入该孔。无需拍全商品。禁止盖子、分离部件、顶部开口，以及从侧面格栅装粮。审图时必须看见格栅与底孔的连接关系、正确朝向和唯一装填路径。
+不要在本协议中保存任何产品示例。替代动作、禁止画面和可视验收点只能从本次的 `product-interaction-facts.md` 引用；换产品时不得继承此前产品的部件、开口、朝向或装填规则。

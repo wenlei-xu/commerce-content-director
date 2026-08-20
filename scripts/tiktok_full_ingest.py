@@ -18,8 +18,10 @@ from tiktok_cdp_scraper import CDP
 
 
 API_ROOT = "https://open.feishu.cn/open-apis"
-TARGET_APP = "QQ1ib0FTHahCUhstRH8cVx9in7S"
-MAIN_TABLE = "tblUsj7XFrRTbUpK"
+SCHEMA_PATH = Path(__file__).resolve().parents[1] / "config" / "base-schema.json"
+INGESTION_SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))["tables"]["tiktok_ingestion"]
+TARGET_APP = INGESTION_SCHEMA["target_app_token"]
+MAIN_TABLE = INGESTION_SCHEMA["target_table_id"]
 METRICS = ["CTR", "CVR", "Clicks", "Conversion", "Remain"]
 
 

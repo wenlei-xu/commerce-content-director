@@ -1,70 +1,12 @@
 {
-  "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
+  "schema": "base-schema.json",
   "timezone": "Asia/Shanghai",
   "scope": "branching_chain_only",
   "tables": {
-    "mother_topics": {
-      "table_id": "tblostUgRA3B19CY",
-      "name": "内容母题",
-      "status_field": "记录状态",
-      "status_active": "活跃",
-      "status_archived": "已归档",
-      "status_pending": "待清理",
-      "archive_time_field": "归档时间",
-      "archive_reason_field": "归档原因",
-      "protect_field": "归档保护",
-      "process_field": "流程状态",
-      "candidate_link_field": "创意候选列表",
-      "terminal_process_values": ["已收敛", "处理失败"]
-    },
-    "candidates": {
-      "table_id": "tbltUkkNOrgo7SgP",
-      "name": "创意候选",
-      "status_field": "记录状态",
-      "status_archived": "已归档",
-      "archive_time_field": "归档时间",
-      "archive_reason_field": "归档原因",
-      "protect_field": "归档保护",
-      "candidate_status_field": "候选状态",
-      "task_link_field": "落地内容策划任务",
-      "mother_link_field": "内容母题",
-      "rejected_values": ["淘汰"],
-      "selected_values": ["入选"]
-    },
-    "planning_tasks": {
-      "table_id": "tblW0M6Td3rZm7L9",
-      "name": "内容策划任务",
-      "status_field": "任务状态",
-      "status_active": "活跃",
-      "status_archived": "已归档",
-      "archive_time_field": "归档时间",
-      "archive_reason_field": "归档原因",
-      "protect_field": "归档保护",
-      "version_link_field": "内容库版本列表",
-      "count_formula_field": "内容版本数（自动计数）",
-      "limit_field": "轮换上限",
-      "source_task_link_field": "轮换来源任务"
-    },
-    "content_library": {
-      "table_id": "tblGPsdyzMG0o6zP",
-      "name": "内容库",
-      "status_field": "版本状态",
-      "status_active": "活跃",
-      "status_archived": "已归档",
-      "review_field": "审核状态",
-      "review_pass": "通过",
-      "review_reject": "拒绝",
-      "task_link_field": "内容策划任务",
-      "archive_time_field": "归档时间",
-      "archive_reason_field": "归档原因",
-      "protect_field": "归档保护"
-    },
-    "final_films": {
-      "table_id": "tblZZDu01Ib4OuHT",
-      "name": "最终成片",
-      "content_link_field": "内容版本",
-      "validation_field": "内容版本校验状态",
-      "validation_valid": "有效"
-    }
+    "mother_topics": { "terminal_process_keys": ["converged", "failed"] },
+    "candidates": { "rejected_status_keys": ["rejected"], "selected_status_keys": ["selected"] },
+    "planning_tasks": {},
+    "content_library": {},
+    "final_films": {}
   }
 }
