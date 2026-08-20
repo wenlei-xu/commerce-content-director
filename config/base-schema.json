@@ -33,6 +33,9 @@
       "fields": {
         "name": "产品名称",
         "product_id": "产品ID",
+        "core_benefits": "核心卖点",
+        "approved_claims": "可用表达 / 可用宣称",
+        "prohibited_claims": "禁用表达 / 禁用宣称",
         "hard_facts": "产品硬事实与禁忌",
         "generation_notes": "生成注意事项",
         "review_requirements": "产品审核要求",
@@ -116,7 +119,7 @@
       "fields": {
         "audience": "目标人群",
         "pain_point": "痛点",
-        "core_benefit": "核心卖点",
+        "core_benefits": "核心卖点",
         "content_format": "内容形式",
         "core_idea": "核心创意",
         "hook": "钩子",
@@ -159,6 +162,12 @@
         "platform_account": "平台 / 账号",
         "priority": "优先级",
         "subject_link": "主体资产",
+        "content_format": "内容形式",
+        "selected_core_benefits": "核心卖点",
+        "core_idea": "核心创意",
+        "hook": "钩子",
+        "proof_action": "主要证明动作",
+        "cta": "互动 / CTA",
         "creative_requirements": "创作要求",
         "source_candidate_link": "来源创意候选"
       }

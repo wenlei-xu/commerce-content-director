@@ -2,7 +2,9 @@
 
 Resolve exactly one active `products` record directly from the product table by the user's name or ID. A task relationship is not a product lookup substitute.
 
-Required facts are the schema-resolved product status, hard facts, generation notes, review requirements, default anchor, and any detail or scene assets required by the planned shots. Product facts, approved claims, prohibited claims, structure, scale, openings, and interaction paths come only from this record.
+Required facts are the schema-resolved product status, hard facts, generation notes, review requirements, core benefits, approved/prohibited claims, default anchor, and any detail or scene assets required by the planned shots. Product facts, approved claims, prohibited claims, structure, scale, openings, and interaction paths come only from this record.
+
+When a task selects one to three core benefits, copy only the selected value propositions and their product-record provenance into the task. Do not copy structural mechanics into the benefits field.
 
 For each Job, create `product_asset_plan` from shot risk:
 
