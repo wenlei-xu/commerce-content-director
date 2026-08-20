@@ -23,4 +23,4 @@
 3. Review the conflicting panels before accepting their replacement contact sheet. If a viewer can still read the image as a cap opening, disassembly, wrong-hole filling, or wrong orientation, the batch fails.
 4. The contact-sheet image prompt must state the substitution action and prohibited imagery literally; never replace this with a vague instruction such as "use correctly".
 
-不要在本协议中保存任何产品示例。替代动作、禁止画面和可视验收点只能从本次的 `product-interaction-facts.md` 引用；换产品时不得继承此前产品的部件、开口、朝向或装填规则。
+不要在本协议中保存任何产品示例。替代动作、禁止画面和可视验收点只能从本次的 `product-interaction-facts.md` 引用；换产品时不得继承此前产品的部件、开口、朝向、装粮路径或出粮/漏食规则。

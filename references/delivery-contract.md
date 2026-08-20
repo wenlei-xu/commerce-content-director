@@ -38,7 +38,7 @@ For `全量复刻`, deliver final masters by default. Each `masters/Master-XX/` 
 
 For `N` valid RFs, make `K = ceil(N / 15)` masters. Partition the RFs into `K` consecutive chronological groups whose counts differ by at most one; no group may have more than 15 frames. Thus 27 RFs are 14+13, 16 RFs are 8+8, and 29 RFs are 15+14. `plan/master-groups.json` is authoritative. It must show every RF exactly once, in order, and only use the accepted replacement sheets from the current run.
 
-Do not deliver six-views, `replacement-frames/`, crop manifests, Seeddance prompts, subtitles, voiceover, or a finished video unless requested.
+At the storyboard-only stage, do not deliver six-views, `replacement-frames/`, crop manifests, Seeddance prompts, subtitles, voiceover, or a finished video. Once Module 3 is explicitly authorized for an approved content version, its final-video contract supersedes this storyboard-only restriction: the final deliverable includes the assembled video, approved audio when applicable, and the default burned subtitle layer.
 
 ## Flow2API final-generation boards
 
