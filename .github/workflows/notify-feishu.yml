@@ -1,0 +1,112 @@
+name: Notify Feishu on skill push
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    name: Send push summary to Feishu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send notification
+        env:
+          FEISHU_COMMERCE_SKILL_WEBHOOK_URL: ${{ secrets.FEISHU_COMMERCE_SKILL_WEBHOOK_URL }}
+          FEISHU_COMMERCE_SKILL_WEBHOOK_SECRET: ${{ secrets.FEISHU_COMMERCE_SKILL_WEBHOOK_SECRET }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import base64
+          import hashlib
+          import hmac
+          import json
+          import os
+          import time
+          import urllib.error
+          import urllib.request
+
+          webhook = os.environ.get("FEISHU_COMMERCE_SKILL_WEBHOOK_URL", "").strip()
+          if not webhook:
+              raise SystemExit("Missing secret: FEISHU_COMMERCE_SKILL_WEBHOOK_URL")
+
+          with open(os.environ["GITHUB_EVENT_PATH"], encoding="utf-8") as event_file:
+              event = json.load(event_file)
+
+          repository = os.environ["GITHUB_REPOSITORY"]
+          server = os.environ["GITHUB_SERVER_URL"]
+          sha = os.environ["GITHUB_SHA"]
+          short_sha = sha[:7]
+          branch = os.environ.get("GITHUB_REF_NAME", "unknown")
+          actor = os.environ["GITHUB_ACTOR"]
+          commits = event.get("commits", [])
+          compare_url = event.get("compare") or f"{server}/{repository}/commit/{sha}"
+
+          commit_lines = []
+          for commit in commits[:10]:
+              commit_sha = commit.get("id", "")[:7]
+              message = (commit.get("message") or "").splitlines()[0]
+              author = (commit.get("author") or {}).get("name") or actor
+              commit_url = commit.get("url") or f"{server}/{repository}/commit/{commit.get('id', sha)}"
+              commit_lines.append(f"- [{commit_sha}]({commit_url}) {message} — {author}")
+          if len(commits) > 10:
+              commit_lines.append(f"- 其余 {len(commits) - 10} 个提交已省略")
+          if not commit_lines:
+              commit_lines.append(f"- [{short_sha}]({compare_url}) 本次 push 未提供提交摘要")
+
+          content = "\n".join([
+              f"**仓库：** `{repository}`",
+              f"**分支：** `{branch}`",
+              f"**提交人：** {actor}",
+              "",
+              "**本次提交：**",
+              *commit_lines,
+              "",
+              f"[查看本次变更]({compare_url})",
+          ])
+
+          payload = {
+              "msg_type": "interactive",
+              "card": {
+                  "header": {
+                      "template": "blue",
+                      "title": {"tag": "plain_text", "content": "Skill 已推送到 GitHub"},
+                  },
+                  "elements": [{"tag": "markdown", "content": content}],
+              },
+          }
+
+          signing_secret = os.environ.get("FEISHU_COMMERCE_SKILL_WEBHOOK_SECRET", "").strip()
+          if signing_secret:
+              timestamp = str(int(time.time()))
+              string_to_sign = f"{timestamp}\n{signing_secret}"
+              signature = hmac.new(
+                  string_to_sign.encode("utf-8"),
+                  digestmod=hashlib.sha256,
+              ).digest()
+              payload["timestamp"] = timestamp
+              payload["sign"] = base64.b64encode(signature).decode("ascii")
+
+          request = urllib.request.Request(
+              webhook,
+              data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+              headers={"Content-Type": "application/json"},
+              method="POST",
+          )
+          try:
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  response_body = json.loads(response.read().decode("utf-8"))
+          except urllib.error.HTTPError as error:
+              raise SystemExit(f"Feishu webhook HTTP error: {error.code}") from error
+
+          if response_body.get("code", 0) not in (0, None):
+              raise SystemExit(f"Feishu webhook rejected the message: {response_body}")
+          print("Feishu notification sent.")
+          PY
