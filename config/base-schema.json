@@ -1,11 +1,13 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
-    "target_language": "th",
-    "language_name": "Thai",
-    "allowed_target_languages": ["th"],
+    "target_spoken_language": "th",
+    "spoken_language_name": "Thai",
+    "allowed_spoken_languages": ["th"],
+    "generation_prompt_languages": ["en", "zh-CN"],
+    "generation_prompt_language_default": "en",
     "override_requires_schema_change": true
   },
   "tables": {

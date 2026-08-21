@@ -45,7 +45,7 @@ If authoritative records or assets conflict, stop and report the conflict. Do no
 
 Use the registered Flow2API MCP and the model capability selected from the current catalog. Never call private model endpoints directly. Image payloads must contain validated raw image bytes in the current MCP schema; never place tokens, URLs, audit objects, or Base64 in prompts or Feishu fields.
 
-The current campaign language policy is fixed to Thai (`target_language=th`). Every video with speech must use Thai voice lines only. A task, script, prompt, or user-provided creative direction that requests another spoken language is a planning conflict and must stop until the language policy is explicitly changed in the schema. Do not infer language from a platform name or free-text creative requirement.
+The current campaign spoken-language policy is fixed to Thai (`target_spoken_language=th`). Final voiceover, dialogue, TTS, and ASR acceptance must be Thai. Image/video generation prompts are control instructions, not spoken content: write them in English or Chinese according to the configured prompt-language policy, and do not translate the entire prompt into Thai. A task or script that requests another spoken language is a planning conflict and must stop until the spoken-language policy is explicitly changed in the schema.
 
 Create a minimal local run package before generation. At minimum retain `package.json`, `generation-jobs.json`, `quality-report.md`, exact submitted prompts, asset role/hash mappings, and temporary outputs. The package is evidence, not a replacement for Feishu source records.
 

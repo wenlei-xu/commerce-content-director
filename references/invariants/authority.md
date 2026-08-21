@@ -1,6 +1,6 @@
 # Authority and schema resolution
 
-This is the shared authority contract. Resolve every logical key through `config/base-schema.json` at runtime; references must not copy Feishu table IDs, localized field names, or localized status values. The schema's `language_policy` is authoritative for spoken language; creative workflows must also read [language-policy.md](language-policy.md). When a live Base contains compatibility columns, also read [table-field-hygiene.md](table-field-hygiene.md) and use only its canonical mappings.
+This is the shared authority contract. Resolve every logical key through `config/base-schema.json` at runtime; references must not copy Feishu table IDs, localized field names, or localized status values. The schema's `language_policy` is authoritative for spoken language and generation-prompt language; creative workflows must also read [language-policy.md](language-policy.md). When a live Base contains compatibility columns, also read [table-field-hygiene.md](table-field-hygiene.md) and use only its canonical mappings.
 
 ## Source precedence
 
