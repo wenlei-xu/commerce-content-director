@@ -45,6 +45,7 @@ At the storyboard-only stage, deliver only the evidence, accepted masters, and f
 Reference evidence masters are audit artifacts and may contain up to 15 RFs. They are not Flow2API inputs. Deliver separate final-generation boards in `generation-storyboards/`:
 
 - Use the target duration and raw-segment duration from `plan/content-system-config-snapshot.json`, after confirming the current model catalog can execute them. Assemble the configured chronological segments to the exact approved target.
+- Final video uses the fixed `omni_portrait` model. Each Omni Job consumes one board and produces one 10-second portrait 9:16 raw segment. A 20/30/40-second target therefore requires exactly 2/3/4 chronological boards and segments. If the exact Omni key is unavailable, stop instead of substituting another video model.
 - Deliver exactly one PNG board per raw segment, named `Segment-XX_start-end.png`.
 - Each board has the chronological panel count, grid, ratio and raw duration specified in `plan/content-system-config-snapshot.json`. Set explicit start/end times that sum to the raw segment duration; panel durations may vary with the action. Generate the complete board in one image request. State the layout, reading order, timing, zero gutter, and no-text/no-watermark/no-UI constraints in that prompt. Do not crop, split, resize, or locally compose its returned board; record the board prompt and all panel timings in the package manifest.
 - Upload every board to the linked content version's `content_library.storyboard_attachments` field. Re-read the record and verify its attachment count, filenames, and file tokens before setting the schema-resolved pending-review state.
@@ -57,6 +58,6 @@ Reference evidence masters are audit artifacts and may contain up to 15 RFs. The
 - New product identity, connections, relative position, and user-stated usage are visible. No old product, old packaging, UI, watermark, subtitle, or incompatible copy remains.
 - For filling, opening, disassembly, or cleaning, provide an interaction substitution record and visible proof. Wrong hole, direction, cap, lid, separated piece, opaque lattice, or implausible drainage fails.
 - For `full_replication`, masters are balanced chronological partitions with full, unique coverage of all valid RFs. A master may not import a batch or master from another run.
-- Each Flow2API board maps to one configured raw segment. The complete board set must cover the configured target duration exactly.
+- Each Flow2API board maps to one 10-second Omni raw segment. The complete board set must cover the configured target duration exactly and the assembled film must remain portrait 9:16.
 - The remote `content_library.storyboard_attachments` field contains all matching board attachments before the schema-resolved pending-review state is set.
 - Regenerate a failed batch once only. If it still fails, mark it FAIL and stop rather than changing batch boundaries.

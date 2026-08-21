@@ -19,4 +19,4 @@ Use schema keys in workflow documents, for example `content_library.executed_cou
 
 ## Model capability rule
 
-Workflows name capabilities such as `storyboard_image` and `portrait_video`, not vendor names or model IDs. Select the actual model key and input limit from the current catalog, record them in the run snapshot, and use that snapshot for every Job in the run.
+Storyboard workflows may select the actual image model key from the current catalog. Final-video workflows are the exception: the model key is fixed to `omni_portrait`. Read the current catalog only to verify that this exact key is available and to record its current Omni R2V input limit. Record `omni_portrait`, the 10-second raw-segment contract, portrait 9:16 output, and the input limit in the run snapshot. If the exact key is unavailable or the catalog cannot expose its input limit, stop; never substitute another video model.

@@ -14,6 +14,9 @@ from lifecycle_sweeper import Feishu, number, text
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = SKILL_DIR / "config" / "base-schema.json"
+FIXED_VIDEO_MODEL = "omni_portrait"
+FIXED_RAW_SEGMENT_SECONDS = 10
+FIXED_VIDEO_RATIO = "9:16"
 
 
 def choices(value: Any) -> list[int]:
@@ -46,17 +49,23 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
     columns = number(fields.get(mapping["storyboard_columns"]), -1)
     rows = number(fields.get(mapping["storyboard_rows"]), -1)
     ratio = text(fields.get(mapping["panel_ratio"]))
-    if raw <= 0 or not raw.is_integer() or columns <= 0 or not columns.is_integer() or rows <= 0 or not rows.is_integer():
-        raise ValueError("原始分段时长和分镜行列数必须为正整数")
+    if raw != FIXED_RAW_SEGMENT_SECONDS or columns <= 0 or not columns.is_integer() or rows <= 0 or not rows.is_integer():
+        raise ValueError("Omni 原始分段时长必须固定为 10 秒，且分镜行列数必须为正整数")
     if not re.fullmatch(r"[1-9]\d*:[1-9]\d*", ratio):
         raise ValueError("单格画幅比例必须采用正整数比，例如 9:16")
+    if ratio != FIXED_VIDEO_RATIO:
+        raise ValueError("Omni 最终视频必须采用 9:16 竖屏配置")
     raw_int = int(raw)
     if any(duration % raw_int for duration in allowed):
         raise ValueError("每个允许视频时长必须能被原始分段时长整除")
     if target not in allowed:
         raise ValueError("目标时长不在活动内容系统配置的允许列表中")
+    if target % FIXED_RAW_SEGMENT_SECONDS:
+        raise ValueError("目标时长必须能被 Omni 的 10 秒原始分段整除")
     if image_max_inputs < 1 or video_max_inputs < 1:
         raise ValueError("模型输入上限必须为正整数")
+    if video_model != FIXED_VIDEO_MODEL:
+        raise ValueError(f"最终视频模型必须固定为 {FIXED_VIDEO_MODEL}")
     return {
         "config_record_id": record["record_id"],
         "config_id": text(fields.get(mapping["config_id"])),
@@ -67,9 +76,11 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
         "storyboard": {"columns": int(columns), "rows": int(rows), "panel_ratio": ratio},
         "model_catalog": {
             "image_model": image_model,
-            "video_model": video_model,
+            "video_model": FIXED_VIDEO_MODEL,
             "image_max_inputs": image_max_inputs,
             "video_max_inputs": video_max_inputs,
+            "raw_segment_seconds": FIXED_RAW_SEGMENT_SECONDS,
+            "video_ratio": FIXED_VIDEO_RATIO,
         },
     }
 

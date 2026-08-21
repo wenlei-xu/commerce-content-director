@@ -17,7 +17,6 @@ DEPRECATED_MARKERS = (
     "six_view",
     "Banana Pro",
     "gemini-3.0-pro-image-landscape",
-    "omni_portrait",
 )
 
 

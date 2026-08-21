@@ -1,10 +1,24 @@
 # Final-generation video prompt contract
 
-Read this contract before writing any video-generation prompt for a portrait-video Segment. It is not the contract for the storyboard-image Job: that Job has no storyboard-board input yet and must use the actual role map prepared by [storyboard-generation.md](workflows/storyboard-generation.md).
+Every final-generation prompt is for the fixed `omni_portrait` model. Each Job generates exactly one 10-second raw portrait 9:16 segment. The complete 20/30/40-second film is assembled from exactly 2/3/4 chronological Omni segments. Do not write a prompt for, or submit, another video model.
+
+Read this contract before writing any Omni video-generation prompt for a portrait 9:16 Segment. It is not the contract for the storyboard-image Job: that Job has no storyboard-board input yet and must use the actual role map prepared by [storyboard-generation.md](workflows/storyboard-generation.md).
 
 ## Language and source-of-truth gate
 
 Resolve `target_spoken_language` from the schema's language policy before writing the prompt. The current policy is `th` (Thai), so every spoken line, voice instruction, and timed dialogue window must be Thai. The surrounding generation prompt may be written in English or Chinese; it is control text, not spoken content. A task or script that requests Chinese, English, or another spoken language is a planning-data conflict: stop and fix the data before generation. Do not add a translated second dialogue line. If the selected audio mode is `natural_sound_only`, include no dialogue or voiceover at all.
+
+## Segment-scoped dialogue gate
+
+The approved full-film script and video prompt are planning sources, not payloads that may be copied unchanged into every Omni Job. Before writing prompts, create a dialogue allocation manifest that records each approved line's identity, exact text, absolute film timing, assigned Segment, and Segment-local timing.
+
+- Assign each approved spoken line to exactly one 10-second Segment unless the approved script explicitly marks an intentional repeat.
+- Rebase the assigned line's timing to the current Job's local `0.0–10.0s` window.
+- Include only the current Segment's literal spoken lines in its prompt. Do not quote earlier or later Segment dialogue anywhere, including summaries, continuity context, examples, or negative instructions; use a generic instruction such as `Do not speak any other line` instead.
+- A `natural_sound_only` Segment contains no spoken line.
+- If any line crosses a Segment boundary or its assignment is ambiguous, stop before submission and fix the approved timing data. Do not improvise a split, duplicate the line, or let Omni continue it across Jobs.
+
+Validate the complete prompt set as one unit before submitting any Job: every manifest line must occur in exactly its assigned prompt and no other prompt, subject only to an explicitly approved intentional repeat. Store the manifest and exact submitted per-segment prompts in the run package.
 
 ## The five mandatory blocks
 
@@ -33,7 +47,7 @@ State that the routed `subject_anchor` and selected subject record are the only 
 
 ### 4. LANGUAGE, AUDIO AND TIMED DIALOGUE
 
-State `target_spoken_language=th`, the voice type/style, audio behavior and every dialogue window. Each line must have an explicit start and end time and must be spoken exactly in Thai. The block headings and visual/product instructions may remain in English or Chinese. State whether the raw Omni segment should generate native voice audio or remain natural-sound-only. Spoken dialogue is audio only; it must never be visualized as text. Do not add a second-language translation or Chinese transliteration as an alternate spoken line. For spoken modes, write the actual approved Thai lines here and state `no Mandarin and no Chinese speech`.
+State `target_spoken_language=th`, the voice type/style, audio behavior and every dialogue window assigned to the current Segment. Use only Segment-local `0.0–10.0s` times. Each assigned line must have an explicit start and end time and must be spoken exactly in Thai. The block headings and visual/product instructions may remain in English or Chinese. State whether the raw Omni segment should generate native voice audio or remain natural-sound-only. Spoken dialogue is audio only; it must never be visualized as text. Do not add a second-language translation or Chinese transliteration as an alternate spoken line. For spoken modes, write the actual approved Thai lines for this Segment only, state `no Mandarin and no Chinese speech`, and state `Do not speak any other line` without quoting dialogue assigned to another Segment.
 
 ### 5. NO TEXT AND CROSS-SEGMENT CONTINUITY
 
@@ -47,7 +61,12 @@ Use the five block headings verbatim or an unambiguous equivalent in every final
 2. the position → role map matches `product_asset_plan` and the model input array;
 3. only the approved target language appears in spoken lines;
 4. the prompt contains no conflicting product geometry or subject description;
-5. every Segment repeats the subject identity lock and continuity handoff; and
-6. the no-text rule is explicit and does not conflict with the dialogue block.
+5. every Segment repeats the subject identity lock and continuity handoff;
+6. the no-text rule is explicit and does not conflict with the dialogue block;
+7. every approved spoken line appears in exactly its assigned Segment prompt and no other prompt, except an explicitly approved intentional repeat;
+8. every dialogue window uses Segment-local `0.0–10.0s` timing; and
+9. no prompt quotes dialogue from an earlier or later Segment anywhere in its text.
 
 If the prompt fails any check, do not submit the Job. Fix the task/script/data conflict first or stop and report it.
+
+After generation, run ASR on each raw Segment before assembly. Reject and regenerate only the affected Segment when ASR shows an omitted assigned line, an unapproved added line, or dialogue belonging to another Segment. Assembly does not waive this per-Segment gate; run full-film ASR again after assembly to verify order and boundaries.
