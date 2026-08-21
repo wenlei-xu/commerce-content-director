@@ -4,7 +4,7 @@ Read this contract before writing any video-generation prompt for a portrait-vid
 
 ## Language and source-of-truth gate
 
-Resolve the spoken language from the selected task, platform/account, and approved script before writing the prompt. The prompt, script, and voice lines must use one target language only. If the task says Thai, every spoken line must be Thai and no Chinese dialogue may appear in the prompt; if the task says Chinese, use Chinese consistently. A language mismatch between the task and the requested campaign is a planning-data conflict: stop and fix the task/script before generation. Do not put a translation of the dialogue into the prompt as a second spoken line.
+Resolve `target_language` from the schema's language policy before writing the prompt. The current policy is `th` (Thai), so every spoken line, voice instruction, and timed dialogue window must be Thai. A task, script, or prompt that requests Chinese, English, or another spoken language is a planning-data conflict: stop and fix the data before generation. Do not put a translation of the dialogue into the prompt as a second spoken line. If the selected audio mode is `natural_sound_only`, include no dialogue or voiceover at all.
 
 ## The five mandatory blocks
 
@@ -33,7 +33,7 @@ State that the routed `subject_anchor` and selected subject record are the only 
 
 ### 4. LANGUAGE, AUDIO AND TIMED DIALOGUE
 
-State the target spoken language, voice type/style, audio behavior and every dialogue window. Each line must have an explicit start and end time and must be spoken exactly in the approved target language. State whether the raw Omni segment should generate native voice audio or remain natural-sound-only. Spoken dialogue is audio only; it must never be visualized as text. Do not include a second-language translation, Chinese transliteration, or unapproved claims in the prompt. If the target is Thai, write the actual approved Thai lines here and state `no Mandarin and no Chinese speech`.
+State `target_language=th`, the voice type/style, audio behavior and every dialogue window. Each line must have an explicit start and end time and must be spoken exactly in Thai. State whether the raw Omni segment should generate native voice audio or remain natural-sound-only. Spoken dialogue is audio only; it must never be visualized as text. Do not include a second-language translation, Chinese transliteration, or unapproved claims in the prompt. For spoken modes, write the actual approved Thai lines here and state `no Mandarin and no Chinese speech`.
 
 ### 5. NO TEXT AND CROSS-SEGMENT CONTINUITY
 

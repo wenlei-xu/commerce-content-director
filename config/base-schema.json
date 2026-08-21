@@ -1,7 +1,13 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
+  "language_policy": {
+    "target_language": "th",
+    "language_name": "Thai",
+    "allowed_target_languages": ["th"],
+    "override_requires_schema_change": true
+  },
   "tables": {
     "system_config": {
       "table_id": "tblYLhuiGBAf01kd",

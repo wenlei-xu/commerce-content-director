@@ -25,6 +25,7 @@ For a normal original or replication run, the handoff order is strategy → stor
 Read these only when the selected workflow names them:
 
 - [authority.md](references/invariants/authority.md): source precedence and schema resolution.
+- [language-policy.md](references/invariants/language-policy.md): the current fixed Thai target-language policy and audio exceptions.
 - [content-field-contract.md](references/invariants/content-field-contract.md): ownership and boundaries for core benefits, core idea, and creative requirements.
 - [table-field-hygiene.md](references/invariants/table-field-hygiene.md): canonical versus compatibility fields, counters, formats, durations, and subject-role cardinality.
 - [execution-accounting.md](references/invariants/execution-accounting.md): attempts, accepted films, and count semantics.
@@ -35,7 +36,7 @@ Read these only when the selected workflow names them:
 Before reading or mutating Feishu creative records, preparing the required local package, or submitting a Job:
 
 1. Call Flow2API through the registered Sidecar MCP with `flow_get_service_health(include_dependencies=true)` and `flow_list_models(include_unavailable=true)`.
-2. Read `config/base-schema.json`, then make a read-only Feishu metadata call for the logical tables used by the selected workflow.
+2. Read `config/base-schema.json`, including its `language_policy`, then make a read-only Feishu metadata call for the logical tables used by the selected workflow.
 3. Record only scrubbed status and error summaries. Never print credentials, access tokens, temporary media URLs, or raw Base64.
 
 If both Flow2API and Feishu MCP are unavailable, stop. If only one is unavailable, block only the workflow actions that require that service and keep diagnostics separate from creative artifacts.
@@ -43,6 +44,8 @@ If both Flow2API and Feishu MCP are unavailable, stop. If only one is unavailabl
 If authoritative records or assets conflict, stop and report the conflict. Do not silently normalize, translate, substitute a product, or reuse a stale local interpretation.
 
 Use the registered Flow2API MCP and the model capability selected from the current catalog. Never call private model endpoints directly. Image payloads must contain validated raw image bytes in the current MCP schema; never place tokens, URLs, audit objects, or Base64 in prompts or Feishu fields.
+
+The current campaign language policy is fixed to Thai (`target_language=th`). Every video with speech must use Thai voice lines only. A task, script, prompt, or user-provided creative direction that requests another spoken language is a planning conflict and must stop until the language policy is explicitly changed in the schema. Do not infer language from a platform name or free-text creative requirement.
 
 Create a minimal local run package before generation. At minimum retain `package.json`, `generation-jobs.json`, `quality-report.md`, exact submitted prompts, asset role/hash mappings, and temporary outputs. The package is evidence, not a replacement for Feishu source records.
 
