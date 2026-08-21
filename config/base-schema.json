@@ -225,7 +225,8 @@
         "film_id": "成片ID",
         "video_attachment": "最终视频",
         "duration_seconds": "视频时长（秒）",
-        "generated_at": "生成时间"
+        "generated_at": "生成时间",
+        "actual_submitted_prompt": "实际提交 Prompt"
       }
     },
     "tiktok_ingestion": {
