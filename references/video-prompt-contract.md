@@ -2,7 +2,7 @@
 
 Every final-generation prompt is for the fixed `omni_portrait` model. Each Job generates exactly one 10-second raw portrait 9:16 segment. The complete 20/30/40-second film is assembled from exactly 2/3/4 chronological Omni segments. Do not write a prompt for, or submit, another video model.
 
-Read this contract before writing any Omni video-generation prompt for a portrait 9:16 Segment. It is not the contract for the storyboard-image Job: that Job has no storyboard-board input yet and must use the actual role map prepared by [storyboard-generation.md](workflows/storyboard-generation.md).
+Read this contract before writing any Omni video-generation prompt for a portrait 9:16 Segment. For routed image roles and clean-input requirements, also read [reference-asset-contract.md](reference-asset-contract.md). It is not the contract for the storyboard-image Job: read [image-prompt-contract.md](image-prompt-contract.md) instead.
 
 ## Language and source-of-truth gate
 
@@ -19,6 +19,19 @@ The approved full-film script and video prompt are planning sources, not payload
 - If any line crosses a Segment boundary or its assignment is ambiguous, stop before submission and fix the approved timing data. Do not improvise a split, duplicate the line, or let Omni continue it across Jobs.
 
 Validate the complete prompt set as one unit before submitting any Job: every manifest line must occur in exactly its assigned prompt and no other prompt, subject only to an explicitly approved intentional repeat. Store the manifest and exact submitted per-segment prompts in the run package.
+
+## Compiler input and evidence
+
+Create `plan/generation-prompt-plan.json` with schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, the configured control-prompt language, `target_spoken_language: "th"`, `raw_segment_seconds: 10`, common approved constraints, and one entry per Segment. Each entry provides its input role map, continuous `beats` from `0.0` to `10.0`, hard constraints, subject identity, local dialogue allocation, audio mode, and continuity handoff.
+
+Compile and validate before submitting any Job:
+
+```powershell
+python scripts/compile_generation_prompts.py plan/generation-prompt-plan.json --out plan/compiled-prompts.json
+python scripts/validate_prompt_bundle.py plan/compiled-prompts.json
+```
+
+Keep `package.json`, `generation-jobs.json`, `dialogue-allocation.json`, `quality-report.md`, the source plan, compiled prompts, validator output, asset role/hash mappings, and temporary outputs. This evidence supports a resumable run; it never replaces the approved Feishu records.
 
 ## The five mandatory blocks
 
