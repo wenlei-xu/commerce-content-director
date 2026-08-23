@@ -18,6 +18,8 @@ Use the smallest evidence set that proves the current Segment. Do not send every
 
 For a visible product, route one clean `product_anchor` by default. Add exactly one targeted `product_detail` for a structure-sensitive beat, or one clean `product_scene` for a scale/placement-sensitive beat. Add both only when the same Segment genuinely needs both facts and the catalog input limit permits it. A later final-video Segment normally uses `continuity_frame` instead of a low-value scene reference.
 
+When the product record's `default_anchor` is an approved six-panel product board, route that board as the sole product input by default. Do not automatically add the product's detail or scene attachments; retain them as source evidence and use them only when the board is explicitly insufficient for the current shot. For the pineapple board, the bottom-hole close-up and inverted loading panel establish the loading path; the other overall panels establish identity and proportions. The board's hand demonstrates the product action only and does not replace a selected subject anchor.
+
 ## Input hygiene
 
 Generation inputs must be clean derivatives of authoritative source assets when the source contains labels, borders, watermarks, UI, comparison grids, or unrelated subjects. Retain the original for audit, but submit the clean derivative and record both hashes.

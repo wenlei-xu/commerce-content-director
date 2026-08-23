@@ -8,9 +8,9 @@ When a task selects one to three core benefits, copy only the selected value pro
 
 For each Job, create `product_asset_plan` from shot risk:
 
-- `default_anchor` is the identity baseline for every relevant Job.
-- `detail_assets` are required for structure-sensitive shots.
-- `scene_assets` are required for scale, placement, or real-use interaction shots.
+- `default_anchor` is the identity baseline for every relevant Job. When it is the approved six-panel product board, route only this attachment by default.
+- `detail_assets` and `scene_assets` remain source evidence and compatibility fallbacks; do not add them automatically when the approved default anchor already proves the current shot.
+- Add a detail or scene asset only when the selected shot has a fact that the default anchor cannot prove and the workflow explicitly records that reason.
 - A recurring subject adds a subject anchor without displacing required product evidence.
 
 Record each asset's schema field, filename, remote token, local hash, role, input position, and segment mapping. Validate bytes, MIME, dimensions, hash, count, and role mapping before submission. Do not infer an opening, loading path, dispensing path, connection, or permitted action from a name, prior output, or model memory.

@@ -34,8 +34,8 @@ from download_feishu_media import (
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_CACHE_DIR = SKILL_DIR / ".cache" / "flow-inputs"
-RENDER_POLICY = "flow-input-v1-max-edge-1024-jpeg-q88-no-crop"
-MAX_EDGE = 1024
+RENDER_POLICY = "flow-input-v2-max-edge-2048-jpeg-q88-no-crop"
+MAX_EDGE = 2048
 JPEG_QUALITY = 88
 
 
