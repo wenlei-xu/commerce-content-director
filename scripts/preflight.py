@@ -1,42 +1,163 @@
 #!/usr/bin/env python3
-"""Check local dependencies required before the automated storyboard workflow."""
+"""Resolve and check local dependencies for one director workflow.
+
+Remote Feishu and Flow2API checks stay at the MCP seam. This script reports
+which of those checks the caller must make, and verifies only local runtime
+requirements selected by config/workflow-capabilities.json.
+"""
 
 from __future__ import annotations
 
 import argparse
 import importlib.util
+import json
+from pathlib import Path
+from typing import Any
 
 from runtime import find_binary
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--require-asr", action="store_true", help="Fail when no supported local Whisper backend is available")
-    args = parser.parse_args()
-    checks = {
-        "ffmpeg": find_binary("ffmpeg"),
-        "ffprobe": find_binary("ffprobe"),
-        "Pillow": importlib.util.find_spec("PIL") is not None,
-        "faster-whisper": importlib.util.find_spec("faster_whisper") is not None,
-        "openai-whisper": importlib.util.find_spec("whisper") is not None,
-        "mlx-whisper": importlib.util.find_spec("mlx_whisper") is not None,
+SKILL_DIR = Path(__file__).resolve().parent.parent
+CAPABILITY_CONFIG = SKILL_DIR / "config" / "workflow-capabilities.json"
+ASR_BACKENDS = ("faster_whisper", "whisper", "mlx_whisper")
+REMOTE_CAPABILITIES = {"feishu", "flow2api"}
+
+
+def load_policy(path: Path = CAPABILITY_CONFIG) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def resolve_requirements(
+    policy: dict[str, Any],
+    workflow: str,
+    *,
+    mode: str | None = None,
+    audio_mode: str | None = None,
+    source_has_audio: bool = False,
+) -> dict[str, str]:
+    """Resolve conditional capability states to required or not_required."""
+    workflows = policy.get("workflows", {})
+    if workflow not in workflows:
+        raise ValueError(f"Unknown workflow: {workflow}")
+    profile = workflows[workflow]
+    requirements = dict(profile["capabilities"])
+    conditions = dict(profile.get("conditions", {}))
+    if mode and mode in profile.get("modes", {}):
+        mode_profile = profile["modes"][mode]
+        requirements.update(mode_profile.get("capabilities", {}))
+        conditions.update(mode_profile.get("conditions", {}))
+
+    for capability, state in list(requirements.items()):
+        if state != "conditional":
+            continue
+        condition = conditions.get(capability)
+        if condition == "source_has_audio=true":
+            requirements[capability] = "required" if source_has_audio else "not_required"
+        elif condition == "audio_mode=spoken|sparse_spoken":
+            if audio_mode is None:
+                raise ValueError(f"{workflow} requires --audio-mode to resolve {capability}")
+            requirements[capability] = "required" if audio_mode in {"spoken", "sparse_spoken"} else "not_required"
+        else:
+            raise ValueError(f"Unsupported condition for {capability}: {condition!r}")
+    return requirements
+
+
+def local_checks(requirements: dict[str, str]) -> tuple[dict[str, Any], list[str]]:
+    checks: dict[str, Any] = {}
+    missing: list[str] = []
+    if requirements.get("ffmpeg") == "required":
+        ffmpeg, ffprobe = find_binary("ffmpeg"), find_binary("ffprobe")
+        checks["ffmpeg"] = ffmpeg or "not found"
+        checks["ffprobe"] = ffprobe or "not found"
+        if not ffmpeg:
+            missing.append("ffmpeg")
+        if not ffprobe:
+            missing.append("ffprobe")
+    if requirements.get("image_tools") == "required":
+        available = importlib.util.find_spec("PIL") is not None
+        checks["Pillow"] = available
+        if not available:
+            missing.append("Pillow")
+    if requirements.get("asr") == "required":
+        backends = {backend: importlib.util.find_spec(backend) is not None for backend in ASR_BACKENDS}
+        checks["asr_backends"] = backends
+        if not any(backends.values()):
+            missing.append("a supported Whisper backend")
+    return checks, missing
+
+
+def report_for(
+    policy: dict[str, Any],
+    workflow: str,
+    *,
+    mode: str | None = None,
+    audio_mode: str | None = None,
+    source_has_audio: bool = False,
+    require_asr: bool = False,
+) -> dict[str, Any]:
+    requirements = resolve_requirements(
+        policy,
+        workflow,
+        mode=mode,
+        audio_mode=audio_mode,
+        source_has_audio=source_has_audio,
+    )
+    if require_asr:
+        requirements["asr"] = "required"
+    checks, missing = local_checks(requirements)
+    return {
+        "workflow": workflow,
+        "mode": mode,
+        "audio_mode": audio_mode,
+        "source_has_audio": source_has_audio,
+        "requirements": requirements,
+        "remote_checks_required": sorted(
+            capability for capability in REMOTE_CAPABILITIES if requirements.get(capability) == "required"
+        ),
+        "local_checks": checks,
+        "missing_local_requirements": missing,
+        "ok": not missing,
     }
-    for name, value in checks.items():
-        print(f"{name}: {value or 'not found'}")
-    missing = []
-    if not checks["ffmpeg"]:
-        missing.append("ffmpeg")
-    if not checks["ffprobe"]:
-        missing.append("ffprobe")
-    if checks["Pillow"] is not True:
-        missing.append("Pillow")
-    asr_available = any(checks[name] is True for name in ("faster-whisper", "openai-whisper", "mlx-whisper"))
-    if args.require_asr and not asr_available:
-        missing.append("a supported Whisper backend")
-    if missing:
-        raise SystemExit("PREFLIGHT BLOCKED: " + ", ".join(missing))
-    print("PREFLIGHT OK")
+
+
+def main() -> int:
+    policy = load_policy()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--workflow", required=True, choices=sorted(policy["workflows"]))
+    parser.add_argument("--mode", help="Selected task mode, when the workflow is mode-dependent")
+    parser.add_argument("--audio-mode", choices=("spoken", "sparse_spoken", "natural_sound_only"))
+    parser.add_argument("--source-has-audio", action="store_true")
+    parser.add_argument("--require-asr", action="store_true", help="Compatibility override: require a local ASR backend")
+    parser.add_argument("--json", action="store_true", help="Emit a machine-readable report")
+    args = parser.parse_args()
+    try:
+        report = report_for(
+            policy,
+            args.workflow,
+            mode=args.mode,
+            audio_mode=args.audio_mode,
+            source_has_audio=args.source_has_audio,
+            require_asr=args.require_asr,
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
+
+    if args.json:
+        print(json.dumps(report, ensure_ascii=False))
+    else:
+        print(f"workflow: {report['workflow']}")
+        print("requirements: " + ", ".join(f"{key}={value}" for key, value in sorted(report["requirements"].items())))
+        print("remote MCP checks: " + (", ".join(report["remote_checks_required"]) or "none"))
+        for name, value in report["local_checks"].items():
+            print(f"{name}: {value}")
+    if report["missing_local_requirements"]:
+        if not args.json:
+            print("PREFLIGHT BLOCKED: " + ", ".join(report["missing_local_requirements"]))
+        return 2
+    if not args.json:
+        print("PREFLIGHT LOCAL CHECKS OK")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -1,0 +1,28 @@
+{
+  "schema_version": 2,
+  "capability_states": ["required", "conditional", "not_required"],
+  "workflows": {
+    "creative_direction": {
+      "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+    },
+    "script_production": {
+      "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+    },
+    "storyboard_generation": {
+      "capabilities": {"feishu": "required", "flow2api": "required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "required"},
+      "modes": {
+        "full_replication": {
+          "capabilities": {"ffmpeg": "required", "asr": "conditional"},
+          "conditions": {"asr": "source_has_audio=true"}
+        }
+      }
+    },
+    "final_video": {
+      "capabilities": {"feishu": "required", "flow2api": "required", "ffmpeg": "required", "asr": "conditional", "image_tools": "required"},
+      "conditions": {"asr": "audio_mode=spoken|sparse_spoken"}
+    },
+    "lifecycle": {
+      "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+    }
+  }
+}

@@ -1,4 +1,4 @@
 interface:
   display_name: "电商内容生产总控"
-  short_description: "从母题收敛、产品一致性分镜到成片验收与生命周期管理"
-  default_prompt: "使用 $commerce-content-director：按当前请求选择一个工作流；从内容母题或策划任务开始，经过产品一致性分镜和人工审核后，才可对明确命名的内容版本生成并验收最终成片。"
+  short_description: "从创作需求、创意方向和执行脚本到成片验收"
+  default_prompt: "使用 $commerce-content-director：从创作需求收敛创意方向，先生成并锁定可执行脚本，再完成分镜、视频和成片验收。"

@@ -1,10 +1,8 @@
 # Execution accounting
 
-Keep two counters conceptually separate:
+Keep two counters separate:
 
-- `attempt_count`: every submitted Job attempt, including retries, terminal failures, timeouts, and partial clips. Store it in `generation-jobs.json` with the payload digest and attempt key.
-- `accepted_film_count`: complete target-duration films that passed technical and visual review, were attached to a new final-film record, and were freshly read as present and playable.
+- attempt_count: every submitted video Job attempt. Store it only in generation-jobs.json with run ID, script ID, attempt ID and payload digest.
+- accepted_film_count: complete target-duration films that passed review, were attached to one final-film record and were freshly read as playable.
 
-The content version's business execution count represents `accepted_film_count`, not Job submissions or credit usage. Increment it exactly once after final-film attachment verification. If the stored count disagrees with qualifying linked final films, stop and report the inconsistency.
-
-Every attempt has a stable `run_id`, `content_id`, `attempt_id`, payload digest, and idempotency key. Reuse the key only to recover an uncertain submission of the unchanged payload. A deliberate visual regeneration receives a new attempt key and preserves the previous artifact and reason.
+The script business counter is accepted_film_count. It changes exactly once after attachment verification. Stop if the stored value disagrees with qualifying final-film records.

@@ -4,6 +4,8 @@ Read [storyboard-generation.md](storyboard-generation.md), [authority.md](../inv
 
 Use this workflow only for the `full_replication` task mode. It preserves source chronology, composition, rhythm, and phone-video texture while changing product-related pixels and fact-incompatible actions only as documented.
 
+Use `python scripts/preflight.py --workflow storyboard_generation --mode full_replication --source-has-audio --json` when the source has an audio track; omit `--source-has-audio` when it does not. This mode requires Feishu, Flow2API, and ffmpeg; ASR is conditional on source audio.
+
 1. Probe the source, transcribe and align audio when present, extract second frames, remove only a verified terminal invalid tail, and write the dynamic-master evidence package.
 2. Write product-interaction facts, user constraints, fixed chronological reference batches, and the balanced master groups before replacement generation.
 3. Process every batch in order with the configured storyboard-image capability. Preserve source geometry and review product facts, action, scale, shot order, and clean output. Regenerate a failed batch once; a second failure stops the package.

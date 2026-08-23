@@ -1,16 +1,15 @@
 # Workflow: final video generation and acceptance
 
-Read [authority.md](../invariants/authority.md), [execution-accounting.md](../invariants/execution-accounting.md), [mutation-and-recovery.md](../invariants/mutation-and-recovery.md), [configuration.md](../configuration.md), [content-task-contract.md](../domain/content-task-contract.md), [reference-asset-contract.md](../reference-asset-contract.md), [delivery-contract.md](../delivery-contract.md), and [video-prompt-contract.md](../video-prompt-contract.md).
+Read authority.md, script-contract.md, script-validation.md, execution-accounting.md, mutation-and-recovery.md, configuration.md, product-contract.md, subject-contract.md, delivery-contract.md and video-prompt-contract.md.
 
-Use this workflow only after the exact content-library record is freshly read as approved and the user explicitly names that record or `content_id`.
+Use only after the user names a locked script whose storyboard status is passed.
 
-1. Fresh-read the exact content version, links, approved boards, script, target language, video prompt, business execution limit, and qualifying linked final films. Resolve the execution slot using [execution-accounting.md](../invariants/execution-accounting.md); do not submit when the count is inconsistent or exhausted.
-2. Build a dialogue allocation manifest and a continuous beat timeline before writing any Job prompt. Assign every approved spoken line to exactly one 10-second Segment, preserve its text verbatim, and rebase its timing to that Segment's local `0.0–10.0s` window. An intentional repeated line must be explicitly marked in the approved script. A line that crosses a Segment boundary or cannot be assigned unambiguously is a planning conflict: stop before submission and fix the approved timing data.
-3. Build the actual per-segment input array and role map from the accepted boards and routed product/subject assets. Write `plan/generation-prompt-plan.json`, then compile prompts using [video-prompt-contract.md](../video-prompt-contract.md) and `scripts/compile_generation_prompts.py`. Never submit the approved full-film prompt unchanged to multiple Jobs, and never quote earlier or later Segment dialogue as context or as a negative instruction.
-4. Before submission, run `scripts/validate_prompt_bundle.py` over the compiled prompt set and compare it with the dialogue allocation manifest. Every approved line must occur in exactly its assigned Segment prompt and no other Segment prompt, except an explicitly approved intentional repeat; a `natural_sound_only` Segment must contain no spoken line. Store the plan, manifest, exact prompts, asset role/hash mappings, validator output, and `generation-jobs.json` in the run package. A mismatch blocks all Jobs for that film.
-5. Submit asynchronous Jobs with `model=omni_portrait` and stable attempt identities. Use the current catalog only for the verified Omni R2V input limit. If `omni_portrait` is unavailable, stop; do not retry with Veo or another video model. Wait through the configured deadline; non-terminal states are not failures. Preserve raw outputs and deliberate regeneration reasons.
-6. Run ASR on every raw Segment before assembly. Compare it with that Segment's dialogue-manifest entries and reject the Segment if it omits its assigned speech, adds an unapproved line, or speaks dialogue assigned to another Segment.
-7. Assemble only the accepted chronological segments: exactly 2, 3, or 4 ten-second Omni segments for 20, 30, or 40 seconds. Verify portrait 9:16 stream geometry, codec readability, exact target duration, audio, and range coverage.
-8. Run ASR again on the assembled video's final audio. Compare the actual spoken language, words, order, and Segment boundaries with the complete approved script; produce aligned subtitle timing and SRT, and burn subtitles unless the approved task explicitly has no speech or the user explicitly requests no subtitles.
-9. OCR and review the burned candidate for subtitle timing, unintended text, product identity, subject continuity, scene, audio, and technical acceptance. Keep raw, intermediate, final, and rejected artifacts separately named.
-10. After acceptance, create one idempotent final-film record, attach the complete playable file, fresh-read its link/token/media, and increment the accepted-film count exactly once. Any failure leaves evidence and a resumable run; it does not justify a duplicate final-film record.
+1. Fresh-read the script, final boards, structured script, dialogue manifest, Segment states, video prompt and accepted-film count.
+2. Allocate every spoken line to exactly one Segment. A line cannot cross Segment boundaries.
+3. Compile Segment prompts from the locked script and approved boards. Do not independently rewrite dialogue or CTA.
+4. Generate asynchronous jobs with stable run and attempt IDs.
+5. For spoken modes, ASR-check the completed segments and assembled film against line IDs and final Thai dialogue. For natural sound, perform manual audio review.
+6. Assemble only accepted chronological segments, validate duration, portrait geometry, continuity and subtitles.
+7. After acceptance, create one final-film record linked to the script, attach the playable file and fresh-read it. Increment accepted-film count exactly once.
+
+Stop on exhausted execution limit, any dialogue mismatch, missing storyboard, failed acceptance or failed remote verification.

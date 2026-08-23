@@ -1,0 +1,39 @@
+import importlib.util
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SCRIPTS = ROOT / "scripts"
+
+
+def load(name: str):
+    spec = importlib.util.spec_from_file_location(name, SCRIPTS / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader
+    spec.loader.exec_module(module)
+    return module
+
+
+class StructuredScriptContractTest(unittest.TestCase):
+    def setUp(self):
+        self.script = json.loads((Path(__file__).parent / "fixtures" / "valid-structured-script.json").read_text(encoding="utf-8"))
+        self.validator = load("validate_structured_script")
+        self.renderer = load("render_script_views")
+
+    def test_valid_script_passes(self):
+        self.assertTrue(self.validator.validate(self.script)["ok"])
+
+    def test_dialogue_cannot_cross_segment(self):
+        self.script["dialogue"][1]["end"] = 11
+        self.assertFalse(self.validator.validate(self.script)["ok"])
+
+    def test_renderer_has_canonical_views(self):
+        result = self.renderer.render(self.script)
+        self.assertIn("BEAT-01", result["three_track_script"])
+        self.assertIn("LINE-01", result["dialogue_manifest"])
+
+
+if __name__ == "__main__":
+    unittest.main()

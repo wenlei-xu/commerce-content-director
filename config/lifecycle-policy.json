@@ -1,12 +1,11 @@
 {
   "schema": "base-schema.json",
   "timezone": "Asia/Shanghai",
-  "scope": "branching_chain_only",
+  "scope": "creative_chain_only",
   "tables": {
-    "mother_topics": { "terminal_process_keys": ["converged", "failed"] },
-    "candidates": { "rejected_status_keys": ["rejected"], "selected_status_keys": ["selected"] },
-    "planning_tasks": {},
-    "content_library": {},
+    "creative_requests": {"terminal_process_keys": ["converged", "failed"]},
+    "creative_directions": {"rejected_status_keys": ["rejected"], "locked_status_keys": ["locked"]},
+    "scripts": {},
     "final_films": {}
   }
 }

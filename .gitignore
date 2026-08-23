@@ -16,6 +16,8 @@ runs/
 outputs/
 artifacts/
 *.log
+.tmp_*/
+migration-backups/
 
 # OS/editor noise
 .DS_Store

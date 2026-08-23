@@ -1,22 +1,12 @@
-# Authority and schema resolution
+# Authority
 
-This is the shared authority contract. Resolve every logical key through `config/base-schema.json` at runtime; references must not copy Feishu table IDs, localized field names, or localized status values. The schema's `language_policy` is authoritative for spoken language and generation-prompt language; creative workflows must also read [language-policy.md](language-policy.md). When a live Base contains compatibility columns, also read [table-field-hygiene.md](table-field-hygiene.md) and use only its canonical mappings.
+Use the current config/base-schema.json as the schema authority. Freshly read the record that starts the selected workflow and then directly linked product, subject, script and final-film records as needed.
 
-## Source precedence
+The source precedence is:
 
-1. `base-schema.json` resolves tables, fields, status keys, and relationship keys.
-2. The unique active `system_config` record resolves business limits, durations, storyboard geometry, scoring weights, and the selected model capability snapshot.
-3. The freshly read `planning_task` resolves creative direction and replication boundaries.
-4. The directly resolved active `product` resolves product facts, approved claims, constraints, and assets.
-5. The selected usable `subject_asset` resolves recurring-subject identity.
-6. Generated media and previous Jobs are evidence only; they never become product or subject facts.
+1. Current Feishu record and field metadata;
+2. Current product hard facts and assets;
+3. Locked creative direction and locked structured script;
+4. Local run package created for the current run.
 
-If two sources at the same authority level conflict, stop and record the conflict. Never infer missing geometry or behavior from a product name, generated image, prior run, or model memory.
-
-## Logical-key rule
-
-Use schema keys in workflow documents, for example `content_library.executed_count_field` and `planning_tasks.duration_field`. Resolve their localized values immediately before a Feishu call. A document that needs a new field or status must update the schema first and pass the schema check; it must not introduce a second mapping. Run `python scripts/check_reference_contract.py <skill>` after reference edits.
-
-## Model capability rule
-
-Storyboard workflows may select the actual image model key from the current catalog. Final-video workflows are the exception: the model key is fixed to `omni_portrait`. Read the current catalog only to verify that this exact key is available and to record its current Omni R2V input limit. Record `omni_portrait`, the 10-second raw-segment contract, portrait 9:16 output, and the input limit in the run snapshot. If the exact key is unavailable or the catalog cannot expose its input limit, stop; never substitute another video model.
+Do not infer a direction, script, product action, dialogue or relation from stale local material.

@@ -1,15 +1,13 @@
-# Workflow: storyboard generation and product fidelity
+# Workflow: storyboard generation and script fidelity
 
-Read [authority.md](../invariants/authority.md), [content-field-contract.md](../invariants/content-field-contract.md), [language-policy.md](../invariants/language-policy.md), [mutation-and-recovery.md](../invariants/mutation-and-recovery.md), [configuration.md](../configuration.md), [product-contract.md](../domain/product-contract.md), [subject-contract.md](../domain/subject-contract.md), [content-task-contract.md](../domain/content-task-contract.md), [reference-asset-contract.md](../reference-asset-contract.md), [image-prompt-contract.md](../image-prompt-contract.md), [delivery-contract.md](../delivery-contract.md), [storyboard-spec.md](../storyboard-spec.md), and [interaction-substitution-protocol.md](../interaction-substitution-protocol.md) when applicable.
+Read authority.md, script-contract.md, script-validation.md, product-contract.md, subject-contract.md, product-execution-contract.md, reference-asset-contract.md, image-prompt-contract.md and delivery-contract.md.
 
-Use this workflow after an original-planning handoff or for a selected hook/structure/full-replication task. It owns final-generation boards and their product/subject review; it does not submit final-video Jobs.
+Input is one freshly read locked script with script check status passed. Read its structured script, accepted product assets, subjects and configuration. Never infer a different creative direction or rewrite the script.
 
-1. Fresh-read the task, product facts and assets, subject identity, configuration snapshot, selected content version, script, language, and mode. Confirm that the content version has exactly one selected direction and that its script/timeline is not being inferred from competing candidates. Build one `product_asset_plan` per raw segment from actual shot risk, then write `plan/generation-prompt-plan.json` with a continuous beat timeline for each Segment. Allocate beat durations to the hook, proof, reaction, and CTA according to the actual action; do not default to equal panels.
-2. Resolve the storyboard control-prompt language from `config/base-schema.json`: use `en` by default or `zh-CN` when it improves operator clarity. Thai is the spoken-language policy, not the storyboard control-prompt language. Compile and validate the plan with `scripts/compile_generation_prompts.py`, `scripts/validate_prompt_bundle.py`, and `scripts/validate_image_prompt_language.py` before submission. Retain the plan, compiled prompts, selected language, and validator output in the local package.
-3. Build the actual image array and position-to-role map. Validate every image's decoded type, MIME, dimensions, hash, count, and role before submission. Never assume an optional role occupies a fixed input position.
-4. Use the configured storyboard-image capability from the model catalog. Submit one complete board per configured raw segment with the configured grid, timing, reading order, zero gutter, natural phone-video texture, and no readable text/UI/watermark. Do not locally compose or split a returned board.
-5. Review every panel for product identity, scale, openings, `loading_path`, `dispensing_path`, subject continuity, timing, scene continuity, and text contamination. A hard-fact mismatch is FAIL; a documented human-review warning remains unresolved until the required review occurs.
-6. Run the configuration-profile storyboard validator on every board. Retain prompts, role maps, hashes, validator results, and visual review in the local package.
-7. When every board is present, validated, and accepted, stage the content-library record, upload the complete board set idempotently, re-read the attachment set, and only then publish the schema-resolved pending-review state. A failed upload remains a resumable run, not a new content version.
+1. Compile the generation plan from Beat and Segment objects.
+2. Map every script Beat to one or more storyboard panels; retain stable Beat, Line and Text IDs in the local package.
+3. Generate boards with approved product/subject assets and review product action, state, continuity and timing.
+4. Run storyboard fidelity validation. Every Beat, key product action and assigned spoken line must have coverage.
+5. Upload accepted boards to the script record, fresh-read attachments, set storyboard status to pending review or passed. Write video prompt only from the locked script and passed boards.
 
-The workflow stops before any content-library mutation when a board is missing, pending, failed, unvalidated, or visually rejected.
+Stop before a script mutation if any required board, coverage or product-fidelity evidence fails.
