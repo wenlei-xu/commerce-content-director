@@ -6,7 +6,8 @@
       "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
     },
     "short_video_breakdown": {
-      "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+      "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "required", "asr": "conditional", "image_tools": "required"},
+      "conditions": {"asr": "source_has_audio=true"}
     },
     "sentence_pattern_learning": {
       "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
