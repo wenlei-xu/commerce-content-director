@@ -35,6 +35,7 @@ Read only the invariants named by the selected workflow:
 - [product-execution-contract.md](references/invariants/product-execution-contract.md) — product action correctness.
 - [language-policy.md](references/invariants/language-policy.md) — Thai spoken language and audio behavior.
 - [knowledge-library-contract.md](references/invariants/knowledge-library-contract.md) — the two learning-library objects and their review boundaries.
+- [model-visual-text-recognition.md](references/invariants/model-visual-text-recognition.md) — model-vision-only screen-text evidence and the legacy OCR field contract.
 - [execution-accounting.md](references/invariants/execution-accounting.md) — accepted films and execution limits.
 - [mutation-and-recovery.md](references/invariants/mutation-and-recovery.md) — staged writes and resumable failures.
 
