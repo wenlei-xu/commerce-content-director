@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from compile_generation_prompts import validate_beats, validate_inputs
+from compile_generation_prompts import SOURCE_FRAME_ROLES, validate_beats, validate_inputs, validate_subject_strategy
 
 
 THAI = re.compile(r"[\u0E00-\u0E7F]")
@@ -39,6 +39,11 @@ def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list
     kind = bundle.get("job_kind")
     if kind not in {"storyboard_image", "final_video"}:
         return ["job_kind must be storyboard_image or final_video"]
+    if kind == "storyboard_image":
+        if bundle.get("executor") != "flow2api_mcp":
+            errors.append("storyboard_image executor must be flow2api_mcp; GPT Image and provider fallback are forbidden")
+        if not isinstance(bundle.get("model"), str) or not bundle["model"].strip():
+            errors.append("storyboard_image model must be a non-empty Flow2API catalog model ID")
     if bundle.get("prompt_language") not in allowed_languages:
         errors.append("prompt_language is not allowed by the schema")
     raw_seconds = bundle.get("raw_segment_seconds")
@@ -73,9 +78,19 @@ def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list
                 "inputs": entry.get("inputs"),
                 "beats": entry.get("beats"),
                 "product_visible": entry.get("product_visible"),
+                "subject_strategy": entry.get("subject_strategy"),
             }
-            validate_inputs(segment, kind)
+            inputs = validate_inputs(segment, kind)
             validate_beats(segment, float(raw_seconds))
+            if kind == "storyboard_image" and bundle.get("replication_mode") == "full_replication":
+                roles = [item.get("role") for item in entry.get("inputs") or []]
+                for role in SOURCE_FRAME_ROLES:
+                    if roles.count(role) != 1:
+                        errors.append(f"{prefix}: full_replication requires exactly one {role}")
+                if "source_contact_sheet" in roles:
+                    errors.append(f"{prefix}: full_replication cannot use source_contact_sheet")
+            if kind == "storyboard_image":
+                validate_subject_strategy(segment, bundle.get("replication_mode"), inputs)
         except ValueError as error:
             errors.append(f"{prefix}: {error}")
         dialogue = entry.get("dialogue") or []

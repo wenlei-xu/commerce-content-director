@@ -9,7 +9,12 @@ from pathlib import Path
 from typing import Any
 
 
-IMAGE_ROLES = {"product_anchor", "product_detail", "product_scene", "subject_anchor", "source_contact_sheet"}
+SOURCE_FRAME_ROLES = {"source_segment_start", "source_segment_result"}
+SUBJECT_STRATEGIES = {"preserve_source_subject", "replace_subject", "structure_only"}
+IMAGE_ROLES = {
+    "product_anchor", "product_detail", "product_scene", "subject_anchor",
+    "source_contact_sheet", *SOURCE_FRAME_ROLES,
+}
 VIDEO_ROLES = IMAGE_ROLES | {"storyboard_board", "continuity_frame"}
 
 
@@ -70,6 +75,36 @@ def validate_inputs(segment: dict[str, Any], job_kind: str) -> list[dict[str, An
     return sorted(inputs, key=lambda item: item["position"])
 
 
+def validate_subject_strategy(
+    segment: dict[str, Any], replication_mode: str | None, inputs: list[dict[str, Any]]
+) -> str | None:
+    if replication_mode not in {"full_replication", "structure_replication"}:
+        return None
+    strategy = segment.get("subject_strategy")
+    if strategy not in SUBJECT_STRATEGIES:
+        raise fail(f"{segment.get('segment_id', '<unknown>')}: replication requires subject_strategy")
+    roles = [item["role"] for item in inputs]
+    source_counts_ok = all(roles.count(role) == 1 for role in SOURCE_FRAME_ROLES)
+    if strategy == "preserve_source_subject":
+        if replication_mode != "full_replication" or not source_counts_ok:
+            raise fail("preserve_source_subject requires full_replication and exactly two source frames")
+        if "subject_anchor" in roles:
+            raise fail("preserve_source_subject forbids subject_anchor")
+    elif strategy == "replace_subject":
+        if replication_mode != "full_replication" or not source_counts_ok:
+            raise fail("replace_subject requires full_replication and exactly two source frames")
+        if roles.count("subject_anchor") != 1:
+            raise fail("replace_subject requires exactly one subject_anchor")
+    else:
+        if replication_mode != "structure_replication":
+            raise fail("structure_only requires structure_replication")
+        if any(role in roles for role in SOURCE_FRAME_ROLES | {"source_contact_sheet"}):
+            raise fail("structure_only forbids source frames as generation inputs")
+        if roles.count("subject_anchor") != 1:
+            raise fail("structure_only requires exactly one subject_anchor")
+    return str(strategy)
+
+
 def validate_plan(plan: dict[str, Any]) -> None:
     if plan.get("schema") != "commerce-generation-prompt-plan-v1":
         raise fail("unsupported prompt-plan schema")
@@ -82,6 +117,10 @@ def validate_plan(plan: dict[str, Any]) -> None:
     if raw_seconds <= 0:
         raise fail("raw_segment_seconds must be positive")
     if job_kind == "storyboard_image":
+        if plan.get("executor") != "flow2api_mcp":
+            raise fail("storyboard_image executor must be flow2api_mcp; GPT Image and provider fallback are forbidden")
+        if not isinstance(plan.get("model"), str) or not plan["model"].strip():
+            raise fail("storyboard_image model must be a non-empty Flow2API catalog model ID")
         storyboard = plan.get("storyboard")
         if not isinstance(storyboard, dict) or not all(isinstance(storyboard.get(key), int) and storyboard[key] > 0 for key in ("columns", "rows")):
             raise fail("storyboard image plans require positive storyboard columns and rows")
@@ -99,7 +138,16 @@ def validate_plan(plan: dict[str, Any]) -> None:
             raise fail("each segment_id must be unique and non-empty")
         seen.add(segment_id)
         validate_beats(segment, raw_seconds)
-        validate_inputs(segment, job_kind)
+        inputs = validate_inputs(segment, job_kind)
+        if job_kind == "storyboard_image" and plan.get("replication_mode") == "full_replication":
+            roles = [item["role"] for item in inputs]
+            for role in SOURCE_FRAME_ROLES:
+                if roles.count(role) != 1:
+                    raise fail(f"{segment_id}: full_replication requires exactly one {role}")
+            if "source_contact_sheet" in roles:
+                raise fail(f"{segment_id}: full_replication cannot use source_contact_sheet")
+        if job_kind == "storyboard_image":
+            validate_subject_strategy(segment, plan.get("replication_mode"), inputs)
         if job_kind == "storyboard_image" and segment.get("dialogue"):
             raise fail("storyboard-image plans must not contain dialogue")
 
@@ -120,6 +168,13 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
     subject = segment.get("subject_identity")
     if isinstance(subject, str) and subject.strip():
         facts.append(subject)
+    strategy = validate_subject_strategy(segment, plan.get("replication_mode"), inputs)
+    if strategy == "preserve_source_subject":
+        facts.append("SUBJECT STRATEGY: Preserve the source person or animal exactly; replace only the source product using the target product anchor. Do not add or redesign a subject.")
+    elif strategy == "replace_subject":
+        facts.append("SUBJECT STRATEGY: The target subject anchor overrides source-subject identity. Replace subject and product in one generation step; do not create an empty-scene intermediate.")
+    elif strategy == "structure_only":
+        facts.append("SUBJECT STRATEGY: Source frames are planning evidence only and are not generation inputs. Target product and subject anchors own identity.")
     return "\n\n".join([
         "OUTPUT\n"
         f"Generate one complete {plan['raw_segment_seconds']:g}-second storyboard board: "
@@ -165,6 +220,7 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
     for segment in plan["segments"]:
         prompts.append({
             "segment_id": segment["segment_id"],
+            "subject_strategy": segment.get("subject_strategy"),
             "prompt": compiler(plan, segment),
             "inputs": validate_inputs(segment, plan["job_kind"]),
             "beats": validate_beats(segment, float(plan["raw_segment_seconds"])),
@@ -175,6 +231,9 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
     return {
         "schema": "commerce-generation-prompt-bundle-v1",
         "job_kind": plan["job_kind"],
+        "executor": plan.get("executor"),
+        "model": plan.get("model"),
+        "replication_mode": plan.get("replication_mode"),
         "prompt_language": plan["prompt_language"],
         "target_spoken_language": plan.get("target_spoken_language"),
         "raw_segment_seconds": plan["raw_segment_seconds"],

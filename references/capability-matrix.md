@@ -14,8 +14,10 @@
 
 1. Run `python scripts/preflight.py --workflow <workflow> --json`. Add `--mode full_replication` for a full-replication storyboard run. Add `--audio-mode spoken|sparse_spoken|natural_sound_only` for a final-video run.
 2. When `feishu` is required, make a read-only Feishu metadata call only for the logical tables used by that workflow.
-3. When `flow2api` is required, call the registered Sidecar MCP `flow_get_service_health(include_dependencies=true)` and `flow_list_models(include_unavailable=true)`. Do not call Flow2API for a workflow where it is `not_required`.
+3. When `flow2api` is required, call the registered Sidecar MCP `flow_get_service_health(include_dependencies=true)` and `flow_list_models(include_unavailable=true)`. For storyboard images, filter the catalog to `media_type=image`, require the selected model to be available and support the planned number of reference images, then follow [flow2api-image-execution.md](flow2api-image-execution.md). Do not call Flow2API for a workflow where it is `not_required`.
 4. The local script checks only local requirements. MCP health and model-catalog checks remain at the MCP seam; do not emulate them with private HTTP calls.
+
+Flow2API being unhealthy, absent or incompatible is a stop condition for image-generation workflows. Do not substitute GPT Image, another image provider, a CLI or a private HTTP request.
 
 For a conditional capability, resolve the condition from freshly read authoritative data before preflight. If that fact is unavailable, stop and request or obtain it; do not probe unrelated services as a fallback.
 

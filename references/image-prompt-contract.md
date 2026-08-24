@@ -10,12 +10,16 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
 {
   "schema": "commerce-generation-prompt-plan-v1",
   "job_kind": "storyboard_image",
+  "executor": "flow2api_mcp",
+  "model": "gemini-3.1-flash-image-portrait",
+  "replication_mode": "full_replication",
   "prompt_language": "en",
   "raw_segment_seconds": 10,
   "storyboard": {"columns": 2, "rows": 2, "panel_ratio": "9:16"},
   "common_constraints": ["Natural handheld phone-video texture."],
   "segments": [{
     "segment_id": "Segment-01",
+    "subject_strategy": "preserve_source_subject",
     "product_visible": true,
     "inputs": [{"position": 1, "role": "product_anchor", "asset_id": "product-v1", "sha256": "...", "clean_for_generation": true, "reason": "Product is visible in beats 2–4."}],
     "beats": [
@@ -30,11 +34,15 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
 }
 ```
 
+`executor` must be exactly `flow2api_mcp`. `model` must exactly match the available image-model ID selected from the fresh Flow2API catalog and recorded at `model_catalog.image_model` in `plan/content-system-config-snapshot.json`; the example value is illustrative, not a fixed default. A compiler or validator failure on either field blocks submission. Do not rewrite the plan to `gpt_image` and do not call GPT Image outside the plan.
+
 `beats` must be chronological, contiguous, and cover the whole raw Segment. Their durations are an editorial decision: allocate time to hook, proof, reaction, and CTA according to the actual action. Do not default to equal panels merely because a board has four cells. A constant duration is valid only when the selected action genuinely warrants it.
 
 The control prompt uses `en` by default or `zh-CN`; it contains no Thai because storyboard generation has no spoken-dialogue payload.
 
 For `full_replication`, each Segment input plan must contain exactly two source-reference roles: `source_segment_start` and `source_segment_result`. The timeline describes the target-product action connecting those states. Do not route intermediate source frames, per-second evidence, RF batches or replacement contact sheets into the Job.
+
+Every replication Segment declares `subject_strategy`. `preserve_source_subject` requires the two source frames and product anchor but forbids a subject anchor. `replace_subject` additionally requires exactly one subject anchor. `structure_only` is valid only for structure replication, requires product and subject anchors, and forbids source frames as generation inputs. Prompts must state which identity authority wins; never create a blank-scene cleaning step.
 
 ## Required prompt blocks
 

@@ -21,8 +21,8 @@ Choose one workflow for the requested action:
 - **Analyze, distill, or choose an external short-video reference**: read [short-video-breakdown.md](references/workflows/short-video-breakdown.md).
 - **Learn, review, or use reusable language patterns**: read [sentence-pattern-learning.md](references/workflows/sentence-pattern-learning.md).
 - **Generate, revise, validate, or lock a script**: read [script-production.md](references/workflows/script-production.md).
-- **Generate or review a storyboard**: read [storyboard-generation.md](references/workflows/storyboard-generation.md).
-- **Assess and produce a full-replication storyboard**: read [full-replication.md](references/workflows/full-replication.md). Full replication starts with product compatibility and uses exactly two narrative reference frames per segment; it does not use chronological frame replacement.
+- **Generate or review a storyboard**: read [storyboard-generation.md](references/workflows/storyboard-generation.md) and [flow2api-image-execution.md](references/flow2api-image-execution.md). Storyboard images use the registered Flow2API MCP exclusively; never call GPT Image or silently change providers.
+- **Assess and produce a full-replication storyboard**: read [full-replication.md](references/workflows/full-replication.md). Full replication starts with product compatibility, resolves one explicit subject strategy, and uses exactly two local narrative reference frames per segment; it does not use chronological frame replacement or require an accepted source breakdown to be re-reviewed.
 - **Generate and accept a final video**: read [final-video.md](references/workflows/final-video.md).
 - **Archive the creative chain**: read [lifecycle.md](references/workflows/lifecycle.md).
 
@@ -47,10 +47,12 @@ Read only the invariants named by the selected workflow:
 3. An external video must pass the local source-validity gate before full frame extraction, ASR, breakdown creation, reference-frame upload, or sentence-pattern learning. Invalid or unresolved media stops at preflight evidence and must not enter either learning library.
 4. A script workflow requires one locked creative direction. It must build and validate structured_script locally before creating or revising a Feishu script record. It may read only `资产状态=可用` 短视频拆解 and `审核状态=可用` 句式模板；待审核候选不得直接进入脚本。
    A full-replication workflow must additionally pass the source-product compatibility gate before image generation. `资产状态=可用` proves breakdown quality, not compatibility with the selected product.
+   Consuming an already-accepted breakdown never authorizes changing its attachments, template or `资产状态`. Two-frame adaptation assets belong to the current local replication package unless the user explicitly requests a shared-library correction.
 5. Only validation_status=passed scripts may become locked. Only locked scripts may enter storyboard production. Only storyboard-passed scripts may enter final-video production.
 6. Keep structured_script as the only machine source of truth. Render every human-readable script field from it after validation; do not independently edit duplicate text fields.
 7. Product hard facts, product assets and selected subjects are execution authority. Do not use publication-risk or claim-verification gates in this first version.
 8. For every remote mutation, retain a run ID and fresh-read the changed record. On failure, resume the same run; never create a duplicate direction, script or film.
+9. Every storyboard-image plan must declare `executor=flow2api_mcp` and the exact available image-model ID selected from the fresh Flow2API catalog and active configuration snapshot. Submit, wait for and retrieve the image only through the registered Flow2API MCP. If that path is unavailable or fails validation, stop; GPT Image, private HTTP and provider fallback are forbidden.
 
 ## Stop condition
 

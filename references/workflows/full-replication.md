@@ -1,10 +1,10 @@
 # Workflow: full replication storyboard
 
-Read [storyboard-generation.md](storyboard-generation.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [reference-asset-contract.md](../reference-asset-contract.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
+Read [storyboard-generation.md](storyboard-generation.md), [flow2api-image-execution.md](../flow2api-image-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [reference-asset-contract.md](../reference-asset-contract.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
 
 Use this workflow only for the `full_replication` task mode. Full replication preserves the complete commercial narrative chain: hook, segment order, information release, proof order, payoff, emotion and CTA position. It does not perform chronological per-second or per-frame product replacement.
 
-Run `python scripts/preflight.py --workflow storyboard_generation --mode full_replication --json`. This mode reads the two reviewed narrative reference frames already attached to each segment, so source-video download, ffmpeg and ASR are not execution prerequisites.
+Run `python scripts/preflight.py --workflow storyboard_generation --mode full_replication --json`. Source-video download and ffmpeg are conditional tools for deriving missing local start/result frames from retained evidence; ASR is not an execution prerequisite when the accepted breakdown already contains the narrative facts and time ranges.
 
 ## Product compatibility gate
 
@@ -14,12 +14,32 @@ Before any image generation, compare the source and target on product category a
 
 Full replication passes only when every segment can retain its narrative task and the source proof order without inventing a target-product function or claim. Product facts may change the visible action, but not the segment's commercial purpose. If any core segment or proof step must be replaced, stop this mode and report `structure_replication`, `hook_replication` or `not_recommended`; do not silently continue as full replication.
 
+## Subject strategy gate
+
+Resolve and record one strategy before generation:
+
+| Strategy | Use when | Generation inputs |
+| --- | --- | --- |
+| `preserve_source_subject` | Same-category full replication and the original person or animal can remain | source keyframes + current product anchor |
+| `replace_subject` | The user explicitly selects a breed, person or recurring identity | source keyframes + current product anchor + new subject anchor |
+| `structure_only` | Cross-species, cross-category or interaction-incompatible references | source frames are planning evidence only; use the script + current product anchor + target subject |
+
+Compatible full replication normally uses `preserve_source_subject`: replace only the source product and preserve the source person or animal, scene, camera and action state. Do not invent a new recurring subject. `replace_subject` requires explicit user selection and replaces product and subject in one step. `structure_only` exits this workflow and continues as `structure_replication`; do not send its source frames to generation.
+
+## Accepted-source boundary
+
+An `资产状态=可用` breakdown is an accepted source, not a draft to migrate during production. Reading it for replication must not change its attachments, `逐段复刻模板`, quality notes or `资产状态`.
+
+Create the two-frame adaptation inside the current run package. Reuse accepted start/result attachments when they exist. For an accepted legacy record with fewer frames, derive exactly two frames per segment locally from its retained source video, evidence frames and segment time ranges. This local derivation does not invalidate the source approval and does not require another human review. Only write the derived frames back to `短视频拆解库` when the user explicitly asks to correct or upgrade that shared record; that separate library mutation follows the breakdown review workflow.
+
 ## Two-frame segment adaptation
 
-1. Validate the selected breakdown locally. Every segment must link to exactly two distinct attachments: `开始参考帧` and `结果参考帧`. Missing, extra, duplicated or unattached frames stop the run.
+1. Validate that the selected record is `资产状态=可用` and has the factual narrative fields and segment time ranges needed for adaptation. Then create a local manifest in which every segment links to exactly two distinct files: `开始参考帧` and `结果参考帧`. Missing, duplicated, out-of-range or unstable local frames stop the run; absence of two attachments on an accepted legacy record alone does not.
 2. For each segment, create one adaptation entry containing its time range, narrative task, start frame, result frame, preserved mechanism, target-product action, product start/result state and prohibited source-product carryover.
-3. Use only those two source frames as composition/state references for the segment. The start frame owns the entering scene and composition; the result frame owns the visible payoff and handoff state. Current product and subject anchors remain identity authority.
+3. Use only those two source frames as composition/state references for the segment. The start frame owns the entering scene and composition; the result frame owns the visible payoff and handoff state. Under `preserve_source_subject`, they also preserve the original person or animal and no subject anchor is added. Under `replace_subject`, the selected subject anchor overrides source-subject identity. The current product anchor always overrides source-product identity.
 4. Generate the segment's target storyboard frames or board. Keep segment order and approximate duration, but let the locked script and current product facts determine the action between the two states.
 5. Assemble accepted segment boards in narrative order into the final storyboard. Validate exact segment coverage, correct start/result state, hook/payoff/proof/CTA order, product actions and cross-segment continuity.
 
-Do not create MF/RF mappings, fixed six-frame batches, replacement contact sheets, balanced dynamic masters, video, subtitles or voiceover in this workflow. If the two stored frames do not provide enough evidence, return to the breakdown workflow to correct the segment; do not restart chronological frame replacement.
+Do not create MF/RF mappings, fixed six-frame batches, replacement contact sheets, balanced dynamic masters, video, subtitles or voiceover in this workflow. If the two local frames do not provide enough evidence, reselect them from retained segment evidence. Return to the breakdown workflow only when the accepted narrative facts or time ranges themselves are wrong or insufficient; do not restart chronological frame replacement.
+
+All target storyboard boards in this workflow are Flow2API MCP image Jobs. Do not use GPT Image for replacement, cleanup, blank-scene preparation or fallback. A subject strategy is resolved through the routed generation inputs described above, not through an extra provider or an intermediate image-cleaning pass.
