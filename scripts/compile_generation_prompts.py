@@ -11,6 +11,11 @@ from typing import Any
 
 SOURCE_FRAME_ROLES = {"source_segment_start", "source_segment_result"}
 SUBJECT_STRATEGIES = {"preserve_source_subject", "replace_subject", "structure_only"}
+TARGET_PRODUCTION_UNIT = "target_production_segment"
+FIXED_RAW_SEGMENT_SECONDS = 10
+FIXED_STORYBOARD_COLUMNS = 2
+FIXED_STORYBOARD_ROWS = 2
+FIXED_PANEL_RATIO = "9:16"
 IMAGE_ROLES = {
     "product_anchor", "product_detail", "product_scene", "subject_anchor",
     "source_contact_sheet", *SOURCE_FRAME_ROLES,
@@ -105,6 +110,35 @@ def validate_subject_strategy(
     return str(strategy)
 
 
+def validate_target_time_range(segment: dict[str, Any], index: int, raw_seconds: float) -> None:
+    value = segment.get("target_time_range")
+    if not isinstance(value, dict):
+        raise fail(f"{segment.get('segment_id', '<unknown>')}: target_time_range must be an object")
+    start = number(value.get("start"), "target_time_range.start")
+    end = number(value.get("end"), "target_time_range.end")
+    expected_start = index * raw_seconds
+    expected_end = expected_start + raw_seconds
+    if abs(start - expected_start) > 1e-6 or abs(end - expected_end) > 1e-6:
+        raise fail(
+            f"{segment.get('segment_id', '<unknown>')}: target_time_range must be "
+            f"{expected_start:g}–{expected_end:g}s"
+        )
+
+
+def validate_source_narrative_mapping(segment: dict[str, Any], replication_mode: str | None) -> list[str]:
+    if replication_mode not in {"full_replication", "structure_replication"}:
+        return []
+    values = segment.get("source_narrative_segment_ids")
+    if not isinstance(values, list) or not values:
+        raise fail(f"{segment.get('segment_id', '<unknown>')}: replication requires source_narrative_segment_ids")
+    if not all(isinstance(value, str) and value.strip() for value in values):
+        raise fail("source_narrative_segment_ids must contain non-empty strings")
+    normalized = [value.strip() for value in values]
+    if len(normalized) != len(set(normalized)):
+        raise fail("source_narrative_segment_ids must be unique within a target production Segment")
+    return normalized
+
+
 def validate_plan(plan: dict[str, Any]) -> None:
     if plan.get("schema") != "commerce-generation-prompt-plan-v1":
         raise fail("unsupported prompt-plan schema")
@@ -121,16 +155,36 @@ def validate_plan(plan: dict[str, Any]) -> None:
             raise fail("storyboard_image executor must be flow2api_mcp; GPT Image and provider fallback are forbidden")
         if not isinstance(plan.get("model"), str) or not plan["model"].strip():
             raise fail("storyboard_image model must be a non-empty Flow2API catalog model ID")
+        if plan.get("generation_unit") != TARGET_PRODUCTION_UNIT:
+            raise fail(f"storyboard_image generation_unit must be {TARGET_PRODUCTION_UNIT}")
+        if abs(raw_seconds - FIXED_RAW_SEGMENT_SECONDS) > 1e-6:
+            raise fail(f"storyboard_image raw_segment_seconds must be {FIXED_RAW_SEGMENT_SECONDS}")
+        target_seconds = number(plan.get("target_duration_seconds"), "target_duration_seconds")
+        if target_seconds <= 0 or abs(target_seconds % raw_seconds) > 1e-6:
+            raise fail("storyboard_image target_duration_seconds must be positive and divisible by raw_segment_seconds")
         storyboard = plan.get("storyboard")
         if not isinstance(storyboard, dict) or not all(isinstance(storyboard.get(key), int) and storyboard[key] > 0 for key in ("columns", "rows")):
             raise fail("storyboard image plans require positive storyboard columns and rows")
         if not isinstance(storyboard.get("panel_ratio"), str):
             raise fail("storyboard.panel_ratio must be a string")
+        if (
+            storyboard["columns"] != FIXED_STORYBOARD_COLUMNS
+            or storyboard["rows"] != FIXED_STORYBOARD_ROWS
+            or storyboard["panel_ratio"] != FIXED_PANEL_RATIO
+        ):
+            raise fail("storyboard_image output must be one 2x2 board with four 9:16 panels")
     segments = plan.get("segments")
     if not isinstance(segments, list) or not segments:
         raise fail("segments must be a non-empty list")
+    if job_kind == "storyboard_image":
+        expected_count = int(float(plan["target_duration_seconds"]) / raw_seconds)
+        if len(segments) != expected_count:
+            raise fail(
+                f"storyboard_image requires {expected_count} target production Segment(s) for "
+                f"{plan['target_duration_seconds']:g}s"
+            )
     seen: set[str] = set()
-    for segment in segments:
+    for segment_index, segment in enumerate(segments):
         if not isinstance(segment, dict):
             raise fail("segment must be an object")
         segment_id = segment.get("segment_id")
@@ -139,6 +193,9 @@ def validate_plan(plan: dict[str, Any]) -> None:
         seen.add(segment_id)
         validate_beats(segment, raw_seconds)
         inputs = validate_inputs(segment, job_kind)
+        if job_kind == "storyboard_image":
+            validate_target_time_range(segment, segment_index, raw_seconds)
+            validate_source_narrative_mapping(segment, plan.get("replication_mode"))
         if job_kind == "storyboard_image" and plan.get("replication_mode") == "full_replication":
             roles = [item["role"] for item in inputs]
             for role in SOURCE_FRAME_ROLES:
@@ -175,13 +232,27 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         facts.append("SUBJECT STRATEGY: The target subject anchor overrides source-subject identity. Replace subject and product in one generation step; do not create an empty-scene intermediate.")
     elif strategy == "structure_only":
         facts.append("SUBJECT STRATEGY: Source frames are planning evidence only and are not generation inputs. Target product and subject anchors own identity.")
+    source_ids = validate_source_narrative_mapping(segment, plan.get("replication_mode"))
+    if source_ids:
+        rhythm = (
+            "Source narrative order and relative pacing are evidence only. "
+            "The locked target script and this target production Segment timeline own exact timing. "
+            "Do not copy source timestamps or divide the four panels evenly unless the target Beats require it. "
+            f"Mapped source narratives: {', '.join(source_ids)}."
+        )
+    else:
+        rhythm = (
+            "The locked target script and this target production Segment timeline own exact timing. "
+            "Do not divide the four panels evenly unless the target Beats require it."
+        )
     return "\n\n".join([
         "OUTPUT\n"
-        f"Generate one complete {plan['raw_segment_seconds']:g}-second storyboard board: "
-        f"{storyboard['columns']} columns × {storyboard['rows']} rows, {storyboard['panel_ratio']} panels, "
+        f"Generate one complete {plan['raw_segment_seconds']:g}-second target production storyboard board: "
+        f"exactly {storyboard['columns']} columns × {storyboard['rows']} rows, exactly four {storyboard['panel_ratio']} target panels, "
         "zero gutter, left-to-right then top-to-bottom reading order. Do not locally compose or split the returned board.",
         "INPUT IMAGE ROLES\n" + "\n".join(role_lines(inputs)),
         "HARD FACTS\n" + ("\n".join(facts) if facts else "Use only the approved facts for this Segment."),
+        "RHYTHM AUTHORITY\n" + rhythm,
         "TIMELINE\n" + "\n".join(timing_lines(validate_beats(segment, float(plan['raw_segment_seconds'])))),
         "NEGATIVE CONSTRAINTS\nNo readable text, captions, subtitles, labels, logos, watermarks, UI, panel numbers, or fact-incompatible product structure/action.",
     ])
@@ -220,6 +291,8 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
     for segment in plan["segments"]:
         prompts.append({
             "segment_id": segment["segment_id"],
+            "target_time_range": segment.get("target_time_range"),
+            "source_narrative_segment_ids": segment.get("source_narrative_segment_ids", []),
             "subject_strategy": segment.get("subject_strategy"),
             "prompt": compiler(plan, segment),
             "inputs": validate_inputs(segment, plan["job_kind"]),
@@ -234,9 +307,12 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "executor": plan.get("executor"),
         "model": plan.get("model"),
         "replication_mode": plan.get("replication_mode"),
+        "generation_unit": plan.get("generation_unit"),
         "prompt_language": plan["prompt_language"],
         "target_spoken_language": plan.get("target_spoken_language"),
+        "target_duration_seconds": plan.get("target_duration_seconds"),
         "raw_segment_seconds": plan["raw_segment_seconds"],
+        "storyboard": plan.get("storyboard"),
         "prompts": prompts,
     }
 

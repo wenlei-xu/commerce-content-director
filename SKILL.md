@@ -22,7 +22,7 @@ Choose one workflow for the requested action:
 - **Learn, review, or use reusable language patterns**: read [sentence-pattern-learning.md](references/workflows/sentence-pattern-learning.md).
 - **Generate, revise, validate, or lock a script**: read [script-production.md](references/workflows/script-production.md).
 - **Generate or review a storyboard**: read [storyboard-generation.md](references/workflows/storyboard-generation.md) and [flow2api-image-execution.md](references/flow2api-image-execution.md). Storyboard images use the registered Flow2API MCP exclusively; never call GPT Image or silently change providers.
-- **Assess and produce a full-replication storyboard**: read [full-replication.md](references/workflows/full-replication.md). Full replication starts with product compatibility, resolves one explicit subject strategy, and uses exactly two local narrative reference frames per segment; it does not use chronological frame replacement or require an accepted source breakdown to be re-reviewed.
+- **Assess and produce a full-replication storyboard**: read [full-replication.md](references/workflows/full-replication.md). Full replication starts with product compatibility, resolves one explicit subject strategy, and retains two local evidence frames per source narrative segment. It then follows the original-production geometry: one 2×2 board per 10-second target production Segment. Source order and relative pacing remain evidence; the locked target script owns exact timing.
 - **Generate and accept a final video**: read [final-video.md](references/workflows/final-video.md).
 - **Archive the creative chain**: read [lifecycle.md](references/workflows/lifecycle.md).
 
@@ -53,6 +53,7 @@ Read only the invariants named by the selected workflow:
 7. Product hard facts, product assets and selected subjects are execution authority. Do not use publication-risk or claim-verification gates in this first version.
 8. For every remote mutation, retain a run ID and fresh-read the changed record. On failure, resume the same run; never create a duplicate direction, script or film.
 9. Every storyboard-image plan must declare `executor=flow2api_mcp` and the exact available image-model ID selected from the fresh Flow2API catalog and active configuration snapshot. Submit, wait for and retrieve the image only through the registered Flow2API MCP. If that path is unavailable or fails validation, stop; GPT Image, private HTTP and provider fallback are forbidden.
+10. Original and replication storyboards share one production unit: each configured 10-second target production Segment submits one image Job and returns one 2×2 board with four 9:16 panels. Reference-video narrative segmentation never determines Job count. The locked target script owns exact Beat timing; do not copy source timestamps or divide the four panels evenly by default.
 
 ## Stop condition
 

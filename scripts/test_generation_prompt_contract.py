@@ -14,12 +14,15 @@ IMAGE_PLAN = {
     "job_kind": "storyboard_image",
     "executor": "flow2api_mcp",
     "model": "gemini-3.1-flash-image-portrait",
+    "generation_unit": "target_production_segment",
     "prompt_language": "en",
+    "target_duration_seconds": 10,
     "raw_segment_seconds": 10,
     "storyboard": {"columns": 2, "rows": 2, "panel_ratio": "9:16"},
     "common_constraints": ["Natural handheld phone-video texture."],
     "segments": [{
         "segment_id": "Segment-01",
+        "target_time_range": {"start": 0, "end": 10},
         "product_visible": True,
         "inputs": [
             {"position": 1, "role": "product_anchor", "asset_id": "product", "sha256": "a" * 64, "clean_for_generation": True, "reason": "Product appears in the proof beat."},
@@ -40,6 +43,7 @@ IMAGE_PLAN = {
 FULL_REPLICATION_PLAN = copy.deepcopy(IMAGE_PLAN)
 FULL_REPLICATION_PLAN["replication_mode"] = "full_replication"
 FULL_REPLICATION_PLAN["segments"][0]["subject_strategy"] = "replace_subject"
+FULL_REPLICATION_PLAN["segments"][0]["source_narrative_segment_ids"] = ["SourceNarrative-01", "SourceNarrative-02"]
 FULL_REPLICATION_PLAN["segments"][0]["inputs"].extend([
     {"position": 3, "role": "source_segment_start", "asset_id": "source-start", "sha256": "c" * 64, "clean_for_generation": True, "reason": "Entering composition and state."},
     {"position": 4, "role": "source_segment_result", "asset_id": "source-result", "sha256": "d" * 64, "clean_for_generation": True, "reason": "Visible payoff and handoff state."},
@@ -52,6 +56,20 @@ def main() -> None:
     prompt = bundle["prompts"][0]["prompt"]
     assert "0.0–1.5s" in prompt
     assert "1.5–4.0s" in prompt
+    assert "target production storyboard board" in prompt
+    assert "RHYTHM AUTHORITY" in prompt
+
+    thirty_second_plan = copy.deepcopy(IMAGE_PLAN)
+    thirty_second_plan["target_duration_seconds"] = 30
+    thirty_second_plan["segments"] = []
+    for index in range(3):
+        segment = copy.deepcopy(IMAGE_PLAN["segments"][0])
+        segment["segment_id"] = f"Segment-{index + 1:02d}"
+        segment["target_time_range"] = {"start": index * 10, "end": (index + 1) * 10}
+        thirty_second_plan["segments"].append(segment)
+    thirty_second_bundle = compile_plan(thirty_second_plan)
+    assert len(thirty_second_bundle["prompts"]) == 3
+    assert not validate_bundle(thirty_second_bundle, {"en", "zh-CN"})
 
     gpt_image_plan = copy.deepcopy(IMAGE_PLAN)
     gpt_image_plan["executor"] = "gpt_image"
@@ -98,6 +116,7 @@ def main() -> None:
     structure_plan = copy.deepcopy(IMAGE_PLAN)
     structure_plan["replication_mode"] = "structure_replication"
     structure_plan["segments"][0]["subject_strategy"] = "structure_only"
+    structure_plan["segments"][0]["source_narrative_segment_ids"] = ["SourceNarrative-01"]
     structure_bundle = compile_plan(structure_plan)
     assert not validate_bundle(structure_bundle, {"en", "zh-CN"})
 
@@ -133,6 +152,44 @@ def main() -> None:
         assert "source_contact_sheet" in str(error)
     else:
         raise AssertionError("full replication with a contact sheet should fail")
+
+    source_timed_plan = copy.deepcopy(FULL_REPLICATION_PLAN)
+    source_timed_plan["raw_segment_seconds"] = 7
+    source_timed_plan["target_duration_seconds"] = 7
+    source_timed_plan["segments"][0]["target_time_range"] = {"start": 0, "end": 7}
+    try:
+        compile_plan(source_timed_plan)
+    except ValueError as error:
+        assert "raw_segment_seconds must be 10" in str(error)
+    else:
+        raise AssertionError("replication must use the same 10-second production unit as original")
+
+    wrong_layout = copy.deepcopy(IMAGE_PLAN)
+    wrong_layout["storyboard"] = {"columns": 1, "rows": 2, "panel_ratio": "9:16"}
+    try:
+        compile_plan(wrong_layout)
+    except ValueError as error:
+        assert "2x2 board" in str(error)
+    else:
+        raise AssertionError("storyboard generation must produce one 2x2 board per target Segment")
+
+    wrong_job_count = copy.deepcopy(IMAGE_PLAN)
+    wrong_job_count["target_duration_seconds"] = 20
+    try:
+        compile_plan(wrong_job_count)
+    except ValueError as error:
+        assert "requires 2 target production Segment" in str(error)
+    else:
+        raise AssertionError("Job count must equal target duration divided by 10 seconds")
+
+    missing_source_mapping = copy.deepcopy(FULL_REPLICATION_PLAN)
+    missing_source_mapping["segments"][0].pop("source_narrative_segment_ids")
+    try:
+        compile_plan(missing_source_mapping)
+    except ValueError as error:
+        assert "source_narrative_segment_ids" in str(error)
+    else:
+        raise AssertionError("replication target Segments must map source narrative evidence")
 
     thai_plan = copy.deepcopy(IMAGE_PLAN)
     thai_plan["segments"][0]["beats"][0]["description"] = "ภาษาไทย"

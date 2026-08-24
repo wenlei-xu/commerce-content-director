@@ -9,11 +9,23 @@ import re
 from pathlib import Path
 from typing import Any
 
-from compile_generation_prompts import SOURCE_FRAME_ROLES, validate_beats, validate_inputs, validate_subject_strategy
+from compile_generation_prompts import (
+    FIXED_PANEL_RATIO,
+    FIXED_RAW_SEGMENT_SECONDS,
+    FIXED_STORYBOARD_COLUMNS,
+    FIXED_STORYBOARD_ROWS,
+    SOURCE_FRAME_ROLES,
+    TARGET_PRODUCTION_UNIT,
+    validate_beats,
+    validate_inputs,
+    validate_source_narrative_mapping,
+    validate_subject_strategy,
+    validate_target_time_range,
+)
 
 
 THAI = re.compile(r"[\u0E00-\u0E7F]")
-IMAGE_HEADINGS = ("OUTPUT", "INPUT IMAGE ROLES", "HARD FACTS", "TIMELINE", "NEGATIVE CONSTRAINTS")
+IMAGE_HEADINGS = ("OUTPUT", "INPUT IMAGE ROLES", "HARD FACTS", "RHYTHM AUTHORITY", "TIMELINE", "NEGATIVE CONSTRAINTS")
 VIDEO_HEADINGS = (
     "INPUT IMAGE ROLES AND AUTHORITY",
     "PRODUCT STRUCTURE AND INTERACTION HARD CONSTRAINTS",
@@ -44,15 +56,36 @@ def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list
             errors.append("storyboard_image executor must be flow2api_mcp; GPT Image and provider fallback are forbidden")
         if not isinstance(bundle.get("model"), str) or not bundle["model"].strip():
             errors.append("storyboard_image model must be a non-empty Flow2API catalog model ID")
+        if bundle.get("generation_unit") != TARGET_PRODUCTION_UNIT:
+            errors.append(f"storyboard_image generation_unit must be {TARGET_PRODUCTION_UNIT}")
+        storyboard = bundle.get("storyboard")
+        if not isinstance(storyboard, dict) or (
+            storyboard.get("columns") != FIXED_STORYBOARD_COLUMNS
+            or storyboard.get("rows") != FIXED_STORYBOARD_ROWS
+            or storyboard.get("panel_ratio") != FIXED_PANEL_RATIO
+        ):
+            errors.append("storyboard_image output must be one 2x2 board with four 9:16 panels")
     if bundle.get("prompt_language") not in allowed_languages:
         errors.append("prompt_language is not allowed by the schema")
     raw_seconds = bundle.get("raw_segment_seconds")
     if not isinstance(raw_seconds, (int, float)) or isinstance(raw_seconds, bool) or raw_seconds <= 0:
         errors.append("raw_segment_seconds must be positive")
         return errors
+    if kind == "storyboard_image" and abs(float(raw_seconds) - FIXED_RAW_SEGMENT_SECONDS) > 1e-6:
+        errors.append(f"storyboard_image raw_segment_seconds must be {FIXED_RAW_SEGMENT_SECONDS}")
+    target_seconds = bundle.get("target_duration_seconds")
+    if kind == "storyboard_image":
+        if not isinstance(target_seconds, (int, float)) or isinstance(target_seconds, bool) or target_seconds <= 0:
+            errors.append("storyboard_image target_duration_seconds must be positive")
+        elif abs(float(target_seconds) % float(raw_seconds)) > 1e-6:
+            errors.append("storyboard_image target_duration_seconds must be divisible by raw_segment_seconds")
     prompts = bundle.get("prompts")
     if not isinstance(prompts, list) or not prompts:
         return errors + ["prompts must be a non-empty list"]
+    if kind == "storyboard_image" and isinstance(target_seconds, (int, float)) and not isinstance(target_seconds, bool):
+        expected_count = int(float(target_seconds) / float(raw_seconds))
+        if len(prompts) != expected_count:
+            errors.append(f"storyboard_image requires {expected_count} target production Segment(s)")
     headings = IMAGE_HEADINGS if kind == "storyboard_image" else VIDEO_HEADINGS
     dialogue_ids: dict[str, str] = {}
     for index, entry in enumerate(prompts):
@@ -75,6 +108,8 @@ def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list
         try:
             segment = {
                 "segment_id": segment_id,
+                "target_time_range": entry.get("target_time_range"),
+                "source_narrative_segment_ids": entry.get("source_narrative_segment_ids"),
                 "inputs": entry.get("inputs"),
                 "beats": entry.get("beats"),
                 "product_visible": entry.get("product_visible"),
@@ -82,6 +117,9 @@ def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list
             }
             inputs = validate_inputs(segment, kind)
             validate_beats(segment, float(raw_seconds))
+            if kind == "storyboard_image":
+                validate_target_time_range(segment, index, float(raw_seconds))
+                validate_source_narrative_mapping(segment, bundle.get("replication_mode"))
             if kind == "storyboard_image" and bundle.get("replication_mode") == "full_replication":
                 roles = [item.get("role") for item in entry.get("inputs") or []]
                 for role in SOURCE_FRAME_ROLES:

@@ -14,6 +14,24 @@ Before any image generation, compare the source and target on product category a
 
 Full replication passes only when every segment can retain its narrative task and the source proof order without inventing a target-product function or claim. Product facts may change the visible action, but not the segment's commercial purpose. If any core segment or proof step must be replaced, stop this mode and report `structure_replication`, `hook_replication` or `not_recommended`; do not silently continue as full replication.
 
+## Production unit and rhythm authority
+
+Keep source narrative segmentation separate from target production segmentation:
+
+- A `source_narrative_segment` is reference evidence. It retains the source narrative task, order, relative pacing and exactly two local frames.
+- A `target_production_segment` is the generation unit. It is always the configured 10 seconds and produces one 2×2 storyboard board through one Flow2API image Job.
+
+Before image generation, write `plan/replication-rhythm-map.json`. Map every source narrative segment in order to one or more target production Segments, then render the locked target-script Beats for each target 10-second window. Several source narrative segments may enter one target production Segment; an important target-product proof action may span adjacent target production Segments.
+
+Authority is fixed:
+
+1. The source reference owns commercial narrative order, proof order and relative pacing cues.
+2. The locked target script owns exact target timestamps and Beat duration.
+3. Current product facts own the required action, visible state change and minimum legible proof time.
+4. Active configuration owns 10-second production segmentation and one 2×2 board per target production Segment.
+
+Do not copy source timestamps into the target plan, force one source narrative segment to equal one Job, or divide the four panels into equal durations merely because the board has four cells. Job count is `target_duration_seconds / 10`, not the number of source narrative segments or evidence frames.
+
 ## Subject strategy gate
 
 Resolve and record one strategy before generation:
@@ -30,15 +48,15 @@ Compatible full replication normally uses `preserve_source_subject`: replace onl
 
 An `资产状态=可用` breakdown is an accepted source, not a draft to migrate during production. Reading it for replication must not change its attachments, `逐段复刻模板`, quality notes or `资产状态`.
 
-Create the two-frame adaptation inside the current run package. Reuse accepted start/result attachments when they exist. For an accepted legacy record with fewer frames, derive exactly two frames per segment locally from its retained source video, evidence frames and segment time ranges. This local derivation does not invalidate the source approval and does not require another human review. Only write the derived frames back to `短视频拆解库` when the user explicitly asks to correct or upgrade that shared record; that separate library mutation follows the breakdown review workflow.
+Create the two-frame evidence pool inside the current run package. Reuse accepted start/result attachments when they exist. For an accepted legacy record with fewer frames, derive exactly two frames per source narrative segment locally from its retained source video, evidence frames and source time ranges. This local derivation does not invalidate the source approval and does not require another human review. Only write the derived frames back to `短视频拆解库` when the user explicitly asks to correct or upgrade that shared record; that separate library mutation follows the breakdown review workflow.
 
-## Two-frame segment adaptation
+## Two-frame narrative evidence and target-board adaptation
 
-1. Validate that the selected record is `资产状态=可用` and has the factual narrative fields and segment time ranges needed for adaptation. Then create a local manifest in which every segment links to exactly two distinct files: `开始参考帧` and `结果参考帧`. Missing, duplicated, out-of-range or unstable local frames stop the run; absence of two attachments on an accepted legacy record alone does not.
-2. For each segment, create one adaptation entry containing its time range, narrative task, start frame, result frame, preserved mechanism, target-product action, product start/result state and prohibited source-product carryover.
-3. Use only those two source frames as composition/state references for the segment. The start frame owns the entering scene and composition; the result frame owns the visible payoff and handoff state. Under `preserve_source_subject`, they also preserve the original person or animal and no subject anchor is added. Under `replace_subject`, the selected subject anchor overrides source-subject identity. The current product anchor always overrides source-product identity.
-4. Generate the segment's target storyboard frames or board. Keep segment order and approximate duration, but let the locked script and current product facts determine the action between the two states.
-5. Assemble accepted segment boards in narrative order into the final storyboard. Validate exact segment coverage, correct start/result state, hook/payoff/proof/CTA order, product actions and cross-segment continuity.
+1. Validate that the selected record is `资产状态=可用` and has the factual narrative fields and source time ranges needed for adaptation. Create a local evidence manifest in which every source narrative segment links to exactly two distinct files: `开始参考帧` and `结果参考帧`. Missing, duplicated, out-of-range or unstable local frames stop the run; absence of two attachments on an accepted legacy record alone does not.
+2. For each source narrative segment, record its narrative task, start/result frames, preserved mechanism, relative pacing cue, required target-product substitution and prohibited source-product carryover. These pairs form the evidence pool; they do not each trigger generation.
+3. Build the rhythm map and target 10-second production Segments from the locked target script. For each target production Segment, record its contiguous target time range, mapped source narrative IDs and four target Beats. Select exactly two routed source boundary frames from the evidence pool: the entering frame of the first mapped source narrative and the result frame of the last mapped source narrative. Intermediate evidence pairs remain planning evidence represented by the target Beats; do not send all retained frames by default.
+4. Generate exactly one 2×2 target storyboard board for each target production Segment. The routed start frame owns entering composition/state and the routed result frame owns visible payoff/handoff. Under `preserve_source_subject`, they also preserve the original person or animal and no subject anchor is added. Under `replace_subject`, the selected subject anchor overrides source-subject identity. The current product anchor always overrides source-product identity.
+5. Assemble accepted target production boards in target chronological order. Validate exact target duration and Job count, source-narrative coverage, target Beat coverage, correct start/result states, hook/payoff/proof/CTA order, product actions and cross-Segment continuity.
 
 Do not create MF/RF mappings, fixed six-frame batches, replacement contact sheets, balanced dynamic masters, video, subtitles or voiceover in this workflow. If the two local frames do not provide enough evidence, reselect them from retained segment evidence. Return to the breakdown workflow only when the accepted narrative facts or time ranges themselves are wrong or insufficient; do not restart chronological frame replacement.
 

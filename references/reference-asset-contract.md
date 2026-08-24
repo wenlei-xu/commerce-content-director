@@ -14,8 +14,8 @@ Use the smallest evidence set that proves the current Segment. Do not send every
 | `subject_anchor` | an identifiable subject recurs | that subject's identity | product structure |
 | `storyboard_board` | final-video generation | chronology, action, camera intent, and progression | product or subject facts that conflict with approved anchors |
 | `continuity_frame` | a later final-video Segment needs a visual handoff | the immediately preceding accepted state | product facts or subject identity |
-| `source_segment_start` | full-replication storyboard work | entering scene, composition and visible state; source-subject identity only under `preserve_source_subject` | target-product identity or a replacement subject |
-| `source_segment_result` | full-replication storyboard work | visible payoff and handoff state; source-subject identity only under `preserve_source_subject` | target-product identity or a replacement subject |
+| `source_segment_start` | full-replication target production board | entering scene, composition and visible state selected from the first mapped source narrative segment; source-subject identity only under `preserve_source_subject` | target-product identity, exact target timing or a replacement subject |
+| `source_segment_result` | full-replication target production board | visible payoff and handoff state selected from the last mapped source narrative segment; source-subject identity only under `preserve_source_subject` | target-product identity, exact target timing or a replacement subject |
 
 For a visible product, route one clean `product_anchor` by default. Add exactly one targeted `product_detail` for a structure-sensitive beat, or one clean `product_scene` for a scale/placement-sensitive beat. Add both only when the same Segment genuinely needs both facts and the catalog input limit permits it. A later final-video Segment normally uses `continuity_frame` instead of a low-value scene reference.
 
@@ -50,4 +50,4 @@ Every routed image must appear in the generation prompt plan with `position`, `r
 
 Store source field, filename, remote token, local path, source hash, derivative hash when applicable, role, input position, and Segment mapping in the local package. The model input array must match this record exactly.
 
-For full replication, route exactly one `source_segment_start` and one `source_segment_result` for the current narrative segment. Do not add intermediate source-video frames or a chronological contact sheet. Add the current product anchor. Add a selected subject anchor only for `replace_subject`; `preserve_source_subject` must not route one. `structure_only` routes no source-segment frames.
+For full replication, retain two local evidence frames per source narrative segment, but route exactly one `source_segment_start` and one `source_segment_result` for the current target 10-second production Segment. Select them from the first and last mapped source narrative segments in `plan/replication-rhythm-map.json`. Intermediate evidence frames remain planning evidence captured by target Beats; do not add them or a chronological contact sheet by default. Add the current product anchor. Add a selected subject anchor only for `replace_subject`; `preserve_source_subject` must not route one. `structure_only` routes no source-segment frames.
