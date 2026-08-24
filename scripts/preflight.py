@@ -19,12 +19,39 @@ from runtime import find_binary
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 CAPABILITY_CONFIG = SKILL_DIR / "config" / "workflow-capabilities.json"
+BASE_SCHEMA = SKILL_DIR / "config" / "base-schema.json"
 ASR_BACKENDS = ("faster_whisper", "whisper", "mlx_whisper")
 REMOTE_CAPABILITIES = {"feishu", "flow2api"}
+LANGUAGE_LOCK_WORKFLOWS = {"creative_direction", "script_production", "storyboard_generation", "final_video"}
 
 
 def load_policy(path: Path = CAPABILITY_CONFIG) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_language_policy(path: Path = BASE_SCHEMA) -> dict[str, Any]:
+    schema = json.loads(path.read_text(encoding="utf-8"))
+    policy = schema.get("language_policy")
+    if not isinstance(policy, dict):
+        raise ValueError("base schema is missing language_policy")
+    return policy
+
+
+def resolve_target_spoken_language(
+    language_policy: dict[str, Any],
+    workflow: str,
+    requested: str | None,
+) -> tuple[str | None, str | None]:
+    if workflow not in LANGUAGE_LOCK_WORKFLOWS:
+        return requested, "user" if requested else None
+    allowed = language_policy.get("allowed_spoken_languages")
+    default = language_policy.get("default_target_spoken_language")
+    if not isinstance(allowed, list) or not all(isinstance(value, str) for value in allowed):
+        raise ValueError("allowed_spoken_languages must be a string list")
+    resolved = requested or default
+    if resolved not in allowed:
+        raise ValueError(f"target_spoken_language must be one of {sorted(allowed)}")
+    return resolved, "user" if requested else "schema_default"
 
 
 def resolve_requirements(
@@ -94,6 +121,8 @@ def report_for(
     audio_mode: str | None = None,
     source_has_audio: bool = False,
     require_asr: bool = False,
+    target_spoken_language: str | None = None,
+    language_policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     requirements = resolve_requirements(
         policy,
@@ -104,12 +133,17 @@ def report_for(
     )
     if require_asr:
         requirements["asr"] = "required"
+    resolved_language, language_source = resolve_target_spoken_language(
+        language_policy or load_language_policy(), workflow, target_spoken_language
+    )
     checks, missing = local_checks(requirements)
     return {
         "workflow": workflow,
         "mode": mode,
         "audio_mode": audio_mode,
         "source_has_audio": source_has_audio,
+        "target_spoken_language": resolved_language,
+        "target_spoken_language_source": language_source,
         "requirements": requirements,
         "remote_checks_required": sorted(
             capability for capability in REMOTE_CAPABILITIES if requirements.get(capability) == "required"
@@ -122,12 +156,14 @@ def report_for(
 
 def main() -> int:
     policy = load_policy()
+    language_policy = load_language_policy()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workflow", required=True, choices=sorted(policy["workflows"]))
     parser.add_argument("--mode", help="Selected task mode, when the workflow is mode-dependent")
     parser.add_argument("--audio-mode", choices=("spoken", "sparse_spoken", "natural_sound_only"))
     parser.add_argument("--source-has-audio", action="store_true")
     parser.add_argument("--require-asr", action="store_true", help="Compatibility override: require a local ASR backend")
+    parser.add_argument("--target-spoken-language", choices=sorted(language_policy["allowed_spoken_languages"]))
     parser.add_argument("--json", action="store_true", help="Emit a machine-readable report")
     args = parser.parse_args()
     try:
@@ -138,6 +174,8 @@ def main() -> int:
             audio_mode=args.audio_mode,
             source_has_audio=args.source_has_audio,
             require_asr=args.require_asr,
+            target_spoken_language=args.target_spoken_language,
+            language_policy=language_policy,
         )
     except ValueError as exc:
         parser.error(str(exc))
@@ -146,6 +184,8 @@ def main() -> int:
         print(json.dumps(report, ensure_ascii=False))
     else:
         print(f"workflow: {report['workflow']}")
+        if report["target_spoken_language"]:
+            print(f"target spoken language: {report['target_spoken_language']} ({report['target_spoken_language_source']})")
         print("requirements: " + ", ".join(f"{key}={value}" for key, value in sorted(report["requirements"].items())))
         print("remote MCP checks: " + (", ".join(report["remote_checks_required"]) or "none"))
         for name, value in report["local_checks"].items():

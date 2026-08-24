@@ -1,14 +1,18 @@
 {
-  "schema_version": 10,
+  "schema_version": 12,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
-    "target_spoken_language": "th",
-    "spoken_language_name": "Thai",
-    "allowed_spoken_languages": ["th"],
-    "generation_prompt_languages": ["en", "zh-CN"],
+    "allowed_spoken_languages": ["th", "zh-CN"],
+    "default_target_spoken_language": "zh-CN",
+    "spoken_language_names": {
+      "th": "Thai",
+      "zh-CN": "Chinese"
+    },
+    "lock_at_task_start": true,
+    "generation_prompt_languages": ["en"],
     "generation_prompt_language_default": "en",
-    "override_requires_schema_change": true
+    "generation_prompt_language_fixed": true
   },
   "tables": {
     "system_config": {
@@ -20,6 +24,9 @@
         "name": "配置名称",
         "config_id": "配置ID",
         "execution_limit_default": "默认执行次数上限",
+        "retention_weight": "停留潜力权重",
+        "conversion_weight": "证明与转化权重",
+        "execution_weight": "平台感与执行权重",
         "allowed_durations_seconds": "允许视频时长（秒）",
         "raw_segment_seconds": "原始分段时长（秒）",
         "storyboard_columns": "每段分镜列数",
@@ -260,6 +267,7 @@
         "narrative_summary": "可参考的叙事模板",
         "narrative_reference_frames": "叙事节点参考帧",
         "segment_replication_template": "逐段复刻模板",
+        "segment_rhythm_and_voiceover": "逐段节奏与口播",
         "evidence_timestamps": "分析证据时间码",
         "confidence": "整体判断置信度",
         "quality_check": "质量检查结果"

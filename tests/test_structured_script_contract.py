@@ -29,6 +29,24 @@ class StructuredScriptContractTest(unittest.TestCase):
         self.script["dialogue"][1]["end"] = 11
         self.assertFalse(self.validator.validate(self.script)["ok"])
 
+    def test_chinese_language_lock_passes_with_chinese_dialogue(self):
+        self.script["runtime"]["target_spoken_language"] = "zh-CN"
+        self.script["dialogue"][0]["text"] = "出门前，我先给它一个任务"
+        self.script["dialogue"][1]["text"] = "点击看看这个菠萝玩具"
+        self.assertTrue(self.validator.validate(self.script)["ok"])
+
+    def test_language_mismatch_fails(self):
+        self.script["runtime"]["target_spoken_language"] = "zh-CN"
+        report = self.validator.validate(self.script)
+        self.assertFalse(report["ok"])
+        self.assertTrue(any(error["code"] == "DIALOGUE_LANGUAGE_MISMATCH" for error in report["errors"]))
+
+    def test_unsupported_language_fails(self):
+        self.script["runtime"]["target_spoken_language"] = "en"
+        report = self.validator.validate(self.script)
+        self.assertFalse(report["ok"])
+        self.assertTrue(any(error["code"] == "INVALID_TARGET_SPOKEN_LANGUAGE" for error in report["errors"]))
+
     def test_renderer_has_canonical_views(self):
         result = self.renderer.render(self.script)
         self.assertIn("BEAT-01", result["three_track_script"])

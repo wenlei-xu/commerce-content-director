@@ -1,14 +1,14 @@
 # Target-language policy
 
-The current campaign policy fixes `target_spoken_language` to `th` (Thai) in `config/base-schema.json`. Until that schema policy changes, all spoken UGC videos use Thai. This policy does not require image or video generation prompts to be written in Thai.
+The final spoken language supports exactly `th` (Thai) and `zh-CN` (Chinese). Resolve and lock it at task start. When the user does not specify a language, use the schema default `zh-CN`. All generation control prompts use English.
 
 ## Rules
 
-- Resolve `target_spoken_language` from the schema policy before reading or writing a script, video prompt, voice line, or subtitle track. Storyboard/image prompts may use the configured prompt language independently.
-- A missing spoken language, a non-Thai spoken language, or mixed spoken languages is a planning-data conflict. Stop and report it; do not guess from `platform_account` or free-text `creative_requirements`.
-- Every spoken line, timed dialogue window, voiceover instruction, TTS input, and ASR acceptance check must use Thai. English or Chinese may be used freely for control instructions, visual descriptions, product constraints, and prompt explanations; they are not spoken lines.
-- Subtitle text is the final Thai dialogue aligned to the accepted final audio. Emphasis metadata may select Thai substrings for color, scale or weight, but must not translate, paraphrase or add unspoken claims.
-- Generation prompts may use English or Chinese. The default is English, but Chinese is allowed when it improves operator clarity. Do not translate the entire prompt into Thai merely because the voice language is Thai.
-- A storyboard/image Job has no spoken-dialogue payload. Its control prompt, panel descriptions, layout instructions, and negative constraints must therefore contain no Thai. Select `en` or `zh-CN` from `generation_prompt_languages`, record that selection with the submitted prompt, and stop before submission if the prompt contains Thai control text.
-- `audio_mode` is separate from language: `spoken` and `sparse_spoken` still use Thai; `natural_sound_only` contains no dialogue and must not silently add a CTA or voiceover.
-- A task or content record cannot override the fixed spoken language with a free-text field. Changing the allowed spoken language requires a schema-policy change and a fresh validation of downstream contracts.
+- At task start, take `target_spoken_language` from the user's explicit choice; otherwise use `default_target_spoken_language=zh-CN`. Persist `plan/language-lock.json` with `schema`, `target_spoken_language`, `locked_at`, and `source` (`user` or `schema_default`).
+- The lock is immutable within one run and script revision. Changing it starts a new run or script revision; never silently convert downstream dialogue, subtitles, prompts, or audio.
+- Copy the exact lock into `structured_script.runtime.target_spoken_language` and the Feishu script field `目标口播语言`. Fresh-read the script and verify both before storyboard or final-video work.
+- A language outside `th` and `zh-CN`, mixed spoken languages, or inconsistent lock/script values is a planning-data conflict. Stop and report it.
+- Every spoken line, timed dialogue window, voiceover instruction, TTS input, subtitle line, and ASR acceptance check uses the locked language. Thai dialogue must contain Thai script; Chinese dialogue must contain Chinese Han characters.
+- Subtitle text is the exact final approved dialogue aligned to accepted audio. Emphasis metadata may style exact substrings but must not translate, paraphrase, or add claims.
+- `audio_mode` is independent of language. `spoken` and `sparse_spoken` use the lock. `natural_sound_only` has no dialogue or voiceover, but still retains the task language lock.
+- Every storyboard and final-video control prompt uses `prompt_language=en`. Do not use Chinese or Thai for control instructions. Final-video prompts may contain the approved Thai or Chinese dialogue only inside the timed-dialogue payload.

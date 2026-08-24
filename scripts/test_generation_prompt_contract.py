@@ -16,6 +16,7 @@ IMAGE_PLAN = {
     "model": "gemini-3.1-flash-image-portrait",
     "generation_unit": "target_production_segment",
     "prompt_language": "en",
+    "target_spoken_language": "zh-CN",
     "target_duration_seconds": 10,
     "raw_segment_seconds": 10,
     "storyboard": {"columns": 2, "rows": 2, "panel_ratio": "9:16"},
@@ -193,8 +194,12 @@ def main() -> None:
 
     thai_plan = copy.deepcopy(IMAGE_PLAN)
     thai_plan["segments"][0]["beats"][0]["description"] = "ภาษาไทย"
-    thai_bundle = compile_plan(thai_plan)
-    assert any("Thai control text" in error for error in validate_bundle(thai_bundle, {"en", "zh-CN"}))
+    try:
+        compile_plan(thai_plan)
+    except ValueError as error:
+        assert "control prompt must be English" in str(error)
+    else:
+        raise AssertionError("Thai storyboard control text must fail during compilation")
 
     missing_anchor = copy.deepcopy(IMAGE_PLAN)
     missing_anchor["segments"][0]["inputs"] = [missing_anchor["segments"][0]["inputs"][1]]
@@ -221,6 +226,39 @@ def main() -> None:
     video_segment["dialogue"] = [{"line_id": "line-01", "start": 7, "end": 10, "text": "ลองดูของเล่นชิ้นนี้", "intentional_repeat": False}]
     video_bundle = compile_plan(video_plan)
     assert not validate_bundle(video_bundle, {"en", "zh-CN"})
+
+    chinese_video_plan = copy.deepcopy(video_plan)
+    chinese_video_plan["target_spoken_language"] = "zh-CN"
+    chinese_video_plan["segments"][0]["dialogue"][0]["text"] = "看看这个菠萝玩具"
+    chinese_video_bundle = compile_plan(chinese_video_plan)
+    assert not validate_bundle(chinese_video_bundle, {"en"}, {"th", "zh-CN"})
+
+    chinese_control_text = copy.deepcopy(chinese_video_plan)
+    chinese_control_text["segments"][0]["subject_identity"] = "只使用同一只狗"
+    try:
+        compile_plan(chinese_control_text)
+    except ValueError as error:
+        assert "control prompt must be English" in str(error)
+    else:
+        raise AssertionError("Chinese dialogue is allowed, but generation control text must remain English")
+
+    missing_language_lock = copy.deepcopy(video_plan)
+    missing_language_lock.pop("target_spoken_language")
+    try:
+        compile_plan(missing_language_lock)
+    except ValueError as error:
+        assert "target_spoken_language" in str(error)
+    else:
+        raise AssertionError("generation plans must carry the task-start language lock")
+
+    chinese_control_prompt = copy.deepcopy(IMAGE_PLAN)
+    chinese_control_prompt["prompt_language"] = "zh-CN"
+    try:
+        compile_plan(chinese_control_prompt)
+    except ValueError as error:
+        assert "prompt_language must be en" in str(error)
+    else:
+        raise AssertionError("generation control prompts must be English")
 
     print("generation prompt contract tests passed")
 

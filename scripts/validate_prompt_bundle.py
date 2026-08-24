@@ -25,6 +25,7 @@ from compile_generation_prompts import (
 
 
 THAI = re.compile(r"[\u0E00-\u0E7F]")
+HAN = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF]")
 IMAGE_HEADINGS = ("OUTPUT", "INPUT IMAGE ROLES", "HARD FACTS", "RHYTHM AUTHORITY", "TIMELINE", "NEGATIVE CONSTRAINTS")
 VIDEO_HEADINGS = (
     "INPUT IMAGE ROLES AND AUTHORITY",
@@ -44,8 +45,22 @@ def load_allowed_languages(schema_path: Path) -> set[str]:
     return set(languages)
 
 
-def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list[str]:
+def load_allowed_spoken_languages(schema_path: Path) -> set[str]:
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    policy = schema.get("language_policy") or {}
+    languages = policy.get("allowed_spoken_languages")
+    if not isinstance(languages, list) or not all(isinstance(value, str) for value in languages):
+        raise ValueError("schema allowed_spoken_languages must be a string list")
+    return set(languages)
+
+
+def validate_bundle(
+    bundle: dict[str, Any],
+    allowed_languages: set[str],
+    allowed_spoken_languages: set[str] | None = None,
+) -> list[str]:
     errors: list[str] = []
+    allowed_spoken_languages = allowed_spoken_languages or {"th", "zh-CN"}
     if bundle.get("schema") != "commerce-generation-prompt-bundle-v1":
         return ["unsupported prompt-bundle schema"]
     kind = bundle.get("job_kind")
@@ -67,6 +82,9 @@ def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list
             errors.append("storyboard_image output must be one 2x2 board with four 9:16 panels")
     if bundle.get("prompt_language") not in allowed_languages:
         errors.append("prompt_language is not allowed by the schema")
+    target_spoken_language = bundle.get("target_spoken_language")
+    if target_spoken_language not in allowed_spoken_languages:
+        errors.append("target_spoken_language is not allowed by the schema")
     raw_seconds = bundle.get("raw_segment_seconds")
     if not isinstance(raw_seconds, (int, float)) or isinstance(raw_seconds, bool) or raw_seconds <= 0:
         errors.append("raw_segment_seconds must be positive")
@@ -103,8 +121,14 @@ def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list
         for heading in headings:
             if heading not in prompt:
                 errors.append(f"{prefix} is missing heading {heading!r}")
-        if kind == "storyboard_image" and THAI.search(prompt):
-            errors.append(f"{prefix} contains Thai control text")
+        control_text = prompt
+        dialogue_payload = entry.get("dialogue") or []
+        for line in dialogue_payload:
+            text = line.get("text") if isinstance(line, dict) else None
+            if isinstance(text, str) and text:
+                control_text = control_text.replace(text, "")
+        if THAI.search(control_text) or HAN.search(control_text):
+            errors.append(f"{prefix} contains non-English control text")
         try:
             segment = {
                 "segment_id": segment_id,
@@ -135,8 +159,6 @@ def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list
         if kind == "storyboard_image" and dialogue:
             errors.append(f"{prefix}: storyboard-image prompt cannot contain dialogue")
         if kind == "final_video":
-            if bundle.get("target_spoken_language") != "th":
-                errors.append("final-video bundle must set target_spoken_language to th")
             if entry.get("audio_mode") == "natural_sound_only" and dialogue:
                 errors.append(f"{prefix}: natural_sound_only cannot contain dialogue")
             for line_index, line in enumerate(dialogue):
@@ -151,8 +173,12 @@ def validate_bundle(bundle: dict[str, Any], allowed_languages: set[str]) -> list
                     errors.append(f"dialogue line {line_id!r} appears in more than one Segment")
                 else:
                     dialogue_ids[line_id] = str(segment_id)
-                if not isinstance(text, str) or not THAI.search(text):
+                if not isinstance(text, str):
+                    errors.append(f"{prefix}.dialogue[{line_index}] must contain text")
+                elif target_spoken_language == "th" and not THAI.search(text):
                     errors.append(f"{prefix}.dialogue[{line_index}] must contain Thai text")
+                elif target_spoken_language == "zh-CN" and not HAN.search(text):
+                    errors.append(f"{prefix}.dialogue[{line_index}] must contain Chinese text")
                 try:
                     start = float(line["start"])
                     end = float(line["end"])
@@ -171,7 +197,11 @@ def main() -> int:
     args = parser.parse_args()
     try:
         bundle = json.loads(args.bundle.read_text(encoding="utf-8"))
-        errors = validate_bundle(bundle, load_allowed_languages(args.schema))
+        errors = validate_bundle(
+            bundle,
+            load_allowed_languages(args.schema),
+            load_allowed_spoken_languages(args.schema),
+        )
     except (OSError, ValueError, json.JSONDecodeError) as error:
         parser.error(str(error))
     if errors:

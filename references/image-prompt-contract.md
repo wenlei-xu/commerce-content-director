@@ -44,7 +44,7 @@ Every storyboard-image plan uses `generation_unit=target_production_segment`, `r
 
 `beats` must be chronological, contiguous, and cover the whole raw Segment. Their durations are an editorial decision: allocate time to hook, proof, reaction, and CTA according to the actual action. Do not default to equal panels merely because a board has four cells. A constant duration is valid only when the selected action genuinely warrants it.
 
-The control prompt uses `en` by default or `zh-CN`; it contains no Thai because storyboard generation has no spoken-dialogue payload.
+The control prompt uses English (`en`) only. It contains no Thai or Chinese because storyboard generation has no spoken-dialogue payload.
 
 For `full_replication`, every target production Segment declares the ordered `source_narrative_segment_ids` mapped into its 10-second target window. Its input plan contains exactly two routed source-reference roles: `source_segment_start` from the first mapped source narrative and `source_segment_result` from the last. The target-script timeline describes the target-product action connecting those states. Intermediate source evidence, source timestamps, per-second frames, RF batches and replacement contact sheets are not generation inputs.
 

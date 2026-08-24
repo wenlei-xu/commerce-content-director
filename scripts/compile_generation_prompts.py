@@ -5,8 +5,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
+
+
+NON_ENGLISH_CONTROL = re.compile(r"[\u0E00-\u0E7F\u3400-\u4DBF\u4E00-\u9FFF]")
 
 
 SOURCE_FRAME_ROLES = {"source_segment_start", "source_segment_result"}
@@ -145,8 +149,10 @@ def validate_plan(plan: dict[str, Any]) -> None:
     job_kind = plan.get("job_kind")
     if job_kind not in {"storyboard_image", "final_video"}:
         raise fail("job_kind must be storyboard_image or final_video")
-    if plan.get("prompt_language") not in {"en", "zh-CN"}:
-        raise fail("prompt_language must be en or zh-CN")
+    if plan.get("prompt_language") != "en":
+        raise fail("prompt_language must be en")
+    if plan.get("target_spoken_language") not in {"th", "zh-CN"}:
+        raise fail("target_spoken_language must be locked to th or zh-CN")
     raw_seconds = number(plan.get("raw_segment_seconds"), "raw_segment_seconds")
     if raw_seconds <= 0:
         raise fail("raw_segment_seconds must be positive")
@@ -276,7 +282,7 @@ def compile_video(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         "PRODUCT STRUCTURE AND INTERACTION HARD CONSTRAINTS\n" + ("\n".join(constraints) if constraints else "Use only approved product facts."),
         "SUBJECT IDENTITY LOCK\n" + subject,
         "LANGUAGE, AUDIO AND TIMED DIALOGUE\n"
-        f"target_spoken_language={plan.get('target_spoken_language', 'th')}. audio_mode={segment.get('audio_mode', 'spoken')}.\n"
+        f"target_spoken_language={plan['target_spoken_language']}. audio_mode={segment.get('audio_mode', 'spoken')}.\n"
         + ("\n".join(dialogue_lines) if dialogue_lines else "Natural sound only; do not speak any line."),
         "NO TEXT AND CROSS-SEGMENT CONTINUITY\n"
         "No captions, subtitles, burned-in text, dialogue transcription, labels, lower thirds, logos, watermarks, UI, or readable text in any language.\n"
@@ -284,17 +290,30 @@ def compile_video(plan: dict[str, Any], segment: dict[str, Any]) -> str:
     ])
 
 
+def validate_english_control_prompt(prompt: str, dialogue: list[dict[str, Any]]) -> None:
+    control_text = prompt
+    for line in dialogue:
+        text = line.get("text") if isinstance(line, dict) else None
+        if isinstance(text, str) and text:
+            control_text = control_text.replace(text, "")
+    if NON_ENGLISH_CONTROL.search(control_text):
+        raise fail("generation control prompt must be English; only approved dialogue may be Thai or Chinese")
+
+
 def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
     validate_plan(plan)
     compiler = compile_storyboard if plan["job_kind"] == "storyboard_image" else compile_video
     prompts = []
     for segment in plan["segments"]:
+        compiled_prompt = compiler(plan, segment)
+        dialogue = segment.get("dialogue", [])
+        validate_english_control_prompt(compiled_prompt, dialogue)
         prompts.append({
             "segment_id": segment["segment_id"],
             "target_time_range": segment.get("target_time_range"),
             "source_narrative_segment_ids": segment.get("source_narrative_segment_ids", []),
             "subject_strategy": segment.get("subject_strategy"),
-            "prompt": compiler(plan, segment),
+            "prompt": compiled_prompt,
             "inputs": validate_inputs(segment, plan["job_kind"]),
             "beats": validate_beats(segment, float(plan["raw_segment_seconds"])),
             "dialogue": segment.get("dialogue", []),

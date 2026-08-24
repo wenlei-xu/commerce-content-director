@@ -13,7 +13,7 @@
       "required": ["target_duration_seconds", "target_spoken_language", "audio_mode", "subtitle_mode"],
       "properties": {
         "target_duration_seconds": {"type": "number", "exclusiveMinimum": 0},
-        "target_spoken_language": {"type": "string", "minLength": 1},
+        "target_spoken_language": {"type": "string", "enum": ["th", "zh-CN"]},
         "audio_mode": {"enum": ["spoken", "sparse_spoken", "natural_sound_only"]},
         "subtitle_mode": {"enum": ["auto_from_final_audio", "emphasis_from_final_audio", "none"]}
       }

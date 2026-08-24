@@ -127,22 +127,29 @@ def transcribe_mlx(audio, model, language):
 def transcribe_faster(audio, model, language):
     from faster_whisper import WhisperModel
 
-    engine = WhisperModel(model, device="auto", compute_type="int8")
-    segments, info = engine.transcribe(str(audio), language=language, word_timestamps=True, vad_filter=True)
-    converted = []
-    for segment in segments:
-        converted.append(
-            {
-                "start": segment.start,
-                "end": segment.end,
-                "text": segment.text,
-                "words": [
-                    {"start": word.start, "end": word.end, "word": word.word, "probability": word.probability}
-                    for word in (segment.words or [])
-                ],
-            }
-        )
-    return {"language": info.language, "language_probability": info.language_probability, "segments": converted}
+    def run(engine):
+        segments, info = engine.transcribe(str(audio), language=language, word_timestamps=True, vad_filter=True)
+        converted = []
+        for segment in segments:
+            converted.append(
+                {
+                    "start": segment.start,
+                    "end": segment.end,
+                    "text": segment.text,
+                    "words": [
+                        {"start": word.start, "end": word.end, "word": word.word, "probability": word.probability}
+                        for word in (segment.words or [])
+                    ],
+                }
+            )
+        return {"language": info.language, "language_probability": info.language_probability, "segments": converted}
+
+    try:
+        return run(WhisperModel(model, device="auto", compute_type="int8"))
+    except RuntimeError as error:
+        if "cublas" not in str(error).lower() and "cuda" not in str(error).lower():
+            raise
+        return run(WhisperModel(model, device="cpu", compute_type="int8"))
 
 
 def transcribe_openai(audio, model, language):

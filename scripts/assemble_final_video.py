@@ -16,12 +16,13 @@ def concat_entry(path: Path) -> str:
     return "file '" + path.resolve().as_posix().replace("'", r"'\\''") + "'\n"
 
 
-def subtitle_filter(path: Path, font_name: str, margin_v: int) -> str:
+def subtitle_filter(path: Path, font_name: str, margin_v: int, font_weight: str = "regular") -> str:
     escaped = path.resolve().as_posix().replace("'", r"\'").replace(":", r"\:")
     if path.suffix.lower() == ".ass":
         return f"subtitles=filename='{escaped}':charenc=UTF-8"
+    bold = "-1" if font_weight == "bold" else "0"
     style = (
-        f"FontName={font_name},Bold=-1,FontSize=14,PrimaryColour=&H00FFFFFF,"
+        f"FontName={font_name},Bold={bold},FontSize=14,PrimaryColour=&H00FFFFFF,"
         f"OutlineColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,Alignment=2,MarginV={margin_v}"
     )
     return f"subtitles=filename='{escaped}':charenc=UTF-8:force_style='{style}'"
@@ -50,6 +51,12 @@ def main() -> None:
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--profile", required=True, type=Path, help="content-system-config-snapshot.json")
     parser.add_argument("--font-name", default="Microsoft YaHei", help="Default: Microsoft YaHei Bold")
+    parser.add_argument(
+        "--subtitle-font-weight",
+        choices=["regular", "bold"],
+        default="bold",
+        help="Font weight for ordinary SRT subtitles; ignored for ASS tracks",
+    )
     parser.add_argument("--subtitle-margin-v", type=int, default=95, help="Bottom subtitle margin in pixels; smaller is lower")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
@@ -101,7 +108,7 @@ def main() -> None:
             command.extend([
                 "-i", str(voiceover),
                 "-filter_complex",
-                f"[0:v]{subtitle_filter(subtitles, args.font_name, args.subtitle_margin_v)}[video];"
+                f"[0:v]{subtitle_filter(subtitles, args.font_name, args.subtitle_margin_v, args.subtitle_font_weight)}[video];"
                 "[0:a]volume=0.18[bed];[1:a]volume=1.0[narration];"
                 "[bed][narration]amix=inputs=2:duration=first:normalize=0[audio]",
                 "-map", "[video]", "-map", "[audio]",
@@ -110,12 +117,15 @@ def main() -> None:
             command.extend([
                 "-i", str(voiceover),
                 "-filter_complex",
-                f"[0:v]{subtitle_filter(subtitles, args.font_name, args.subtitle_margin_v)}[video];"
+                f"[0:v]{subtitle_filter(subtitles, args.font_name, args.subtitle_margin_v, args.subtitle_font_weight)}[video];"
                 "[1:a]volume=1.0[audio]",
                 "-map", "[video]", "-map", "[audio]",
             ])
         else:
-            command.extend(["-map", "0:v:0", "-map", "0:a?", "-vf", subtitle_filter(subtitles, args.font_name, args.subtitle_margin_v)])
+            command.extend([
+                "-map", "0:v:0", "-map", "0:a?", "-vf",
+                subtitle_filter(subtitles, args.font_name, args.subtitle_margin_v, args.subtitle_font_weight),
+            ])
         command.extend([
             "-c:v", "libx264", "-crf", "18", "-preset", "medium",
             "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(output),

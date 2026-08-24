@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Block Thai control text in storyboard/image-generation prompts."""
+"""Require English-only control text in storyboard/image-generation prompts."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from typing import Iterator
 
 
 THAI = re.compile(r"[\u0E00-\u0E7F]")
+HAN = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF]")
 PROMPT_KEYS = {"prompt", "image_prompt", "storyboard_prompt"}
 
 
@@ -54,7 +55,7 @@ def main() -> int:
     skill_dir = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("prompt_file", type=Path)
-    parser.add_argument("--language", required=True, choices=("en", "zh-CN"))
+    parser.add_argument("--language", required=True, choices=("en",))
     parser.add_argument(
         "--schema",
         type=Path,
@@ -71,9 +72,9 @@ def main() -> int:
         parser.error(str(error))
 
     errors = [
-        f"{args.prompt_file}:{location}: Thai control text is not allowed in an image prompt"
+        f"{args.prompt_file}:{location}: storyboard control prompts must be English; Thai or Chinese text is not allowed"
         for location, prompt in prompts
-        if THAI.search(prompt)
+        if THAI.search(prompt) or HAN.search(prompt)
     ]
     if errors:
         print("\n".join(errors))

@@ -4,7 +4,7 @@ Read [storyboard-generation.md](storyboard-generation.md), [flow2api-image-execu
 
 Use this workflow only for the `full_replication` task mode. Full replication preserves the complete commercial narrative chain: hook, segment order, information release, proof order, payoff, emotion and CTA position. It does not perform chronological per-second or per-frame product replacement.
 
-Run `python scripts/preflight.py --workflow storyboard_generation --mode full_replication --json`. Source-video download and ffmpeg are conditional tools for deriving missing local start/result frames from retained evidence; ASR is not an execution prerequisite when the accepted breakdown already contains the narrative facts and time ranges.
+Run `python scripts/preflight.py --workflow storyboard_generation --mode full_replication --target-spoken-language <th|zh-CN> --json`; when the user did not specify a language, pass the resolved default `zh-CN`. Source-video download and ffmpeg are conditional tools for deriving missing local start/result frames from retained evidence; ASR is not an execution prerequisite when the accepted breakdown already contains the narrative facts and time ranges.
 
 ## Product compatibility gate
 

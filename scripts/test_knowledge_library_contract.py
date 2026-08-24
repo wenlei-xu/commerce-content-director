@@ -28,6 +28,7 @@ class KnowledgeLibraryContractTests(unittest.TestCase):
             "字幕表达模板": "类型：重点强调字幕。\n基础样式：底部白字黑描边。\n强调对象：数字、结果词。\n强调方式：黄色放大。\n出现节奏：短语级出现。",
             "叙事节点参考帧": ["S01-钩子-start-0.2s.jpg", "S01-钩子-result-2.8s.jpg"],
             "逐段复刻模板": "| 段落 | 时间 | 叙事任务 | 开始参考帧 | 结果参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-start-0.2s.jpg | S01-钩子-result-2.8s.jpg | 四只湿猫＋疑问字幕 | 低机位、主体占比、异常视觉＋结果疑问 | [主体]盯着[产品]＋[倒计时问题] |",
+            "逐段节奏与口播": "| 段落 | 时间 | 叙事任务 | 参考帧 | 原内容 | 原口播 |\n| --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-start-0.2s.jpg；S01-钩子-result-2.8s.jpg | 四只湿猫＋疑问字幕 | 它们真的会主动靠近吗？ |",
         }
 
     def test_approved_sentence_pattern_requires_one_slot_and_valid_metadata(self) -> None:
@@ -37,7 +38,7 @@ class KnowledgeLibraryContractTests(unittest.TestCase):
             "语言": "语义模板",
             "原句示例": "它真的会去碰吗？",
             "模板句式": "[主体]真的会对[产品]做出[动作]吗？",
-            "使用说明": "用于异常结果前的提问。",
+            "使用说明": "用于异常结果前的提问。\n来源拆解：svbd-test-01\n证据类型：ASR\n证据时间码：0–3s\n置信度：高",
             "审核状态": "可用",
         })
         self.assertTrue(report["ok"], report)
@@ -83,6 +84,19 @@ class KnowledgeLibraryContractTests(unittest.TestCase):
         report = validate_breakdown(record)
         self.assertFalse(report["ok"])
         self.assertEqual(report["errors"][0]["code"], "CAPTION_LABEL_MISSING")
+
+    def test_breakdown_rejects_missing_segment_voiceover_field(self) -> None:
+        record = self.reusable_breakdown()
+        del record["逐段节奏与口播"]
+        report = validate_breakdown(record)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["errors"][-1]["code"], "MISSING_RHYTHM_VOICEOVER")
+
+    def test_breakdown_accepts_explicit_no_voiceover(self) -> None:
+        record = self.reusable_breakdown()
+        record["逐段节奏与口播"] = "| 段落 | 时间 | 叙事任务 | 参考帧 | 原内容 | 原口播 |\n| --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-start-0.2s.jpg；S01-钩子-result-2.8s.jpg | 四只湿猫＋疑问字幕 | 无口播 |"
+        report = validate_breakdown(record)
+        self.assertTrue(report["ok"], report)
 
     def test_breakdown_rejects_missing_commercial_field(self) -> None:
         record = self.reusable_breakdown()

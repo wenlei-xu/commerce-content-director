@@ -34,7 +34,7 @@ Read only the invariants named by the selected workflow:
 - [script-field-contract.md](references/invariants/script-field-contract.md) — object ownership and single source of truth.
 - [script-validation.md](references/invariants/script-validation.md) — blocking quality checks.
 - [product-execution-contract.md](references/invariants/product-execution-contract.md) — product action correctness.
-- [language-policy.md](references/invariants/language-policy.md) — Thai spoken language and audio behavior.
+- [language-policy.md](references/invariants/language-policy.md) — Thai/Chinese spoken-language locking and audio behavior.
 - [knowledge-library-contract.md](references/invariants/knowledge-library-contract.md) — the two learning-library objects and their review boundaries.
 - [model-visual-text-recognition.md](references/invariants/model-visual-text-recognition.md) — model-vision-only screen-text evidence and the legacy OCR field contract.
 - [execution-accounting.md](references/invariants/execution-accounting.md) — accepted films and execution limits.
@@ -42,18 +42,20 @@ Read only the invariants named by the selected workflow:
 
 ## Gates
 
-1. Run python scripts/preflight.py --workflow <workflow> --json.
-2. Read config/base-schema.json and fresh-read only the tables needed by the workflow.
-3. An external video must pass the local source-validity gate before full frame extraction, ASR, breakdown creation, reference-frame upload, or sentence-pattern learning. Invalid or unresolved media stops at preflight evidence and must not enter either learning library.
-4. A script workflow requires one locked creative direction. It must build and validate structured_script locally before creating or revising a Feishu script record. It may read only `资产状态=可用` 短视频拆解 and `审核状态=可用` 句式模板；待审核候选不得直接进入脚本。
+1. At production-task start, resolve `target_spoken_language` to `th` or `zh-CN`; use `zh-CN` when the user does not specify it. Persist `plan/language-lock.json` and keep it unchanged for the run and script revision. Every generation control prompt uses English.
+2. Run `python scripts/preflight.py --workflow <workflow> [--target-spoken-language <th|zh-CN>] --json`. Omission resolves to the schema default `zh-CN`; persist the resolved value before continuing.
+3. Read config/base-schema.json and fresh-read only the tables needed by the workflow.
+4. An external video must pass the local source-validity gate before full frame extraction, ASR, breakdown creation, reference-frame upload, or sentence-pattern learning. Invalid or unresolved media stops at preflight evidence and must not enter either learning library.
+5. A script workflow requires one locked creative direction. It must build and validate structured_script locally before creating or revising a Feishu script record. It may read only `资产状态=可用` 短视频拆解 and `审核状态=可用` 句式模板；待审核候选不得直接进入脚本。
    A full-replication workflow must additionally pass the source-product compatibility gate before image generation. `资产状态=可用` proves breakdown quality, not compatibility with the selected product.
    Consuming an already-accepted breakdown never authorizes changing its attachments, template or `资产状态`. Two-frame adaptation assets belong to the current local replication package unless the user explicitly requests a shared-library correction.
-5. Only validation_status=passed scripts may become locked. Only locked scripts may enter storyboard production. Only storyboard-passed scripts may enter final-video production.
-6. Keep structured_script as the only machine source of truth. Render every human-readable script field from it after validation; do not independently edit duplicate text fields.
-7. Product hard facts, product assets and selected subjects are execution authority. Do not use publication-risk or claim-verification gates in this first version.
-8. For every remote mutation, retain a run ID and fresh-read the changed record. On failure, resume the same run; never create a duplicate direction, script or film.
-9. Every storyboard-image plan must declare `executor=flow2api_mcp` and the exact available image-model ID selected from the fresh Flow2API catalog and active configuration snapshot. Submit, wait for and retrieve the image only through the registered Flow2API MCP. If that path is unavailable or fails validation, stop; GPT Image, private HTTP and provider fallback are forbidden.
-10. Original and replication storyboards share one production unit: each configured 10-second target production Segment submits one image Job and returns one 2×2 board with four 9:16 panels. Reference-video narrative segmentation never determines Job count. The locked target script owns exact Beat timing; do not copy source timestamps or divide the four panels evenly by default.
+6. Only validation_status=passed scripts may become locked. Only locked scripts may enter storyboard production. Only storyboard-passed scripts may enter final-video production.
+7. Keep structured_script as the only machine source of truth. Render every human-readable script field from it after validation; do not independently edit duplicate text fields.
+8. Product hard facts, product assets and selected subjects are execution authority. Do not use publication-risk or claim-verification gates in this first version.
+9. For every remote mutation, retain a run ID and fresh-read the changed record. On failure, resume the same run; never create a duplicate direction, script or film.
+10. Every storyboard-image plan must declare `executor=flow2api_mcp` and the exact available image-model ID selected from the fresh Flow2API catalog and active configuration snapshot. Submit, wait for and retrieve the image only through the registered Flow2API MCP. If that path is unavailable or fails validation, stop; GPT Image, private HTTP and provider fallback are forbidden.
+11. A storyboard is not complete while it exists only as a local file. Upload accepted boards to the exact Feishu script record's `最终分镜图`, write `分镜状态`, `分镜审核意见`, and the linked `视频提示词`, then fresh-read that same script and verify attachment identity/count plus status. A failed upload, association, write, or fresh-read blocks completion.
+12. Original and replication storyboards share one production unit: each configured 10-second target production Segment submits one image Job and returns one 2×2 board with four 9:16 panels. Reference-video narrative segmentation never determines Job count. The locked target script owns exact Beat timing; do not copy source timestamps or divide the four panels evenly by default.
 
 ## Stop condition
 

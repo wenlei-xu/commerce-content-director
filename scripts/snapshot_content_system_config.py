@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from lifecycle_sweeper import Feishu, number, text
+from migrate_schema_v6 import Feishu, text
 
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
@@ -17,6 +17,16 @@ SCHEMA_PATH = SKILL_DIR / "config" / "base-schema.json"
 FIXED_VIDEO_MODEL = "omni_portrait"
 FIXED_RAW_SEGMENT_SECONDS = 10
 FIXED_VIDEO_RATIO = "9:16"
+
+
+def number(value: Any, fallback: float) -> float:
+    """Normalize a Base number field without relying on the retired lifecycle helper."""
+    try:
+        if isinstance(value, bool):
+            return fallback
+        return float(text(value))
+    except (TypeError, ValueError):
+        return fallback
 
 
 def choices(value: Any) -> list[int]:
@@ -30,8 +40,8 @@ def choices(value: Any) -> list[int]:
     return sorted(set(result))
 
 
-def active_record(api: Feishu, table: dict[str, Any]) -> dict[str, Any]:
-    records = [record for record in api.records(table["table_id"])
+def active_record(api: Feishu, app_token: str, table: dict[str, Any]) -> dict[str, Any]:
+    records = [record for record in api.records(app_token, table["table_id"])
                if text(record.get("fields", {}).get(table["status_field"])) == table["status_active"]]
     if len(records) != 1:
         raise ValueError(f"内容系统配置必须恰好有一条{table['status_active']}记录，当前为 {len(records)} 条")
@@ -96,7 +106,7 @@ def main() -> None:
     args = parser.parse_args()
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     table = schema["tables"]["system_config"]
-    result = snapshot(active_record(Feishu(schema["app_token"]), table), table, args.target_duration,
+    result = snapshot(active_record(Feishu(), schema["app_token"], table), table, args.target_duration,
                       args.image_model, args.video_model, args.image_max_inputs, args.video_max_inputs)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

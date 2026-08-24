@@ -11,6 +11,7 @@ from typing import Any
 
 SUMMARY_LABELS = ("适合：", "结构：", "主要证明：", "不适合：")
 SEGMENT_HEADERS = ("段落", "时间", "叙事任务", "开始参考帧", "结果参考帧", "原内容", "保留机制", "新内容模板")
+RHYTHM_VOICEOVER_HEADERS = ("段落", "时间", "叙事任务", "参考帧", "原内容", "原口播")
 CAPTION_LABELS = ("类型：", "基础样式：", "强调对象：", "强调方式：", "出现节奏：")
 ASSET_STATUSES = {"待审核", "可用", "仅留档", "已合并"}
 REUSABLE_ASSET_STATUSES = {"待审核", "可用"}
@@ -118,6 +119,23 @@ def validate(record: dict[str, Any]) -> dict[str, Any]:
         if frames:
             for frame_name in sorted(frames - referenced_frames):
                 errors.append({"code": "UNREFERENCED_NARRATIVE_FRAME", "field": "叙事节点参考帧", "message": f"附件未被逐段模板引用：{frame_name}"})
+    rhythm_voiceover = str(record.get("逐段节奏与口播", "")).strip()
+    if not rhythm_voiceover:
+        errors.append({"code": "MISSING_RHYTHM_VOICEOVER", "field": "逐段节奏与口播", "message": "可复用拆解必须记录逐段节奏与原口播"})
+    else:
+        lines = [line.strip() for line in rhythm_voiceover.splitlines() if line.strip()]
+        header_cells = [cell.strip() for cell in lines[0].strip("|").split("|")] if lines else []
+        if tuple(header_cells) != RHYTHM_VOICEOVER_HEADERS:
+            errors.append({"code": "INVALID_RHYTHM_VOICEOVER_HEADER", "field": "逐段节奏与口播", "message": "首行必须为：段落、时间、叙事任务、参考帧、原内容、原口播"})
+        rows = [line for line in lines[2:] if line.startswith("|")]
+        if not rows:
+            errors.append({"code": "MISSING_RHYTHM_VOICEOVER_ROWS", "field": "逐段节奏与口播", "message": "至少需要一条逐段节奏与口播记录"})
+        for index, row in enumerate(rows, 1):
+            cells = [cell.strip() for cell in row.strip("|").split("|")]
+            if len(cells) != 6 or any(not cell for cell in cells):
+                errors.append({"code": "INVALID_RHYTHM_VOICEOVER_ROW", "field": f"逐段节奏与口播[{index}]", "message": "每行必须有六个非空单元格"})
+            elif not re.fullmatch(r"S\d{2,}", cells[0]):
+                errors.append({"code": "INVALID_RHYTHM_VOICEOVER_SEGMENT_ID", "field": f"逐段节奏与口播[{index}]", "message": "段落 ID 必须形如 S01"})
     return {"ok": not errors, "errors": errors}
 
 

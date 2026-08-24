@@ -1,0 +1,27 @@
+{
+  "schema": "commerce-doubao-tts-config-v1",
+  "provider": "volcengine_doubao",
+  "transport": "websocket_bidirectional",
+  "endpoint": "wss://openspeech.bytedance.com/api/v3/tts/bidirection",
+  "resource_id": "seed-tts-2.0",
+  "audio": {
+    "format": "mp3",
+    "sample_rate": 24000,
+    "bit_rate": 128000,
+    "speech_rate": 0,
+    "loudness_rate": 0
+  },
+  "language_map": {
+    "zh-CN": "zh-cn",
+    "th": "th"
+  },
+  "default_speakers": {
+    "zh-CN": "zh_female_gaolengyujie_uranus_bigtts",
+    "th": "th_female_bv568_neutral_uranus_bigtts"
+  },
+  "speaker_env": {
+    "zh-CN": "DOUBAO_TTS_SPEAKER_ZH_CN",
+    "th": "DOUBAO_TTS_SPEAKER_TH"
+  },
+  "api_key_env": "DOUBAO_TTS_API_KEY"
+}

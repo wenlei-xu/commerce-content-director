@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,9 @@ REQUIRED_STRATEGY = {
 }
 SUBTITLE_MODES = {"auto_from_final_audio", "emphasis_from_final_audio", "none"}
 EMPHASIS_STYLES = {"keyword_yellow", "number_pop", "result_pop", "product_accent", "pain_point_red"}
+TARGET_SPOKEN_LANGUAGES = {"th", "zh-CN"}
+THAI = re.compile(r"[\u0E00-\u0E7F]")
+HAN = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF]")
 
 
 def issue(code: str, path: str, message: str) -> dict[str, str]:
@@ -37,6 +41,9 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
             errors.append(issue("MISSING_REQUIRED", key, f"missing {key}"))
 
     runtime = script.get("runtime") or {}
+    target_spoken_language = runtime.get("target_spoken_language")
+    if target_spoken_language not in TARGET_SPOKEN_LANGUAGES:
+        errors.append(issue("INVALID_TARGET_SPOKEN_LANGUAGE", "runtime.target_spoken_language", "expected th or zh-CN"))
     subtitle_mode = runtime.get("subtitle_mode")
     if subtitle_mode not in SUBTITLE_MODES:
         errors.append(issue("INVALID_SUBTITLE_MODE", "runtime.subtitle_mode", f"expected one of {sorted(SUBTITLE_MODES)}"))
@@ -89,6 +96,10 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
         if not str(line.get("text", "")).strip():
             errors.append(issue("EMPTY_DIALOGUE", f"dialogue[{index}]", str(line.get("line_id"))))
         line_text = str(line.get("text", ""))
+        if target_spoken_language == "th" and line_text and not THAI.search(line_text):
+            errors.append(issue("DIALOGUE_LANGUAGE_MISMATCH", f"dialogue[{index}].text", "Thai lock requires Thai dialogue"))
+        if target_spoken_language == "zh-CN" and line_text and not HAN.search(line_text):
+            errors.append(issue("DIALOGUE_LANGUAGE_MISMATCH", f"dialogue[{index}].text", "Chinese lock requires Chinese dialogue"))
         caption = line.get("caption") or {}
         spans = caption.get("emphasis_spans") or []
         if spans and subtitle_mode != "emphasis_from_final_audio":

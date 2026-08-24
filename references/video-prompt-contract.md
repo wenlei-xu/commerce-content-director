@@ -6,7 +6,7 @@ Read this contract before writing any Omni video-generation prompt for a portrai
 
 ## Language and source-of-truth gate
 
-Resolve `target_spoken_language` from the schema's language policy before writing the prompt. The current policy is `th` (Thai), so every spoken line, voice instruction, and timed dialogue window must be Thai. The surrounding generation prompt may be written in English or Chinese; it is control text, not spoken content. A task or script that requests Chinese, English, or another spoken language is a planning-data conflict: stop and fix the data before generation. Do not add a translated second dialogue line. If the selected audio mode is `natural_sound_only`, include no dialogue or voiceover at all.
+Read `plan/language-lock.json` before writing the prompt. `target_spoken_language` must be `th` (Thai) or `zh-CN` (Chinese); when the user did not specify it, the task-start lock is `zh-CN`. Every spoken line, voice instruction, and timed dialogue window must use that one locked language. All surrounding generation control text must be English. A script value that differs from the task lock is a planning-data conflict: stop and fix the data before generation. Do not add a translated second dialogue line. If the selected audio mode is `natural_sound_only`, include no dialogue or voiceover at all.
 
 ## Segment-scoped dialogue gate
 
@@ -22,7 +22,7 @@ Validate the complete prompt set as one unit before submitting any Job: every ma
 
 ## Compiler input and evidence
 
-Create `plan/generation-prompt-plan.json` with schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, the configured control-prompt language, `target_spoken_language: "th"`, `raw_segment_seconds: 10`, common approved constraints, and one entry per Segment. Each entry provides its input role map, continuous `beats` from `0.0` to `10.0`, hard constraints, subject identity, local dialogue allocation, audio mode, and continuity handoff.
+Create `plan/generation-prompt-plan.json` with schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, `prompt_language: "en"`, the locked `target_spoken_language`, `raw_segment_seconds: 10`, common approved constraints, and one entry per Segment. Each entry provides its input role map, continuous `beats` from `0.0` to `10.0`, hard constraints, subject identity, local dialogue allocation, audio mode, and continuity handoff.
 
 Compile and validate before submitting any Job:
 
@@ -60,7 +60,7 @@ State that the routed `subject_anchor` and selected subject record are the only 
 
 ### 4. LANGUAGE, AUDIO AND TIMED DIALOGUE
 
-State `target_spoken_language=th`, the voice type/style, audio behavior and every dialogue window assigned to the current Segment. Use only Segment-local `0.0–10.0s` times. Each assigned line must have an explicit start and end time and must be spoken exactly in Thai. The block headings and visual/product instructions may remain in English or Chinese. State whether the raw Omni segment should generate native voice audio or remain natural-sound-only. Spoken dialogue is audio only; it must never be visualized as text. Do not add a second-language translation or Chinese transliteration as an alternate spoken line. For spoken modes, write the actual approved Thai lines for this Segment only, state `no Mandarin and no Chinese speech`, and state `Do not speak any other line` without quoting dialogue assigned to another Segment.
+State the locked `target_spoken_language`, voice type/style, audio behavior and every dialogue window assigned to the current Segment. Use only Segment-local `0.0–10.0s` times. Each assigned line must have an explicit start and end time and must be spoken exactly in the locked language. Block headings and all visual/product control instructions must be English. State whether the raw Omni segment should generate native voice audio or remain natural-sound-only. Spoken dialogue is audio only; it must never be visualized as text. Do not add a translated or transliterated alternate spoken line. For spoken modes, include only this Segment's actual approved dialogue and state `Do not speak any other line` without quoting dialogue assigned to another Segment.
 
 ### 5. NO TEXT AND CROSS-SEGMENT CONTINUITY
 
