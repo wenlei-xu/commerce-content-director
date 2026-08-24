@@ -1,5 +1,5 @@
 {
-  "schema_version": 9,
+  "schema_version": 10,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -227,12 +227,35 @@
         "skipped": "跳过",
         "failed": "失败"
       },
+      "asset_status_field": "资产状态",
+      "asset_status_values": {
+        "pending_review": "待审核",
+        "available": "可用",
+        "archive_only": "仅留档",
+        "merged": "已合并"
+      },
       "fields": {
         "name": "分析记录ID",
         "source_record_id": "来源记录ID",
         "source_video": "来源视频",
+        "actual_duration_seconds": "视频真实时长",
+        "analysis_version": "分析版本",
+        "analysis_started_at": "开始分析时间",
+        "analysis_completed_at": "完成分析时间",
+        "failure_reason": "失败原因",
         "frame_analysis": "逐秒帧分析",
+        "ocr_coverage": "OCR覆盖情况",
         "asr_transcript": "ASR原文",
+        "target_audience_and_scenario": "目标受众与使用场景",
+        "narrative_viewpoint_and_format": "叙事视角与表达形式",
+        "hook_type": "开头钩子类型",
+        "core_conflict": "核心冲突或问题",
+        "hook_payoff": "钩子兑现时间与方式",
+        "product_first_appearance": "产品首次出现时间",
+        "selling_point_sequence": "核心卖点及出现顺序",
+        "proof_chain": "证明链条及出现顺序",
+        "persuasion_mechanism": "主要说服机制",
+        "cta_type": "CTA类型",
         "caption_expression_template": "字幕表达模板",
         "narrative_summary": "可参考的叙事模板",
         "narrative_reference_frames": "叙事节点参考帧",

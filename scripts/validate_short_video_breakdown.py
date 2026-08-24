@@ -12,6 +12,35 @@ from typing import Any
 SUMMARY_LABELS = ("适合：", "结构：", "主要证明：", "不适合：")
 SEGMENT_HEADERS = ("段落", "时间", "叙事任务", "参考帧", "原内容", "保留机制", "新内容模板")
 CAPTION_LABELS = ("类型：", "基础样式：", "强调对象：", "强调方式：", "出现节奏：")
+ASSET_STATUSES = {"待审核", "可用", "仅留档", "已合并"}
+REUSABLE_ASSET_STATUSES = {"待审核", "可用"}
+COMMERCIAL_NARRATIVE_FIELDS = (
+    "目标受众与使用场景",
+    "叙事视角与表达形式",
+    "开头钩子类型",
+    "核心冲突或问题",
+    "钩子兑现时间与方式",
+    "产品首次出现时间",
+    "核心卖点及出现顺序",
+    "证明链条及出现顺序",
+    "主要说服机制",
+    "CTA类型",
+)
+RETIRED_FIELDS = (
+    "高光帧",
+    "最强高光帧",
+    "高光帧时间点",
+    "最强高光帧说明",
+    "关键转折点及时间",
+    "关键信息释放节奏",
+    "一句话故事线",
+    "叙事结构路径",
+    "情绪曲线",
+    "视频分辨率",
+    "视频帧率",
+    "是否有音轨",
+    "抽帧总数",
+)
 
 
 def attachment_names(value: Any) -> set[str]:
@@ -30,6 +59,17 @@ def attachment_names(value: Any) -> set[str]:
 
 def validate(record: dict[str, Any]) -> dict[str, Any]:
     errors: list[dict[str, str]] = []
+    asset_status = str(record.get("资产状态", "")).strip()
+    if asset_status not in ASSET_STATUSES:
+        errors.append({"code": "INVALID_ASSET_STATUS", "field": "资产状态", "message": "必须为待审核、可用、仅留档或已合并"})
+    for field in RETIRED_FIELDS:
+        if field in record:
+            errors.append({"code": "RETIRED_FIELD_PRESENT", "field": field, "message": "该字段已退役，不得继续写入"})
+    if asset_status not in REUSABLE_ASSET_STATUSES:
+        return {"ok": not errors, "errors": errors}
+    for field in COMMERCIAL_NARRATIVE_FIELDS:
+        if not str(record.get(field, "")).strip():
+            errors.append({"code": "MISSING_COMMERCIAL_FIELD", "field": field, "message": "可复用拆解必须填写十个商业叙事字段"})
     summary = str(record.get("可参考的叙事模板", "")).strip()
     for label in SUMMARY_LABELS:
         if label not in summary:
