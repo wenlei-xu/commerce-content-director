@@ -18,6 +18,8 @@ A script is the only executable content object. It owns the strategy snapshot, B
 Choose one workflow for the requested action:
 
 - **Expand or lock creative directions**: read [creative-direction.md](references/workflows/creative-direction.md).
+- **Analyze, distill, or choose an external short-video reference**: read [short-video-breakdown.md](references/workflows/short-video-breakdown.md).
+- **Learn, review, or use reusable language patterns**: read [sentence-pattern-learning.md](references/workflows/sentence-pattern-learning.md).
 - **Generate, revise, validate, or lock a script**: read [script-production.md](references/workflows/script-production.md).
 - **Generate or review a storyboard**: read [storyboard-generation.md](references/workflows/storyboard-generation.md).
 - **Generate and accept a final video**: read [final-video.md](references/workflows/final-video.md).
@@ -32,6 +34,7 @@ Read only the invariants named by the selected workflow:
 - [script-validation.md](references/invariants/script-validation.md) — blocking quality checks.
 - [product-execution-contract.md](references/invariants/product-execution-contract.md) — product action correctness.
 - [language-policy.md](references/invariants/language-policy.md) — Thai spoken language and audio behavior.
+- [knowledge-library-contract.md](references/invariants/knowledge-library-contract.md) — the two learning-library objects and their review boundaries.
 - [execution-accounting.md](references/invariants/execution-accounting.md) — accepted films and execution limits.
 - [mutation-and-recovery.md](references/invariants/mutation-and-recovery.md) — staged writes and resumable failures.
 
@@ -39,7 +42,7 @@ Read only the invariants named by the selected workflow:
 
 1. Run python scripts/preflight.py --workflow <workflow> --json.
 2. Read config/base-schema.json and fresh-read only the tables needed by the workflow.
-3. A script workflow requires one locked creative direction. It must build and validate structured_script locally before creating or revising a Feishu script record.
+3. A script workflow requires one locked creative direction. It must build and validate structured_script locally before creating or revising a Feishu script record. It may read only `审核状态=可用` 句式模板；句式候选不得直接进入脚本。
 4. Only validation_status=passed scripts may become locked. Only locked scripts may enter storyboard production. Only storyboard-passed scripts may enter final-video production.
 5. Keep structured_script as the only machine source of truth. Render every human-readable script field from it after validation; do not independently edit duplicate text fields.
 6. Product hard facts, product assets and selected subjects are execution authority. Do not use publication-risk or claim-verification gates in this first version.

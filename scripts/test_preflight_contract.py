@@ -14,7 +14,7 @@ class PreflightContractTests(unittest.TestCase):
         cls.policy = load_policy()
 
     def test_feishu_only_workflows_never_require_generation_or_local_media(self) -> None:
-        for workflow in ("creative_direction", "script_production", "lifecycle"):
+        for workflow in ("creative_direction", "short_video_breakdown", "sentence_pattern_learning", "script_production", "lifecycle"):
             with self.subTest(workflow=workflow):
                 requirements = resolve_requirements(self.policy, workflow)
                 self.assertEqual(requirements["feishu"], "required")

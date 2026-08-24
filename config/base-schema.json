@@ -1,5 +1,5 @@
 {
-  "schema_version": 6,
+  "schema_version": 7,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -208,6 +208,51 @@
         "duration_seconds": "视频时长（秒）",
         "generated_at": "生成时间",
         "actual_submitted_prompt": "实际提交 Prompt"
+      }
+    },
+    "short_video_breakdowns": {
+      "table_id": "tblVPDiFTw9SZI6G",
+      "name": "短视频拆解库",
+      "status_field": "分析状态",
+      "status_values": {
+        "pending": "待处理",
+        "processing": "处理中",
+        "completed": "已完成",
+        "skipped": "跳过",
+        "failed": "失败"
+      },
+      "fields": {
+        "name": "分析记录ID",
+        "source_record_id": "来源记录ID",
+        "source_video": "来源视频",
+        "frame_analysis": "逐秒帧分析",
+        "asr_transcript": "ASR原文",
+        "narrative_summary": "可参考的叙事模板",
+        "shot_replication_template": "逐镜头复刻模板",
+        "evidence_timestamps": "分析证据时间码",
+        "confidence": "整体判断置信度",
+        "quality_check": "质量检查结果"
+      }
+    },
+    "sentence_patterns": {
+      "table_id": "tbl07uvHfKjDGL8Z",
+      "name": "句式模板库",
+      "status_field": "审核状态",
+      "status_values": {
+        "pending_review": "待审核",
+        "available": "可用",
+        "rejected": "已驳回",
+        "merged": "已合并"
+      },
+      "fields": {
+        "name": "句式名称",
+        "purpose": "句式用途",
+        "language": "语言",
+        "source_example": "原句示例",
+        "pattern": "模板句式",
+        "usage_notes": "使用说明",
+        "review_status": "审核状态",
+        "review_notes": "审核意见"
       }
     }
   }

@@ -5,6 +5,12 @@
     "creative_direction": {
       "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
     },
+    "short_video_breakdown": {
+      "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+    },
+    "sentence_pattern_learning": {
+      "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+    },
     "script_production": {
       "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
     },
