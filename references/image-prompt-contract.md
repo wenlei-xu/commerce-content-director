@@ -1,6 +1,6 @@
 # Storyboard-image prompt contract
 
-Read this contract for every storyboard-image Job, including original, hook/structure replication, and full-replication replacement boards. For routed assets, also read [reference-asset-contract.md](reference-asset-contract.md).
+Read this contract for every storyboard-image Job, including original, hook/structure replication, and two-frame full-replication segment boards. For routed assets, also read [reference-asset-contract.md](reference-asset-contract.md).
 
 ## Prompt-plan source
 
@@ -33,6 +33,8 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
 `beats` must be chronological, contiguous, and cover the whole raw Segment. Their durations are an editorial decision: allocate time to hook, proof, reaction, and CTA according to the actual action. Do not default to equal panels merely because a board has four cells. A constant duration is valid only when the selected action genuinely warrants it.
 
 The control prompt uses `en` by default or `zh-CN`; it contains no Thai because storyboard generation has no spoken-dialogue payload.
+
+For `full_replication`, each Segment input plan must contain exactly two source-reference roles: `source_segment_start` and `source_segment_result`. The timeline describes the target-product action connecting those states. Do not route intermediate source frames, per-second evidence, RF batches or replacement contact sheets into the Job.
 
 ## Required prompt blocks
 

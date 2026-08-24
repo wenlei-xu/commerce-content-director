@@ -6,13 +6,13 @@
 | --- | --- | --- | --- | --- | --- |
 | `creative_direction` | required | not required | not required | not required | not required |
 | `script_production` | required | not required | not required | not required | not required |
-| `storyboard_generation` | required | required | not required, except full replication | required only for full replication with source audio | required |
+| `storyboard_generation` | required | required | not required | not required | required |
 | `final_video` | required | required | required | required for `spoken` or `sparse_spoken`; not required for `natural_sound_only` | required |
 | `lifecycle` | required | not required | not required | not required | not required |
 
 ## Workflow-scoped preflight
 
-1. Run `python scripts/preflight.py --workflow <workflow> --json`. Add `--mode full_replication --source-has-audio` for a full-replication storyboard run. Add `--audio-mode spoken|sparse_spoken|natural_sound_only` for a final-video run.
+1. Run `python scripts/preflight.py --workflow <workflow> --json`. Add `--mode full_replication` for a full-replication storyboard run. Add `--audio-mode spoken|sparse_spoken|natural_sound_only` for a final-video run.
 2. When `feishu` is required, make a read-only Feishu metadata call only for the logical tables used by that workflow.
 3. When `flow2api` is required, call the registered Sidecar MCP `flow_get_service_health(include_dependencies=true)` and `flow_list_models(include_unavailable=true)`. Do not call Flow2API for a workflow where it is `not_required`.
 4. The local script checks only local requirements. MCP health and model-catalog checks remain at the MCP seam; do not emulate them with private HTTP calls.

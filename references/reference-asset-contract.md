@@ -14,7 +14,8 @@ Use the smallest evidence set that proves the current Segment. Do not send every
 | `subject_anchor` | an identifiable subject recurs | that subject's identity | product structure |
 | `storyboard_board` | final-video generation | chronology, action, camera intent, and progression | product or subject facts that conflict with approved anchors |
 | `continuity_frame` | a later final-video Segment needs a visual handoff | the immediately preceding accepted state | product facts or subject identity |
-| `source_contact_sheet` | full-replication storyboard work | source composition and chronology | the replacement product or subject identity |
+| `source_segment_start` | full-replication storyboard work | the segment's entering scene, composition and visible state | the replacement product or subject identity |
+| `source_segment_result` | full-replication storyboard work | the segment's visible payoff and handoff state | the replacement product or subject identity |
 
 For a visible product, route one clean `product_anchor` by default. Add exactly one targeted `product_detail` for a structure-sensitive beat, or one clean `product_scene` for a scale/placement-sensitive beat. Add both only when the same Segment genuinely needs both facts and the catalog input limit permits it. A later final-video Segment normally uses `continuity_frame` instead of a low-value scene reference.
 
@@ -35,3 +36,5 @@ Generation inputs must be clean derivatives of authoritative source assets when 
 Every routed image must appear in the generation prompt plan with `position`, `role`, `asset_id`, `sha256`, and a Segment-specific `reason`. `clean_for_generation` must be `true`. Optional assets require a reason tied to a current beat; “available in the product record” is not a reason.
 
 Store source field, filename, remote token, local path, source hash, derivative hash when applicable, role, input position, and Segment mapping in the local package. The model input array must match this record exactly.
+
+For full replication, route exactly one `source_segment_start` and one `source_segment_result` for the current narrative segment. Do not add intermediate source-video frames or a chronological contact sheet. Add the current product anchor and, when applicable, the selected subject anchor as separate authorities.

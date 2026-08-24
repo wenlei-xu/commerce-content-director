@@ -29,14 +29,10 @@ class PreflightContractTests(unittest.TestCase):
         self.assertEqual(requirements["ffmpeg"], "not_required")
         self.assertEqual(requirements["asr"], "not_required")
 
-    def test_full_replication_only_requires_asr_when_source_has_audio(self) -> None:
-        silent = resolve_requirements(self.policy, "storyboard_generation", mode="full_replication")
-        voiced = resolve_requirements(
-            self.policy, "storyboard_generation", mode="full_replication", source_has_audio=True
-        )
-        self.assertEqual(silent["ffmpeg"], "required")
-        self.assertEqual(silent["asr"], "not_required")
-        self.assertEqual(voiced["asr"], "required")
+    def test_full_replication_uses_reviewed_segment_frames_without_media_runtime(self) -> None:
+        requirements = resolve_requirements(self.policy, "storyboard_generation", mode="full_replication")
+        self.assertEqual(requirements["ffmpeg"], "not_required")
+        self.assertEqual(requirements["asr"], "not_required")
 
     def test_final_video_requires_asr_only_for_spoken_audio_modes(self) -> None:
         silent = resolve_requirements(self.policy, "final_video", audio_mode="natural_sound_only")

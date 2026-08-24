@@ -18,8 +18,7 @@
       "capabilities": {"feishu": "required", "flow2api": "required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "required"},
       "modes": {
         "full_replication": {
-          "capabilities": {"ffmpeg": "required", "asr": "conditional"},
-          "conditions": {"asr": "source_has_audio=true"}
+          "capabilities": {"ffmpeg": "not_required", "asr": "not_required"}
         }
       }
     },

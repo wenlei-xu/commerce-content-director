@@ -26,8 +26,8 @@ class KnowledgeLibraryContractTests(unittest.TestCase):
             "CTA类型": "点击了解",
             "可参考的叙事模板": "适合：宠物参与、结果可视的产品。\n结构：异常疑问→操作证明→行为结果。\n主要证明：主体自然行为证明结果。\n不适合：无法展示即时结果的产品。",
             "字幕表达模板": "类型：重点强调字幕。\n基础样式：底部白字黑描边。\n强调对象：数字、结果词。\n强调方式：黄色放大。\n出现节奏：短语级出现。",
-            "叙事节点参考帧": ["S01-钩子-0.2s.jpg"],
-            "逐段复刻模板": "| 段落 | 时间 | 叙事任务 | 参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-0.2s.jpg | 四只湿猫＋疑问字幕 | 低机位、主体占比、异常视觉＋结果疑问 | [主体]盯着[产品]＋[倒计时问题] |",
+            "叙事节点参考帧": ["S01-钩子-start-0.2s.jpg", "S01-钩子-result-2.8s.jpg"],
+            "逐段复刻模板": "| 段落 | 时间 | 叙事任务 | 开始参考帧 | 结果参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-start-0.2s.jpg | S01-钩子-result-2.8s.jpg | 四只湿猫＋疑问字幕 | 低机位、主体占比、异常视觉＋结果疑问 | [主体]盯着[产品]＋[倒计时问题] |",
         }
 
     def test_approved_sentence_pattern_requires_one_slot_and_valid_metadata(self) -> None:
@@ -50,17 +50,32 @@ class KnowledgeLibraryContractTests(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertEqual(report["errors"][0]["code"], "MISSING_SLOT")
 
-    def test_breakdown_requires_summary_and_segment_start_frame_mapping(self) -> None:
+    def test_breakdown_requires_summary_and_two_segment_frame_mappings(self) -> None:
         report = validate_breakdown(self.reusable_breakdown())
         self.assertTrue(report["ok"], report)
 
     def test_breakdown_rejects_unattached_reference_frame(self) -> None:
         record = self.reusable_breakdown()
         record["字幕表达模板"] = "类型：无字幕。"
-        record["逐段复刻模板"] = "| 段落 | 时间 | 叙事任务 | 参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | missing.jpg | 原内容 | 原构图 | [主体]使用[产品] |"
+        record["逐段复刻模板"] = "| 段落 | 时间 | 叙事任务 | 开始参考帧 | 结果参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-start-0.3s.jpg | S01-钩子-result-2.8s.jpg | 原内容 | 原构图 | [主体]使用[产品] |"
         report = validate_breakdown(record)
         self.assertFalse(report["ok"])
         self.assertEqual(report["errors"][0]["code"], "REFERENCE_FRAME_NOT_ATTACHED")
+
+    def test_breakdown_rejects_one_frame_per_segment(self) -> None:
+        record = self.reusable_breakdown()
+        record["叙事节点参考帧"] = ["S01-钩子-start-0.2s.jpg"]
+        record["逐段复刻模板"] = "| 段落 | 时间 | 叙事任务 | 参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-start-0.2s.jpg | 原内容 | 原构图 | [主体]使用[产品] |"
+        report = validate_breakdown(record)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["errors"][0]["code"], "INVALID_SEGMENT_HEADER")
+
+    def test_breakdown_rejects_same_start_and_result_frame(self) -> None:
+        record = self.reusable_breakdown()
+        record["逐段复刻模板"] = "| 段落 | 时间 | 叙事任务 | 开始参考帧 | 结果参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-start-0.2s.jpg | S01-钩子-start-0.2s.jpg | 原内容 | 原构图 | [主体]使用[产品] |"
+        report = validate_breakdown(record)
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["errors"][0]["code"], "DUPLICATE_SEGMENT_REFERENCE_FRAME")
 
     def test_breakdown_rejects_incomplete_emphasis_caption_template(self) -> None:
         record = self.reusable_breakdown()
