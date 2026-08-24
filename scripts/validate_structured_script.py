@@ -12,6 +12,8 @@ REQUIRED_STRATEGY = {
     "target_audience", "viewer_before_state", "viewer_after_state", "content_format",
     "content_angle", "core_idea", "primary_cta",
 }
+SUBTITLE_MODES = {"auto_from_final_audio", "emphasis_from_final_audio", "none"}
+EMPHASIS_STYLES = {"keyword_yellow", "number_pop", "result_pop", "product_accent", "pain_point_red"}
 
 
 def issue(code: str, path: str, message: str) -> dict[str, str]:
@@ -35,6 +37,9 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
             errors.append(issue("MISSING_REQUIRED", key, f"missing {key}"))
 
     runtime = script.get("runtime") or {}
+    subtitle_mode = runtime.get("subtitle_mode")
+    if subtitle_mode not in SUBTITLE_MODES:
+        errors.append(issue("INVALID_SUBTITLE_MODE", "runtime.subtitle_mode", f"expected one of {sorted(SUBTITLE_MODES)}"))
     strategy = script.get("strategy_snapshot") or {}
     missing_strategy = sorted(REQUIRED_STRATEGY - set(strategy))
     if missing_strategy:
@@ -69,6 +74,7 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
         errors.append(issue("DURATION_MISMATCH", "beats", f"beats end at {previous_end}, target is {duration}"))
 
     segment_by_id = {str(item.get("segment_id")): item for item in segments}
+    emphasis_span_count = 0
     for index, line in enumerate(dialogue):
         beat_id, segment_id = str(line.get("beat_id", "")), str(line.get("segment_id", ""))
         if beat_id not in beat_ids:
@@ -82,6 +88,26 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
             errors.append(issue("DIALOGUE_CROSSES_SEGMENT", f"dialogue[{index}]", str(line.get("line_id"))))
         if not str(line.get("text", "")).strip():
             errors.append(issue("EMPTY_DIALOGUE", f"dialogue[{index}]", str(line.get("line_id"))))
+        line_text = str(line.get("text", ""))
+        caption = line.get("caption") or {}
+        spans = caption.get("emphasis_spans") or []
+        if spans and subtitle_mode != "emphasis_from_final_audio":
+            errors.append(issue("EMPHASIS_MODE_MISMATCH", f"dialogue[{index}].caption", "emphasis spans require emphasis_from_final_audio"))
+        cursor = 0
+        for span_index, span in enumerate(spans):
+            span_text = str(span.get("text", "")).strip()
+            style = str(span.get("style", "")).strip()
+            if not span_text:
+                errors.append(issue("EMPTY_EMPHASIS_SPAN", f"dialogue[{index}].caption.emphasis_spans[{span_index}]", "span text is required"))
+                continue
+            position = line_text.find(span_text, cursor)
+            if position < 0:
+                errors.append(issue("EMPHASIS_TEXT_NOT_IN_LINE", f"dialogue[{index}].caption.emphasis_spans[{span_index}]", span_text))
+            else:
+                cursor = position + len(span_text)
+            if style not in EMPHASIS_STYLES:
+                errors.append(issue("INVALID_EMPHASIS_STYLE", f"dialogue[{index}].caption.emphasis_spans[{span_index}]", style))
+            emphasis_span_count += 1
     for index, text in enumerate(texts):
         if str(text.get("beat_id", "")) not in beat_ids:
             errors.append(issue("UNKNOWN_BEAT_REFERENCE", f"screen_texts[{index}]", str(text.get("beat_id"))))
@@ -90,6 +116,8 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
 
     if runtime.get("audio_mode") == "natural_sound_only" and dialogue:
         errors.append(issue("NATURAL_SOUND_HAS_DIALOGUE", "dialogue", "natural_sound_only requires no dialogue"))
+    if subtitle_mode == "emphasis_from_final_audio" and emphasis_span_count == 0:
+        errors.append(issue("EMPHASIS_SUBTITLES_HAVE_NO_SPANS", "dialogue", "at least one dialogue line must mark an emphasis span"))
     hook = script.get("hook") or {}
     if str(hook.get("payoff_beat_id", "")) not in beat_ids:
         errors.append(issue("HOOK_NOT_CLOSED", "hook.payoff_beat_id", "payoff Beat does not exist"))
@@ -116,6 +144,7 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
             "beat_count": len(beats),
             "line_count": len(dialogue),
             "screen_text_count": len(texts),
+            "emphasis_span_count": emphasis_span_count,
             "closed_loop_count": len(loops),
         },
     }

@@ -48,7 +48,7 @@ def main() -> int:
         "目标时长（秒）": runtime["target_duration_seconds"],
         "目标口播语言": runtime["target_spoken_language"],
         "音频模式": {"spoken": "完整口播", "sparse_spoken": "少量口播", "natural_sound_only": "纯自然声"}[runtime["audio_mode"]],
-        "字幕模式": {"auto_from_final_audio": "最终音频自动生成", "none": "不生成"}[runtime["subtitle_mode"]],
+        "字幕模式": {"auto_from_final_audio": "普通字幕", "emphasis_from_final_audio": "重点强调字幕", "none": "不生成"}[runtime["subtitle_mode"]],
         "创作策略": json.dumps(strategy, ensure_ascii=False),
         "脚本修订号": value["script_revision"],
         "脚本状态": "待审核",

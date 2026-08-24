@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Concatenate segment videos in order and burn an SRT subtitle track once."""
+"""Concatenate segment videos and burn an SRT or ASS subtitle track once."""
 
 from __future__ import annotations
 
@@ -18,6 +18,8 @@ def concat_entry(path: Path) -> str:
 
 def subtitle_filter(path: Path, font_name: str, margin_v: int) -> str:
     escaped = path.resolve().as_posix().replace("'", r"\'").replace(":", r"\:")
+    if path.suffix.lower() == ".ass":
+        return f"subtitles=filename='{escaped}':charenc=UTF-8"
     style = (
         f"FontName={font_name},Bold=-1,FontSize=14,PrimaryColour=&H00FFFFFF,"
         f"OutlineColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,Alignment=2,MarginV={margin_v}"

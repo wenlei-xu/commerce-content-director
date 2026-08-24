@@ -31,9 +31,12 @@ def render(script: dict[str, Any]) -> dict[str, str]:
             f"| {sec(beat['start'])}—{sec(beat['end'])} | {beat['beat_id']} | {beat['function']} | "
             f"{beat['visual_action']} | {sound} | {screen} | {beat['product_state']} | {beat.get('transition', '')} |"
         )
-    dialogue_rows = ["| Line | 时间 | 说话者 | 台词 | 功能 | 表现 |", "| --- | --- | --- | --- | --- | --- |"]
+    dialogue_rows = ["| Line | 时间 | 说话者 | 台词 | 功能 | 表现 | 字幕强调 |", "| --- | --- | --- | --- | --- | --- | --- |"]
     for line in script["dialogue"]:
-        dialogue_rows.append(f"| {line['line_id']} | {sec(line['start'])}—{sec(line['end'])} | {line['speaker_id']} | {line['text']} | {line['function']} | {line['delivery']} |")
+        emphasis = "；".join(
+            f"{item['text']}→{item['style']}" for item in (line.get("caption") or {}).get("emphasis_spans", [])
+        )
+        dialogue_rows.append(f"| {line['line_id']} | {sec(line['start'])}—{sec(line['end'])} | {line['speaker_id']} | {line['text']} | {line['function']} | {line['delivery']} | {emphasis} |")
     text_rows = ["| Text | 时间 | 屏幕文字 | 功能 |", "| --- | --- | --- | --- |"]
     for item in script["screen_texts"]:
         text_rows.append(f"| {item['text_id']} | {sec(item['start'])}—{sec(item['end'])} | {item['text']} | {item['function']} |")

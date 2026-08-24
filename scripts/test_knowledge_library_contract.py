@@ -30,12 +30,34 @@ class KnowledgeLibraryContractTests(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertEqual(report["errors"][0]["code"], "MISSING_SLOT")
 
-    def test_breakdown_requires_summary_and_shot_mapping(self) -> None:
+    def test_breakdown_requires_summary_and_segment_start_frame_mapping(self) -> None:
         report = validate_breakdown({
             "可参考的叙事模板": "适合：宠物参与、结果可视的产品。\n结构：异常疑问→操作证明→行为结果。\n主要证明：主体自然行为证明结果。\n不适合：无法展示即时结果的产品。",
-            "逐镜头复刻模板": "| 镜头 | 时间 | 叙事任务 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | 四只湿猫＋疑问字幕 | 异常视觉＋结果疑问 | [主体]盯着[产品]＋[倒计时问题] |",
+            "字幕表达模板": "类型：重点强调字幕。\n基础样式：底部白字黑描边。\n强调对象：数字、结果词。\n强调方式：黄色放大。\n出现节奏：短语级出现。",
+            "叙事节点参考帧": ["S01-钩子-0.2s.jpg"],
+            "逐段复刻模板": "| 段落 | 时间 | 叙事任务 | 参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-0.2s.jpg | 四只湿猫＋疑问字幕 | 低机位、主体占比、异常视觉＋结果疑问 | [主体]盯着[产品]＋[倒计时问题] |",
         })
         self.assertTrue(report["ok"], report)
+
+    def test_breakdown_rejects_unattached_reference_frame(self) -> None:
+        report = validate_breakdown({
+            "可参考的叙事模板": "适合：宠物参与。\n结构：钩子→结果。\n主要证明：行为结果。\n不适合：不可视产品。",
+            "字幕表达模板": "类型：无字幕。",
+            "叙事节点参考帧": ["S01-钩子-0.2s.jpg"],
+            "逐段复刻模板": "| 段落 | 时间 | 叙事任务 | 参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | missing.jpg | 原内容 | 原构图 | [主体]使用[产品] |",
+        })
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["errors"][0]["code"], "REFERENCE_FRAME_NOT_ATTACHED")
+
+    def test_breakdown_rejects_incomplete_emphasis_caption_template(self) -> None:
+        report = validate_breakdown({
+            "可参考的叙事模板": "适合：宠物参与。\n结构：钩子→结果。\n主要证明：行为结果。\n不适合：不可视产品。",
+            "字幕表达模板": "类型：重点强调字幕。\n强调方式：黄色放大。",
+            "叙事节点参考帧": ["S01-钩子-0.2s.jpg"],
+            "逐段复刻模板": "| 段落 | 时间 | 叙事任务 | 参考帧 | 原内容 | 保留机制 | 新内容模板 |\n| --- | --- | --- | --- | --- | --- | --- |\n| S01 | 0–3s | 钩子 | S01-钩子-0.2s.jpg | 原内容 | 原构图 | [主体]使用[产品] |",
+        })
+        self.assertFalse(report["ok"])
+        self.assertEqual(report["errors"][0]["code"], "CAPTION_LABEL_MISSING")
 
 
 if __name__ == "__main__":
