@@ -1,34 +1,41 @@
 # Storyboard candidate contract
 
-The candidate unit is one complete 2×2 storyboard board for one configured
-10-second target production Segment. It is never one panel, a start frame, an
-end frame, or a full-film storyboard package.
+The generation candidate unit is one complete 2×2 storyboard board for one
+configured 10-second target production Segment. It is never one panel, a start
+frame, or an end frame. A candidate is not a human approval unit; approval is
+performed on a complete storyboard version that contains the ordered boards
+for every Segment in the script.
 
 ## Remote authority
 
-Every successful candidate is persisted as one record in the Feishu
-`分镜候选` table and linked to exactly one locked script. The record owns one
-`候选四宫格` attachment, `Segment ID`, `Segment 序号`, target time range,
-attempt, run ID, Flow2API Job ID, idempotency key, model ID and attachment hash.
-Local files are resumable staging caches only; no candidate may depend on the
-computer that generated it.
+Every successful candidate is persisted as one backend record in the Feishu
+`分镜候选` table (or the configured internal candidate store) and linked to
+exactly one locked script and Segment. The record owns one `候选四宫格`
+attachment, `Segment ID`, `Segment 序号`, target time range, attempt, run ID,
+Flow2API Job ID, idempotency key, model ID and attachment hash. Local files are
+resumable staging caches only; no candidate may depend on the computer that
+generated it. The candidate table is an audit/execution surface, not the human
+approval surface.
 
-The table's `人工选片` gallery view is the human review surface. Group it by
-script and Segment order, use `候选四宫格` as the card cover, and expose
-`是否采用`, `候选状态` and `审核意见` on each card.
+The human review surface is the script-version record. It owns `脚本版本`
+(for example A/B), `完整分镜方案` attachments in Segment order,
+`分镜组合映射`, source script identity and `版本审核状态`. A version may mix
+Segment candidates only when the complete package passes cross-Segment
+continuity validation.
 
 ## Counts and identity
 
 Keep these counts separate:
 
-- `expected_accepted_board_count = target_duration_seconds / 10`;
 - `candidates_per_segment = 2` by default;
-- `candidate_job_count = expected_accepted_board_count × candidates_per_segment` for the initial batch;
+- `candidate_job_count = target_duration_seconds / 10 × candidates_per_segment` for the initial batch;
 - `candidate_count_by_segment = the persisted candidate records for that Segment`.
 
-Thus a 30-second script has three logical Segments, six initial candidate Jobs,
-and three final accepted boards. Extra targeted regeneration is allowed after
-the initial two and increments `attempt`; it does not change the default.
+Thus a 30-second script has three logical Segments and six initial candidate
+Jobs. The final accepted object is one complete storyboard version containing
+three ordered boards, not three independently approved candidate records.
+Extra targeted regeneration is allowed after the initial two and increments
+`attempt`; it does not change the default.
 The six initial Jobs belong to one script-stage image batch. If validation or
 execution leaves several missing candidate slots, submit those slots in one
 repair batch; never rerun already qualified candidates.
@@ -45,11 +52,11 @@ the candidate record in `候选状态=提交中`, upload exactly one board, fres
 its attachment identity and hash, then publish it as `待选择`. A partial upload
 remains visible and resumes on the same candidate ID.
 
-Human selection is per `(script_record_id, Segment ID)`. Exactly one candidate
-must have `是否采用=true` for that key. The checkbox is selection authority;
-`候选状态` is only workflow display state. The human checks one card per Segment
-in the gallery. A selection helper may clear the former checkbox for that same
-Segment when replacing a choice, but it must not change any other Segment.
+Human selection is per complete storyboard version. The reviewer compares the
+ordered A/B packages and marks at most one version `版本审核状态=已通过`; the
+other version becomes `未采用`. No human-facing workflow requires checking one
+candidate per Segment. The selected version's mapping remains explicit so the
+chosen Segment boards are traceable to their backend candidates.
 
 Do not crop panels or combine panels from different candidate boards. If one
 panel is unusable, reject the complete candidate board and choose or generate
@@ -57,21 +64,20 @@ another complete board for that Segment.
 
 ## Finalize
 
-Finalization fresh-reads the locked script and all linked candidate records.
-Require exactly one selected candidate for every contiguous Segment from 1 to
-`expected_accepted_board_count`. Missing, duplicate, unexpected or attachment-
-less selections block finalization.
+Version finalization fresh-reads the source script, the complete version record
+and every mapped backend candidate. Require one attachment for each contiguous
+target Segment, chronological ordering, complete source-candidate mapping and
+continuity evidence. Missing, duplicate, unexpected or attachment-less
+Segments block finalization.
 
-Order the accepted attachments by `Segment 序号` and write only those boards to
-the exact script record's `最终分镜图`. The observed attachment count must equal
-`expected_accepted_board_count`. Write the selected candidate IDs to
-`分镜审核意见`, write or retain the script-derived `视频提示词`, set the requested
-review state and fresh-read the script again. Only `已通过` may enter final-video
-production.
+Write the ordered attachments and mapping to the script-version record, set
+`版本审核状态=待审核`, and fresh-read again. Only the human-approved version
+(`版本审核状态=已通过`) may enter final-video production.
 
-Rejected candidates remain in `分镜候选` as `已淘汰`; never delete them to hide
-failures. Never overwrite a script whose storyboard is already `已通过` with a
-different accepted attachment set.
+Rejected candidates remain in the backend candidate log for audit unless an
+explicit lifecycle policy authorizes archival/deletion after all version records
+have been verified. Never overwrite an approved version with a different
+attachment set.
 
 ## Operator commands
 
@@ -85,15 +91,8 @@ python scripts/storyboard_candidates.py publish `
   --model-id <model_id> --board <board_path> --profile <config_snapshot_path>
 ```
 
-The human then checks one `是否采用` box per Segment in `人工选片`. Finalize the
-checked set with:
-
-```powershell
-python scripts/storyboard_candidates.py finalize `
-  --script-record-id <record_id> --video-prompt-file <prompt_path>
-```
-
-Add `--approve` only when that checked set is the authorized accepted
-storyboard. The `select --candidate-record-id <record_id>` helper is optional;
-it is useful for programmatic replacement because it clears the old checkbox
-for the same Segment without touching other Segments.
+Assemble and publish a complete script-version package, then use the
+version-record writer configured for the active Feishu schema. It must
+fresh-read the version record and mapped candidates, write the ordered package,
+and set `版本审核状态=已通过` only after authorized human approval. There is
+no per-Segment checkbox selection in the human workflow.
