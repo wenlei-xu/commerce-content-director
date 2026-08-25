@@ -31,6 +31,8 @@ THAI_VOICEOVER_PROVIDER = "omni_native"
 NO_VOICEOVER_PROVIDER = "none"
 ENVIRONMENT_ONLY = "environment_only"
 NATIVE_DIALOGUE = "native_dialogue"
+BATCH_SUBMISSION_THRESHOLD = 2
+BATCH_SCOPE = "single_script_single_stage"
 
 
 def fail(message: str) -> ValueError:
@@ -41,6 +43,12 @@ def number(value: object, field: str) -> float:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise fail(f"{field} must be a number")
     return float(value)
+
+
+def positive_integer(value: object, field: str) -> int:
+    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+        raise fail(f"{field} must be a positive integer")
+    return value
 
 
 def validate_beats(segment: dict[str, Any], raw_seconds: float) -> list[dict[str, Any]]:
@@ -185,6 +193,9 @@ def validate_plan(plan: dict[str, Any]) -> None:
             or storyboard["panel_ratio"] != FIXED_PANEL_RATIO
         ):
             raise fail("storyboard_image output must be one 2x2 board with four 9:16 panels")
+        positive_integer(
+            plan.get("candidates_per_segment"), "candidates_per_segment"
+        )
     segments = plan.get("segments")
     if not isinstance(segments, list) or not segments:
         raise fail("segments must be a non-empty list")
@@ -342,9 +353,72 @@ def validate_english_control_prompt(prompt: str, dialogue: list[dict[str, Any]])
         raise fail("generation control prompt must be English; only approved dialogue may be Thai or Chinese")
 
 
+def build_execution_jobs(
+    job_kind: str,
+    prompts: list[dict[str, Any]],
+    candidates_per_segment: int | None,
+) -> list[dict[str, Any]]:
+    jobs: list[dict[str, Any]] = []
+    idempotency_kind = (
+        "storyboard" if job_kind == "storyboard_image" else "video"
+    )
+    for prompt_index, prompt in enumerate(prompts):
+        segment_id = prompt["segment_id"]
+        if job_kind == "storyboard_image":
+            candidate_count = positive_integer(
+                candidates_per_segment, "candidates_per_segment"
+            )
+            attempts = range(1, candidate_count + 1)
+        else:
+            attempts = range(1, 2)
+        for attempt in attempts:
+            jobs.append({
+                "job_key": f"{segment_id}:{job_kind}:attempt-{attempt:02d}",
+                "prompt_index": prompt_index,
+                "segment_id": segment_id,
+                "attempt": attempt,
+                "content_id_template": (
+                    f"{{script_record_id}}:{segment_id}:attempt-{attempt:02d}"
+                ),
+                "idempotency_key_template": (
+                    f"{{run_id}}:{segment_id}:{idempotency_kind}:{attempt}"
+                ),
+            })
+    return jobs
+
+
+def build_submission_policy(job_kind: str, job_count: int) -> dict[str, Any]:
+    is_batch = job_count >= BATCH_SUBMISSION_THRESHOLD
+    stage_name = "storyboard" if job_kind == "storyboard_image" else "video"
+    single_tool = (
+        "flow_submit_image" if job_kind == "storyboard_image"
+        else "flow_submit_video"
+    )
+    return {
+        "scope": BATCH_SCOPE,
+        "ready_job_count": job_count,
+        "batch_threshold": BATCH_SUBMISSION_THRESHOLD,
+        "method": "flow_submit_batch" if is_batch else single_tool,
+        "batch_kind": "image" if job_kind == "storyboard_image" else "video",
+        "batch_id_template": f"{{run_id}}:{stage_name}:initial",
+        "single_submit_allowed_only_when": [
+            "one_ready_job",
+            "one_repair_job",
+            "recorded_batch_unavailable",
+        ],
+    }
+
+
 def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
     validate_plan(plan)
     compiler = compile_storyboard if plan["job_kind"] == "storyboard_image" else compile_video
+    candidates_per_segment = (
+        positive_integer(
+            plan.get("candidates_per_segment"), "candidates_per_segment"
+        )
+        if plan["job_kind"] == "storyboard_image"
+        else None
+    )
     prompts = []
     for segment in plan["segments"]:
         compiled_prompt = compiler(plan, segment)
@@ -363,7 +437,15 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
             "voiceover_provider": plan.get("voiceover_provider"),
             "omni_audio_policy": plan.get("omni_audio_policy"),
             "product_visible": bool(segment.get("product_visible")),
+            "candidate_attempts": (
+                list(range(1, candidates_per_segment + 1))
+                if candidates_per_segment is not None
+                else None
+            ),
         })
+    execution_jobs = build_execution_jobs(
+        plan["job_kind"], prompts, candidates_per_segment
+    )
     return {
         "schema": "commerce-generation-prompt-bundle-v1",
         "job_kind": plan["job_kind"],
@@ -378,6 +460,17 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "target_duration_seconds": plan.get("target_duration_seconds"),
         "raw_segment_seconds": plan["raw_segment_seconds"],
         "storyboard": plan.get("storyboard"),
+        "candidates_per_segment": candidates_per_segment,
+        "expected_candidate_job_count": (
+            len(prompts) * candidates_per_segment
+            if candidates_per_segment is not None
+            else None
+        ),
+        "expected_job_count": len(execution_jobs),
+        "submission_policy": build_submission_policy(
+            plan["job_kind"], len(execution_jobs)
+        ),
+        "execution_jobs": execution_jobs,
         "prompts": prompts,
     }
 
@@ -394,7 +487,13 @@ def main() -> int:
         parser.error(str(error))
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {len(bundle['prompts'])} prompt(s): {args.out}")
+    if bundle["job_kind"] == "storyboard_image":
+        print(
+            f"Wrote {len(bundle['prompts'])} logical Segment prompt(s) and "
+            f"{bundle['expected_candidate_job_count']} candidate Job(s): {args.out}"
+        )
+    else:
+        print(f"Wrote {len(bundle['prompts'])} prompt(s): {args.out}")
     return 0
 
 

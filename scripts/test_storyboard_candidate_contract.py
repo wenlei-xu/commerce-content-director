@@ -177,7 +177,23 @@ class StoryboardCandidateContractTests(unittest.TestCase):
         )
         table = checked_in["tables"]["storyboard_candidates"]
 
-        self.assertGreaterEqual(checked_in["schema_version"], 13)
+        self.assertGreaterEqual(checked_in["schema_version"], 14)
+        self.assertEqual(
+            checked_in["storyboard_candidate_policy"][
+                "default_candidates_per_segment"
+            ],
+            2,
+        )
+        self.assertEqual(
+            checked_in["storyboard_candidate_policy"][
+                "batch_submission_threshold"
+            ],
+            2,
+        )
+        self.assertEqual(
+            checked_in["storyboard_candidate_policy"]["batch_scope"],
+            "single_script_single_stage",
+        )
         self.assertTrue(table["table_id"].startswith("tbl"))
         self.assertEqual(table["fields"]["board_attachment"], "候选四宫格")
         self.assertEqual(table["fields"]["selected"], "是否采用")

@@ -19,6 +19,7 @@ IMAGE_PLAN = {
     "target_spoken_language": "zh-CN",
     "target_duration_seconds": 10,
     "raw_segment_seconds": 10,
+    "candidates_per_segment": 2,
     "storyboard": {"columns": 2, "rows": 2, "panel_ratio": "9:16"},
     "common_constraints": ["Natural handheld phone-video texture."],
     "segments": [{
@@ -54,6 +55,16 @@ FULL_REPLICATION_PLAN["segments"][0]["inputs"].extend([
 def main() -> None:
     bundle = compile_plan(IMAGE_PLAN)
     assert not validate_bundle(bundle, {"en", "zh-CN"})
+    assert bundle["candidates_per_segment"] == 2
+    assert bundle["expected_candidate_job_count"] == 2
+    assert bundle["expected_job_count"] == 2
+    assert bundle["submission_policy"]["method"] == "flow_submit_batch"
+    assert bundle["submission_policy"]["scope"] == "single_script_single_stage"
+    assert len(bundle["execution_jobs"]) == 2
+    assert bundle["execution_jobs"][0]["idempotency_key_template"] == (
+        "{run_id}:Segment-01:storyboard:1"
+    )
+    assert bundle["prompts"][0]["candidate_attempts"] == [1, 2]
     prompt = bundle["prompts"][0]["prompt"]
     assert "0.0–1.5s" in prompt
     assert "1.5–4.0s" in prompt
@@ -70,7 +81,33 @@ def main() -> None:
         thirty_second_plan["segments"].append(segment)
     thirty_second_bundle = compile_plan(thirty_second_plan)
     assert len(thirty_second_bundle["prompts"]) == 3
+    assert thirty_second_bundle["expected_candidate_job_count"] == 6
+    assert thirty_second_bundle["expected_job_count"] == 6
+    assert thirty_second_bundle["submission_policy"]["method"] == "flow_submit_batch"
+    assert len(thirty_second_bundle["execution_jobs"]) == 6
     assert not validate_bundle(thirty_second_bundle, {"en", "zh-CN"})
+
+    single_job_plan = copy.deepcopy(IMAGE_PLAN)
+    single_job_plan["candidates_per_segment"] = 1
+    single_job_bundle = compile_plan(single_job_plan)
+    assert single_job_bundle["submission_policy"]["method"] == "flow_submit_image"
+    assert not validate_bundle(single_job_bundle, {"en", "zh-CN"})
+
+    wrong_submission_policy = copy.deepcopy(bundle)
+    wrong_submission_policy["submission_policy"]["method"] = "flow_submit_image"
+    assert any(
+        "flow_submit_batch" in error
+        for error in validate_bundle(wrong_submission_policy, {"en", "zh-CN"})
+    )
+
+    missing_candidate_count = copy.deepcopy(IMAGE_PLAN)
+    missing_candidate_count.pop("candidates_per_segment")
+    try:
+        compile_plan(missing_candidate_count)
+    except ValueError as error:
+        assert "candidates_per_segment" in str(error)
+    else:
+        raise AssertionError("storyboard plans must declare the candidate count")
 
     gpt_image_plan = copy.deepcopy(IMAGE_PLAN)
     gpt_image_plan["executor"] = "gpt_image"
@@ -228,6 +265,27 @@ def main() -> None:
     video_segment["dialogue"] = [{"line_id": "line-01", "start": 7, "end": 10, "text": "ลองดูของเล่นชิ้นนี้", "intentional_repeat": False}]
     video_bundle = compile_plan(video_plan)
     assert not validate_bundle(video_bundle, {"en", "zh-CN"})
+    assert video_bundle["submission_policy"]["method"] == "flow_submit_video"
+
+    thirty_second_video_plan = copy.deepcopy(video_plan)
+    thirty_second_video_plan["target_duration_seconds"] = 30
+    thirty_second_video_plan["segments"] = []
+    for index in range(3):
+        segment = copy.deepcopy(video_plan["segments"][0])
+        segment["segment_id"] = f"Segment-{index + 1:02d}"
+        segment["target_time_range"] = {
+            "start": index * 10,
+            "end": (index + 1) * 10,
+        }
+        segment["dialogue"][0]["line_id"] = f"line-{index + 1:02d}"
+        thirty_second_video_plan["segments"].append(segment)
+    thirty_second_video_bundle = compile_plan(thirty_second_video_plan)
+    assert thirty_second_video_bundle["expected_job_count"] == 3
+    assert (
+        thirty_second_video_bundle["submission_policy"]["method"]
+        == "flow_submit_batch"
+    )
+    assert not validate_bundle(thirty_second_video_bundle, {"en", "zh-CN"})
 
     chinese_video_plan = copy.deepcopy(video_plan)
     chinese_video_plan["target_spoken_language"] = "zh-CN"

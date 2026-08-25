@@ -14,3 +14,8 @@ then publish it to `待选择`. A partial candidate never authorizes a new recor
 with a different identity, and no local-only candidate counts as published.
 
 Completion requires both local evidence and a fresh remote read. A plausible file, cached attachment, or successful upload response without a matching remote record is not completion.
+
+For Flow2API batches, persist the deterministic batch ID and its complete
+item-to-Job mapping before waiting. Resume the same batch and Job identities
+after transport interruption. A partial batch failure creates repair work only
+for missing outputs; it never invalidates or regenerates successful items.

@@ -1,5 +1,5 @@
 {
-  "schema_version": 13,
+  "schema_version": 14,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -13,6 +13,11 @@
     "generation_prompt_languages": ["en"],
     "generation_prompt_language_default": "en",
     "generation_prompt_language_fixed": true
+  },
+  "storyboard_candidate_policy": {
+    "default_candidates_per_segment": 2,
+    "batch_submission_threshold": 2,
+    "batch_scope": "single_script_single_stage"
   },
   "tables": {
     "system_config": {

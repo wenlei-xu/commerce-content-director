@@ -17,6 +17,7 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
   "prompt_language": "en",
   "target_duration_seconds": 10,
   "raw_segment_seconds": 10,
+  "candidates_per_segment": 2,
   "storyboard": {"columns": 2, "rows": 2, "panel_ratio": "9:16"},
   "common_constraints": ["Natural handheld phone-video texture."],
   "segments": [{
@@ -40,7 +41,7 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
 
 `executor` must be exactly `flow2api_mcp`. `model` must exactly match the available image-model ID selected from the fresh Flow2API catalog and recorded at `model_catalog.image_model` in `plan/content-system-config-snapshot.json`; the example value is illustrative, not a fixed default. A compiler or validator failure on either field blocks submission. Do not rewrite the plan to `gpt_image` and do not call GPT Image outside the plan.
 
-Every storyboard-image plan uses `generation_unit=target_production_segment`, `raw_segment_seconds=10`, one contiguous target time range per Segment and exactly one accepted 2×2 board per Segment. `target_duration_seconds` must be divisible by 10 and the number of logical Segment entries must equal `target_duration_seconds / 10`. This acceptance rule is identical for original and replication modes. An intentional candidate Job reuses the same logical Segment plan and increments its attempt; it does not add a Segment entry. `target_time_range` is global within the target film; each Segment's `beats` use local `0–10s` timing.
+Every storyboard-image plan uses `generation_unit=target_production_segment`, `raw_segment_seconds=10`, one contiguous target time range per Segment and exactly one accepted 2×2 board per Segment. `target_duration_seconds` must be divisible by 10 and the number of logical Segment entries must equal `target_duration_seconds / 10`. `candidates_per_segment` is required and defaults from `storyboard_candidate_policy.default_candidates_per_segment`, currently `2`. The compiled bundle expands each logical prompt to `candidate_attempts=[1,2]`, emits one deterministic `execution_jobs` entry per Segment/attempt, and records `expected_candidate_job_count = Segment count × candidates_per_segment`. Its `submission_policy` must select `flow_submit_batch` whenever `expected_job_count >= 2`; a bundle that silently chooses single submission fails validation. An intentional candidate Job reuses the same logical Segment plan and increments its attempt; it does not add a Segment entry. `target_time_range` is global within the target film; each Segment's `beats` use local `0–10s` timing.
 
 `beats` must be chronological, contiguous, and cover the whole raw Segment. Their durations are an editorial decision: allocate time to hook, proof, reaction, and CTA according to the actual action. Do not default to equal panels merely because a board has four cells. A constant duration is valid only when the selected action genuinely warrants it.
 

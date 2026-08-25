@@ -22,8 +22,16 @@ script and Segment order, use `候选四宫格` as the card cover, and expose
 Keep these counts separate:
 
 - `expected_accepted_board_count = target_duration_seconds / 10`;
-- `candidate_job_count = the number of intentional Flow2API candidate Jobs`;
+- `candidates_per_segment = 2` by default;
+- `candidate_job_count = expected_accepted_board_count × candidates_per_segment` for the initial batch;
 - `candidate_count_by_segment = the persisted candidate records for that Segment`.
+
+Thus a 30-second script has three logical Segments, six initial candidate Jobs,
+and three final accepted boards. Extra targeted regeneration is allowed after
+the initial two and increments `attempt`; it does not change the default.
+The six initial Jobs belong to one script-stage image batch. If validation or
+execution leaves several missing candidate slots, submit those slots in one
+repair batch; never rerun already qualified candidates.
 
 Use `<run_id>:<segment_id>:storyboard:<attempt>` as the Flow2API idempotency
 key. Use `<script_record_id>:<segment_id>:attempt-<NN>` as the candidate ID.

@@ -19,6 +19,8 @@ from compile_generation_prompts import (
     SOURCE_FRAME_ROLES,
     TARGET_PRODUCTION_UNIT,
     THAI_VOICEOVER_PROVIDER,
+    build_execution_jobs,
+    build_submission_policy,
     validate_beats,
     validate_inputs,
     validate_source_narrative_mapping,
@@ -83,6 +85,13 @@ def validate_bundle(
             or storyboard.get("panel_ratio") != FIXED_PANEL_RATIO
         ):
             errors.append("storyboard_image output must be one 2x2 board with four 9:16 panels")
+        candidates_per_segment = bundle.get("candidates_per_segment")
+        if (
+            not isinstance(candidates_per_segment, int)
+            or isinstance(candidates_per_segment, bool)
+            or candidates_per_segment < 1
+        ):
+            errors.append("candidates_per_segment must be a positive integer")
     if bundle.get("prompt_language") not in allowed_languages:
         errors.append("prompt_language is not allowed by the schema")
     target_spoken_language = bundle.get("target_spoken_language")
@@ -122,6 +131,13 @@ def validate_bundle(
         expected_count = int(float(target_seconds) / float(raw_seconds))
         if len(prompts) != expected_count:
             errors.append(f"storyboard_image requires {expected_count} target production Segment(s)")
+        candidates_per_segment = bundle.get("candidates_per_segment")
+        if isinstance(candidates_per_segment, int) and not isinstance(candidates_per_segment, bool):
+            expected_jobs = expected_count * candidates_per_segment
+            if bundle.get("expected_candidate_job_count") != expected_jobs:
+                errors.append(
+                    f"expected_candidate_job_count must be {expected_jobs}"
+                )
     headings = IMAGE_HEADINGS if kind == "storyboard_image" else VIDEO_HEADINGS
     dialogue_ids: dict[str, str] = {}
     for index, entry in enumerate(prompts):
@@ -177,6 +193,16 @@ def validate_bundle(
         dialogue = entry.get("dialogue") or []
         if kind == "storyboard_image" and dialogue:
             errors.append(f"{prefix}: storyboard-image prompt cannot contain dialogue")
+        if kind == "storyboard_image" and isinstance(
+            bundle.get("candidates_per_segment"), int
+        ):
+            expected_attempts = list(
+                range(1, bundle["candidates_per_segment"] + 1)
+            )
+            if entry.get("candidate_attempts") != expected_attempts:
+                errors.append(
+                    f"{prefix}.candidate_attempts must be {expected_attempts}"
+                )
         if kind == "final_video":
             if entry.get("voiceover_provider") != bundle.get("voiceover_provider"):
                 errors.append(f"{prefix}: voiceover_provider does not match the bundle")
@@ -223,6 +249,39 @@ def validate_bundle(
                         errors.append(f"{prefix}.dialogue[{line_index}] timing is outside the Segment")
                 except (KeyError, TypeError, ValueError):
                     errors.append(f"{prefix}.dialogue[{line_index}] must have valid start/end times")
+    candidates_per_segment = (
+        bundle.get("candidates_per_segment")
+        if kind == "storyboard_image"
+        else None
+    )
+    if kind == "storyboard_image" and not (
+        isinstance(candidates_per_segment, int)
+        and not isinstance(candidates_per_segment, bool)
+        and candidates_per_segment > 0
+    ):
+        return errors
+    if not all(
+        isinstance(prompt, dict)
+        and isinstance(prompt.get("segment_id"), str)
+        and bool(prompt["segment_id"])
+        for prompt in prompts
+    ):
+        return errors
+    expected_execution_jobs = build_execution_jobs(
+        kind, prompts, candidates_per_segment
+    )
+    if bundle.get("execution_jobs") != expected_execution_jobs:
+        errors.append("execution_jobs do not match the compiled Segment/attempt plan")
+    if bundle.get("expected_job_count") != len(expected_execution_jobs):
+        errors.append(
+            f"expected_job_count must be {len(expected_execution_jobs)}"
+        )
+    expected_policy = build_submission_policy(kind, len(expected_execution_jobs))
+    if bundle.get("submission_policy") != expected_policy:
+        errors.append(
+            "submission_policy must require flow_submit_batch for two or more "
+            "ready Jobs within one script stage"
+        )
     return errors
 
 
