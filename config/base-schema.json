@@ -14,8 +14,8 @@
     "generation_prompt_language_default": "en",
     "generation_prompt_language_fixed": true
   },
-  "storyboard_candidate_policy": {
-    "default_candidates_per_segment": 2,
+  "storyboard_version_policy": {
+    "versions_per_script": 2,
     "batch_submission_threshold": 2,
     "batch_scope": "single_script_single_stage"
   },
@@ -221,44 +221,6 @@
       "storyboard_status_values": {"not_started": "未开始", "generating": "生成中", "pending_review": "待审核", "passed": "已通过", "rejected": "已驳回"},
       "version_review_status_values": {"pending_review": "待审核", "approved": "已通过", "not_adopted": "未采用"},
       "subtitle_mode_values": {"plain": "普通字幕", "emphasis": "重点强调字幕", "none": "不生成"}
-    },
-      "storyboard_candidates": {
-        "table_id": "tbl22rUBBRIYpy9v",
-        "name": "分镜候选",
-        "role": "backend_audit_only",
-        "human_approval_surface": "脚本记录的脚本版本、完整分镜方案、分镜组合映射和版本审核状态",
-        "script_link_field": "脚本",
-      "segment_id_field": "Segment ID",
-      "segment_index_field": "Segment 序号",
-      "status_field": "候选状态",
-        "selection_field": "是否采用",
-        "selection_field_role": "legacy_only_not_human_approval_authority",
-      "attachment_field": "候选四宫格",
-      "fields": {
-        "name": "候选名称",
-        "candidate_id": "候选ID",
-        "script_link": "脚本",
-        "segment_id": "Segment ID",
-        "segment_index": "Segment 序号",
-        "target_time_range": "目标时间范围",
-        "board_attachment": "候选四宫格",
-        "status": "候选状态",
-        "selected": "是否采用",
-        "attempt": "生成轮次",
-        "run_id": "Run ID",
-        "job_id": "Flow2API Job ID",
-        "idempotency_key": "幂等键",
-        "model_id": "模型ID",
-        "sha256": "附件SHA256",
-        "review_notes": "审核意见"
-      },
-      "status_values": {
-        "submitting": "提交中",
-        "pending_selection": "待选择",
-        "accepted": "已采用",
-        "rejected": "已淘汰",
-        "generation_failed": "生成失败"
-      }
     },
     "final_films": {
       "table_id": "tblZZDu01Ib4OuHT",

@@ -1,4 +1,6 @@
-# Storyboard candidate contract
+# Storyboard candidate contract (legacy)
+
+> This document is retained only for historical run packages and migration audits. The active workflow does not create, write, or review a `分镜候选` table. New storyboard work writes two complete A/B packages directly to the script table. Do not use the candidate contract for new runs.
 
 The generation candidate unit is one complete 2×2 storyboard board for one
 configured 10-second target production Segment. It is never one panel, a start

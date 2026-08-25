@@ -170,33 +170,23 @@ def candidate(
 
 
 class StoryboardCandidateContractTests(unittest.TestCase):
-    def test_checked_in_schema_declares_candidate_table_v13(self) -> None:
+    def test_checked_in_schema_uses_script_versions_as_approval_surface(self) -> None:
         checked_in = json.loads(
             (Path(__file__).resolve().parents[1] / "config" / "base-schema.json")
             .read_text(encoding="utf-8")
         )
-        table = checked_in["tables"]["storyboard_candidates"]
-
         self.assertGreaterEqual(checked_in["schema_version"], 14)
+        self.assertNotIn("storyboard_candidates", checked_in["tables"])
+        self.assertNotIn("storyboard_review", checked_in["tables"])
+        self.assertEqual(checked_in["storyboard_version_policy"]["versions_per_script"], 2)
         self.assertEqual(
-            checked_in["storyboard_candidate_policy"][
-                "default_candidates_per_segment"
-            ],
+            checked_in["storyboard_version_policy"]["batch_submission_threshold"],
             2,
         )
         self.assertEqual(
-            checked_in["storyboard_candidate_policy"][
-                "batch_submission_threshold"
-            ],
-            2,
-        )
-        self.assertEqual(
-            checked_in["storyboard_candidate_policy"]["batch_scope"],
+            checked_in["storyboard_version_policy"]["batch_scope"],
             "single_script_single_stage",
         )
-        self.assertTrue(table["table_id"].startswith("tbl"))
-        self.assertEqual(table["fields"]["board_attachment"], "候选四宫格")
-        self.assertEqual(table["fields"]["selected"], "是否采用")
 
     def test_select_replaces_only_the_same_segment(self) -> None:
         api = FakeApi()
