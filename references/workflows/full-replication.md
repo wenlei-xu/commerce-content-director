@@ -1,6 +1,6 @@
 # Workflow: full replication storyboard
 
-Read [storyboard-generation.md](storyboard-generation.md), [flow2api-image-execution.md](../flow2api-image-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [reference-asset-contract.md](../reference-asset-contract.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
+Read [storyboard-generation.md](storyboard-generation.md), [storyboard-candidate-contract.md](../storyboard-candidate-contract.md), [flow2api-image-execution.md](../flow2api-image-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [reference-asset-contract.md](../reference-asset-contract.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
 
 Use this workflow only for the `full_replication` task mode. Full replication preserves the complete commercial narrative chain: hook, segment order, information release, proof order, payoff, emotion and CTA position. It does not perform chronological per-second or per-frame product replacement.
 
@@ -19,7 +19,7 @@ Full replication passes only when every segment can retain its narrative task an
 Keep source narrative segmentation separate from target production segmentation:
 
 - A `source_narrative_segment` is reference evidence. It retains the source narrative task, order, relative pacing and exactly two local frames.
-- A `target_production_segment` is the generation unit. It is always the configured 10 seconds and produces one 2×2 storyboard board through one Flow2API image Job.
+- A `target_production_segment` is the acceptance unit. It is always the configured 10 seconds and ultimately accepts one complete 2×2 storyboard board. It may have multiple complete-board candidate Jobs.
 
 Before image generation, write `plan/replication-rhythm-map.json`. Map every source narrative segment in order to one or more target production Segments, then render the locked target-script Beats for each target 10-second window. Several source narrative segments may enter one target production Segment; an important target-product proof action may span adjacent target production Segments.
 
@@ -30,7 +30,7 @@ Authority is fixed:
 3. Current product facts own the required action, visible state change and minimum legible proof time.
 4. Active configuration owns 10-second production segmentation and one 2×2 board per target production Segment.
 
-Do not copy source timestamps into the target plan, force one source narrative segment to equal one Job, or divide the four panels into equal durations merely because the board has four cells. Job count is `target_duration_seconds / 10`, not the number of source narrative segments or evidence frames.
+Do not copy source timestamps into the target plan, force one source narrative segment to equal one candidate Job, or divide the four panels into equal durations merely because the board has four cells. Accepted-board count is `target_duration_seconds / 10`; candidate Job count may be larger and is not determined by source narrative segments or evidence frames.
 
 ## Subject strategy gate
 
@@ -55,8 +55,8 @@ Create the two-frame evidence pool inside the current run package. Reuse accepte
 1. Validate that the selected record is `资产状态=可用` and has the factual narrative fields and source time ranges needed for adaptation. Create a local evidence manifest in which every source narrative segment links to exactly two distinct files: `开始参考帧` and `结果参考帧`. Missing, duplicated, out-of-range or unstable local frames stop the run; absence of two attachments on an accepted legacy record alone does not.
 2. For each source narrative segment, record its narrative task, start/result frames, preserved mechanism, relative pacing cue, required target-product substitution and prohibited source-product carryover. These pairs form the evidence pool; they do not each trigger generation.
 3. Build the rhythm map and target 10-second production Segments from the locked target script. For each target production Segment, record its contiguous target time range, mapped source narrative IDs and four target Beats. Select exactly two routed source boundary frames from the evidence pool: the entering frame of the first mapped source narrative and the result frame of the last mapped source narrative. Intermediate evidence pairs remain planning evidence represented by the target Beats; do not send all retained frames by default.
-4. Generate exactly one 2×2 target storyboard board for each target production Segment. The routed start frame owns entering composition/state and the routed result frame owns visible payoff/handoff. Under `preserve_source_subject`, they also preserve the original person or animal and no subject anchor is added. Under `replace_subject`, the selected subject anchor overrides source-subject identity. The current product anchor always overrides source-product identity.
-5. Assemble accepted target production boards in target chronological order. Validate exact target duration and Job count, source-narrative coverage, target Beat coverage, correct start/result states, hook/payoff/proof/CTA order, product actions and cross-Segment continuity.
+4. Generate one or more complete 2×2 candidate boards for each target production Segment, within the configured candidate budget. The routed start frame owns entering composition/state and the routed result frame owns visible payoff/handoff. Under `preserve_source_subject`, they also preserve the original person or animal and no subject anchor is added. Under `replace_subject`, the selected subject anchor overrides source-subject identity. The current product anchor always overrides source-product identity. Publish each passing complete board to Feishu `分镜候选`; never split or recombine its panels.
+5. After the human checks exactly one candidate per Segment, assemble accepted target production boards in target chronological order. Validate exact target duration and accepted-board count, source-narrative coverage, target Beat coverage, correct start/result states, hook/payoff/proof/CTA order, product actions and cross-Segment continuity.
 
 Do not create MF/RF mappings, fixed six-frame batches, replacement contact sheets, balanced dynamic masters, video, subtitles or voiceover in this workflow. If the two local frames do not provide enough evidence, reselect them from retained segment evidence. Return to the breakdown workflow only when the accepted narrative facts or time ranges themselves are wrong or insufficient; do not restart chronological frame replacement.
 

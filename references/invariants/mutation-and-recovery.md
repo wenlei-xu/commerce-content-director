@@ -8,4 +8,9 @@ Treat Feishu writes and media uploads as a resumable Saga, not an assumed transa
 4. If a write or upload fails, retain the partial record as a visible failed/submitting state, record the exact missing evidence, and resume the same `run_id`; never create a duplicate record to hide the failure.
 5. Never overwrite accepted media or delete failed artifacts. A compensating state change is preferred to destructive cleanup.
 
+For storyboard candidates, create or resume the same deterministic candidate
+record in `提交中`, upload exactly one complete board, fresh-read its attachment,
+then publish it to `待选择`. A partial candidate never authorizes a new record
+with a different identity, and no local-only candidate counts as published.
+
 Completion requires both local evidence and a fresh remote read. A plausible file, cached attachment, or successful upload response without a matching remote record is not completion.
