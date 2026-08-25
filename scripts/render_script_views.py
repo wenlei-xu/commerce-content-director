@@ -68,6 +68,7 @@ def render(script: dict[str, Any]) -> dict[str, str]:
             f"## 创作策略\n{json.dumps(strategy, ensure_ascii=False, indent=2)}",
             "## 三轨脚本\n" + "\n".join(beat_rows),
             "## 台词\n" + "\n".join(dialogue_rows),
+            "## 台词质量门禁\n" + json.dumps(script.get("dialogue_quality_gate", {}), ensure_ascii=False, indent=2),
             "## 结尾\n" + json.dumps(script["ending"], ensure_ascii=False, indent=2),
         ]),
     }

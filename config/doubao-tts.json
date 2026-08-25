@@ -11,6 +11,10 @@
     "speech_rate": 0,
     "loudness_rate": 0
   },
+  "speech_rate_by_language": {
+    "zh-CN": 15,
+    "th": 0
+  },
   "language_map": {
     "zh-CN": "zh-cn",
     "th": "th"

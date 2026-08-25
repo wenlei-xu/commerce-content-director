@@ -48,6 +48,13 @@ def valid_script() -> dict:
             "speaker_id": "OWNER", "text": "ได้ขนมใน 10 วินาที", "function": "result", "delivery": "excited",
             "caption": {"emphasis_spans": [{"text": "10 วินาที", "style": "number_pop"}]},
         }],
+        "dialogue_quality_gate": {
+            "instruction_manual_restatement_only": False,
+            "pain_line_ids": ["L01"],
+            "benefit_line_ids": ["L01"],
+            "proof_line_ids": ["L01"],
+            "natural_cta_line_ids": ["L01"],
+        },
         "screen_texts": [{
             "text_id": "T01", "beat_id": "B01", "start": 2.5, "end": 3,
             "text": "ดูรายละเอียด", "function": "CTA", "is_subtitle": False,

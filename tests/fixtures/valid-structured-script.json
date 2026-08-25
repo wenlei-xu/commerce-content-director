@@ -76,6 +76,13 @@
       "delivery": "自然收尾"
     }
   ],
+  "dialogue_quality_gate": {
+    "instruction_manual_restatement_only": false,
+    "pain_line_ids": ["LINE-01"],
+    "benefit_line_ids": ["LINE-01"],
+    "proof_line_ids": ["LINE-01"],
+    "natural_cta_line_ids": ["LINE-02"]
+  },
   "screen_texts": [
     {"text_id": "TEXT-01", "beat_id": "BEAT-01", "start": 0, "end": 3.5, "text": "出门前先给它任务", "function": "context", "is_subtitle": false},
     {"text_id": "TEXT-02", "beat_id": "BEAT-02", "start": 6, "end": 10, "text": "点击查看", "function": "cta", "is_subtitle": false}

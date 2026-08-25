@@ -76,6 +76,9 @@ def resolve_settings(args: argparse.Namespace) -> tuple[dict[str, Any], str, str
     speaker_env = config["speaker_env"][args.language]
     speaker = args.speaker or os.environ.get(speaker_env) or config["default_speakers"][args.language]
     audio = dict(config["audio"])
+    language_speech_rates = config.get("speech_rate_by_language") or {}
+    if args.language in language_speech_rates:
+        audio["speech_rate"] = language_speech_rates[args.language]
     if args.speech_rate is not None:
         audio["speech_rate"] = args.speech_rate
     if args.loudness_rate is not None:

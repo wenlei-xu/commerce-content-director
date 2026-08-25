@@ -47,10 +47,29 @@ class StructuredScriptContractTest(unittest.TestCase):
         self.assertFalse(report["ok"])
         self.assertTrue(any(error["code"] == "INVALID_TARGET_SPOKEN_LANGUAGE" for error in report["errors"]))
 
+    def test_spoken_script_requires_dialogue_quality_gate(self):
+        self.script.pop("dialogue_quality_gate")
+        report = self.validator.validate(self.script)
+        self.assertFalse(report["ok"])
+        self.assertIn("MISSING_DIALOGUE_QUALITY_GATE", {error["code"] for error in report["errors"]})
+
+    def test_instruction_manual_only_dialogue_fails(self):
+        self.script["dialogue_quality_gate"]["instruction_manual_restatement_only"] = True
+        report = self.validator.validate(self.script)
+        self.assertFalse(report["ok"])
+        self.assertIn("INSTRUCTION_MANUAL_DIALOGUE", {error["code"] for error in report["errors"]})
+
+    def test_every_dialogue_quality_role_is_required(self):
+        self.script["dialogue_quality_gate"]["benefit_line_ids"] = []
+        report = self.validator.validate(self.script)
+        self.assertFalse(report["ok"])
+        self.assertIn("MISSING_DIALOGUE_QUALITY_ROLE", {error["code"] for error in report["errors"]})
+
     def test_renderer_has_canonical_views(self):
         result = self.renderer.render(self.script)
         self.assertIn("BEAT-01", result["three_track_script"])
         self.assertIn("LINE-01", result["dialogue_manifest"])
+        self.assertIn("台词质量门禁", result["script_body"])
 
 
 if __name__ == "__main__":
