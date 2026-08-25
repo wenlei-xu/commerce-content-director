@@ -45,15 +45,19 @@ class PreflightContractTests(unittest.TestCase):
         self.assertEqual(requirements["asr"], "not_required")
 
     def test_final_video_requires_asr_only_for_spoken_audio_modes(self) -> None:
-        silent = resolve_requirements(self.policy, "final_video", audio_mode="natural_sound_only")
-        spoken = resolve_requirements(self.policy, "final_video", audio_mode="spoken")
+        silent = resolve_requirements(self.policy, "final_video", audio_mode="natural_sound_only", target_spoken_language="zh-CN")
+        spoken = resolve_requirements(self.policy, "final_video", audio_mode="spoken", target_spoken_language="zh-CN")
+        thai_spoken = resolve_requirements(self.policy, "final_video", audio_mode="spoken", target_spoken_language="th")
         self.assertEqual(silent["ffmpeg"], "required")
         self.assertEqual(silent["asr"], "not_required")
+        self.assertEqual(silent["audio_separator"], "not_required")
         self.assertEqual(spoken["asr"], "required")
+        self.assertEqual(spoken["audio_separator"], "required")
+        self.assertEqual(thai_spoken["audio_separator"], "not_required")
 
     def test_final_video_requires_audio_mode(self) -> None:
         with self.assertRaisesRegex(ValueError, "--audio-mode"):
-            resolve_requirements(self.policy, "final_video")
+            resolve_requirements(self.policy, "final_video", target_spoken_language="zh-CN")
 
 
 if __name__ == "__main__":

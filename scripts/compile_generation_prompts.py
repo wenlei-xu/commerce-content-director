@@ -25,6 +25,12 @@ IMAGE_ROLES = {
     "source_contact_sheet", *SOURCE_FRAME_ROLES,
 }
 VIDEO_ROLES = IMAGE_ROLES | {"storyboard_board", "continuity_frame"}
+AUDIO_MODES = {"spoken", "sparse_spoken", "natural_sound_only"}
+CHINESE_VOICEOVER_PROVIDER = "doubao_tts_2_0"
+THAI_VOICEOVER_PROVIDER = "omni_native"
+NO_VOICEOVER_PROVIDER = "none"
+ENVIRONMENT_ONLY = "environment_only"
+NATIVE_DIALOGUE = "native_dialogue"
 
 
 def fail(message: str) -> ValueError:
@@ -189,6 +195,25 @@ def validate_plan(plan: dict[str, Any]) -> None:
                 f"storyboard_image requires {expected_count} target production Segment(s) for "
                 f"{plan['target_duration_seconds']:g}s"
             )
+    if job_kind == "final_video":
+        audio_modes = {segment.get("audio_mode", "spoken") for segment in segments if isinstance(segment, dict)}
+        invalid_modes = audio_modes - AUDIO_MODES
+        if invalid_modes:
+            raise fail(f"unsupported audio_mode(s): {', '.join(sorted(invalid_modes))}")
+        has_voiceover = bool(audio_modes & {"spoken", "sparse_spoken"})
+        language = plan["target_spoken_language"]
+        expected_provider = (
+            CHINESE_VOICEOVER_PROVIDER
+            if has_voiceover and language == "zh-CN"
+            else THAI_VOICEOVER_PROVIDER
+            if has_voiceover
+            else NO_VOICEOVER_PROVIDER
+        )
+        expected_policy = ENVIRONMENT_ONLY if language == "zh-CN" or not has_voiceover else NATIVE_DIALOGUE
+        if plan.get("voiceover_provider") != expected_provider:
+            raise fail(f"final_video voiceover_provider must be {expected_provider} for this language/audio mode")
+        if plan.get("omni_audio_policy") != expected_policy:
+            raise fail(f"final_video omni_audio_policy must be {expected_policy} for this language/audio mode")
     seen: set[str] = set()
     for segment_index, segment in enumerate(segments):
         if not isinstance(segment, dict):
@@ -277,13 +302,30 @@ def compile_video(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         dialogue_lines.append(f"{number(line.get('start'), f'dialogue {index}.start'):.1f}–{number(line.get('end'), f'dialogue {index}.end'):.1f}s: {line['text']}")
     subject = segment.get("subject_identity") or "No recurring subject identity is locked for this Segment."
     continuity = segment.get("continuity") or "Begin from this Segment's approved opening state with no unexplained change."
+    audio_mode = segment.get("audio_mode", "spoken")
+    if plan["target_spoken_language"] == "zh-CN":
+        external_voiceover_note = (
+            "Approved Chinese dialogue is produced outside Omni with Doubao TTS 2.0 and is intentionally omitted from this generation prompt."
+            if audio_mode in {"spoken", "sparse_spoken"}
+            else "This Segment has no dialogue or voiceover."
+        )
+        audio_payload = (
+            f"target_spoken_language=zh-CN. audio_mode={audio_mode}. "
+            f"voiceover_provider={plan['voiceover_provider']}. omni_audio_policy={ENVIRONMENT_ONLY}.\n"
+            "Generate synchronized environmental sounds only. No spoken voice, narration, dialogue, "
+            f"singing, humming, or background music. {external_voiceover_note}"
+        )
+    else:
+        audio_payload = (
+            f"target_spoken_language=th. audio_mode={audio_mode}. "
+            f"voiceover_provider={plan['voiceover_provider']}. omni_audio_policy={plan['omni_audio_policy']}.\n"
+            + ("\n".join(dialogue_lines) if dialogue_lines else "Natural sound only; do not speak any line.")
+        )
     return "\n\n".join([
         "INPUT IMAGE ROLES AND AUTHORITY\n" + "\n".join(role_lines(inputs)),
         "PRODUCT STRUCTURE AND INTERACTION HARD CONSTRAINTS\n" + ("\n".join(constraints) if constraints else "Use only approved product facts."),
         "SUBJECT IDENTITY LOCK\n" + subject,
-        "LANGUAGE, AUDIO AND TIMED DIALOGUE\n"
-        f"target_spoken_language={plan['target_spoken_language']}. audio_mode={segment.get('audio_mode', 'spoken')}.\n"
-        + ("\n".join(dialogue_lines) if dialogue_lines else "Natural sound only; do not speak any line."),
+        "LANGUAGE, AUDIO AND TIMED DIALOGUE\n" + audio_payload,
         "NO TEXT AND CROSS-SEGMENT CONTINUITY\n"
         "No captions, subtitles, burned-in text, dialogue transcription, labels, lower thirds, logos, watermarks, UI, or readable text in any language.\n"
         + continuity + "\nTimeline:\n" + "\n".join(timing_lines(validate_beats(segment, float(plan['raw_segment_seconds'])))),
@@ -318,6 +360,8 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
             "beats": validate_beats(segment, float(plan["raw_segment_seconds"])),
             "dialogue": segment.get("dialogue", []),
             "audio_mode": segment.get("audio_mode"),
+            "voiceover_provider": plan.get("voiceover_provider"),
+            "omni_audio_policy": plan.get("omni_audio_policy"),
             "product_visible": bool(segment.get("product_visible")),
         })
     return {
@@ -329,6 +373,8 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "generation_unit": plan.get("generation_unit"),
         "prompt_language": plan["prompt_language"],
         "target_spoken_language": plan.get("target_spoken_language"),
+        "voiceover_provider": plan.get("voiceover_provider"),
+        "omni_audio_policy": plan.get("omni_audio_policy"),
         "target_duration_seconds": plan.get("target_duration_seconds"),
         "raw_segment_seconds": plan["raw_segment_seconds"],
         "storyboard": plan.get("storyboard"),

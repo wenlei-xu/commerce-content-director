@@ -24,8 +24,11 @@
       }
     },
     "final_video": {
-      "capabilities": {"feishu": "required", "flow2api": "required", "ffmpeg": "required", "asr": "conditional", "image_tools": "required"},
-      "conditions": {"asr": "audio_mode=spoken|sparse_spoken"}
+      "capabilities": {"feishu": "required", "flow2api": "required", "ffmpeg": "required", "asr": "conditional", "audio_separator": "conditional", "image_tools": "required"},
+      "conditions": {
+        "asr": "audio_mode=spoken|sparse_spoken",
+        "audio_separator": "target_spoken_language=zh-CN&audio_mode=spoken|sparse_spoken"
+      }
     },
     "lifecycle": {
       "capabilities": {"feishu": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}

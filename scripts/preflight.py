@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from runtime import find_binary
+from separate_reference_bgm import find_demucs_python
 
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
@@ -61,6 +62,7 @@ def resolve_requirements(
     mode: str | None = None,
     audio_mode: str | None = None,
     source_has_audio: bool = False,
+    target_spoken_language: str | None = None,
 ) -> dict[str, str]:
     """Resolve conditional capability states to required or not_required."""
     workflows = policy.get("workflows", {})
@@ -84,6 +86,16 @@ def resolve_requirements(
             if audio_mode is None:
                 raise ValueError(f"{workflow} requires --audio-mode to resolve {capability}")
             requirements[capability] = "required" if audio_mode in {"spoken", "sparse_spoken"} else "not_required"
+        elif condition == "target_spoken_language=zh-CN&audio_mode=spoken|sparse_spoken":
+            if audio_mode is None:
+                raise ValueError(f"{workflow} requires --audio-mode to resolve {capability}")
+            if target_spoken_language is None:
+                raise ValueError(f"{workflow} requires target_spoken_language to resolve {capability}")
+            requirements[capability] = (
+                "required"
+                if target_spoken_language == "zh-CN" and audio_mode in {"spoken", "sparse_spoken"}
+                else "not_required"
+            )
         else:
             raise ValueError(f"Unsupported condition for {capability}: {condition!r}")
     return requirements
@@ -110,6 +122,11 @@ def local_checks(requirements: dict[str, str]) -> tuple[dict[str, Any], list[str
         checks["asr_backends"] = backends
         if not any(backends.values()):
             missing.append("a supported Whisper backend")
+    if requirements.get("audio_separator") == "required":
+        separator_python = find_demucs_python(None)
+        checks["demucs_python"] = str(separator_python) if separator_python else "not found"
+        if not separator_python:
+            missing.append("a Python runtime with demucs and torch (set DEMUCS_PYTHON)")
     return checks, missing
 
 
@@ -124,18 +141,19 @@ def report_for(
     target_spoken_language: str | None = None,
     language_policy: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
+    resolved_language, language_source = resolve_target_spoken_language(
+        language_policy or load_language_policy(), workflow, target_spoken_language
+    )
     requirements = resolve_requirements(
         policy,
         workflow,
         mode=mode,
         audio_mode=audio_mode,
         source_has_audio=source_has_audio,
+        target_spoken_language=resolved_language,
     )
     if require_asr:
         requirements["asr"] = "required"
-    resolved_language, language_source = resolve_target_spoken_language(
-        language_policy or load_language_policy(), workflow, target_spoken_language
-    )
     checks, missing = local_checks(requirements)
     return {
         "workflow": workflow,

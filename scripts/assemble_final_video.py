@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import subprocess
 import tempfile
@@ -43,11 +44,57 @@ def has_audio_stream(ffprobe: str, path: Path) -> bool:
     return bool(result.stdout.strip())
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def validate_background_music_gate(background_music: Path, gate_path: Path) -> None:
+    """Require proof that the selected BGM stem contains no detected source speech."""
+    try:
+        gate = json.loads(gate_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise ValueError(f"cannot read background-music gate: {error}") from error
+    if gate.get("schema") != "commerce-source-bgm-gate-v1" or gate.get("status") != "passed":
+        raise ValueError("background-music gate must have schema commerce-source-bgm-gate-v1 and status=passed")
+    if gate.get("background_music_sha256") != sha256_file(background_music):
+        raise ValueError("background-music gate hash does not match the selected BGM stem")
+    if gate.get("residual_speech_detected") is not False:
+        raise ValueError("background-music gate must explicitly report residual_speech_detected=false")
+
+
+def chinese_audio_filter(subtitles: Path, font_name: str, margin_v: int, font_weight: str, target_duration: int, has_environment: bool) -> str:
+    environment = (
+        f"[0:a]volume=0.45,apad,atrim=duration={target_duration},asetpts=PTS-STARTPTS[environment]"
+        if has_environment
+        else f"anullsrc=r=48000:cl=stereo,atrim=duration={target_duration}[environment]"
+    )
+    return (
+        f"[0:v]{subtitle_filter(subtitles, font_name, margin_v, font_weight)}[video];"
+        f"{environment};"
+        f"[1:a]volume=1.0,apad,atrim=duration={target_duration},asetpts=PTS-STARTPTS,asplit=2[voice_mix][voice_key];"
+        f"[2:a]volume=0.22,atrim=duration={target_duration},asetpts=PTS-STARTPTS[bgm];"
+        "[bgm][voice_key]sidechaincompress=threshold=0.03:ratio=8:attack=20:release=350[ducked_bgm];"
+        "[environment][ducked_bgm][voice_mix]amix=inputs=3:duration=first:normalize=0[audio]"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("videos", nargs="+", type=Path, help="Segment videos in chronological order")
     parser.add_argument("--subtitles", required=True, type=Path)
     parser.add_argument("--voiceover", type=Path, help="Aligned narration track from align_voiceover.py")
+    parser.add_argument("--background-music", type=Path, help="Speech-free BGM stem separated from the approved reference video")
+    parser.add_argument("--background-music-gate", type=Path, help="Passed residual-speech gate for --background-music")
+    parser.add_argument(
+        "--audio-policy",
+        choices=["legacy", "chinese_external_tts"],
+        default="legacy",
+        help="Use chinese_external_tts for Omni environment + separated BGM + Doubao voiceover",
+    )
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--profile", required=True, type=Path, help="content-system-config-snapshot.json")
     parser.add_argument("--font-name", default="Microsoft YaHei", help="Default: Microsoft YaHei Bold")
@@ -87,6 +134,19 @@ def main() -> None:
     voiceover = args.voiceover.resolve() if args.voiceover else None
     if voiceover and not voiceover.is_file():
         raise SystemExit(f"Missing voiceover file: {voiceover}")
+    background_music = args.background_music.resolve() if args.background_music else None
+    background_music_gate = args.background_music_gate.resolve() if args.background_music_gate else None
+    if args.audio_policy == "chinese_external_tts":
+        if not voiceover:
+            raise SystemExit("chinese_external_tts requires --voiceover from aligned Doubao TTS")
+        if not background_music or not background_music.is_file():
+            raise SystemExit("chinese_external_tts requires an existing --background-music stem")
+        if not background_music_gate or not background_music_gate.is_file():
+            raise SystemExit("chinese_external_tts requires --background-music-gate")
+        try:
+            validate_background_music_gate(background_music, background_music_gate)
+        except ValueError as error:
+            raise SystemExit(f"Invalid background-music gate: {error}") from error
 
     list_path: Path | None = None
     try:
@@ -104,7 +164,18 @@ def main() -> None:
             "-i", str(list_path),
         ]
         has_bed = all(has_audio_stream(ffprobe, path) for path in videos)
-        if voiceover and has_bed:
+        if args.audio_policy == "chinese_external_tts":
+            command.extend([
+                "-i", str(voiceover),
+                "-stream_loop", "-1", "-i", str(background_music),
+                "-filter_complex",
+                chinese_audio_filter(
+                    subtitles, args.font_name, args.subtitle_margin_v,
+                    args.subtitle_font_weight, target_duration, has_bed,
+                ),
+                "-map", "[video]", "-map", "[audio]",
+            ])
+        elif voiceover and has_bed:
             command.extend([
                 "-i", str(voiceover),
                 "-filter_complex",

@@ -215,6 +215,8 @@ def main() -> None:
     video_plan.pop("storyboard")
     video_plan["job_kind"] = "final_video"
     video_plan["target_spoken_language"] = "th"
+    video_plan["voiceover_provider"] = "omni_native"
+    video_plan["omni_audio_policy"] = "native_dialogue"
     video_segment = video_plan["segments"][0]
     video_segment["inputs"] = [
         {"position": 1, "role": "storyboard_board", "asset_id": "board", "sha256": "c" * 64, "clean_for_generation": True, "reason": "Chronology and camera intent."},
@@ -229,9 +231,40 @@ def main() -> None:
 
     chinese_video_plan = copy.deepcopy(video_plan)
     chinese_video_plan["target_spoken_language"] = "zh-CN"
+    chinese_video_plan["voiceover_provider"] = "doubao_tts_2_0"
+    chinese_video_plan["omni_audio_policy"] = "environment_only"
     chinese_video_plan["segments"][0]["dialogue"][0]["text"] = "看看这个菠萝玩具"
     chinese_video_bundle = compile_plan(chinese_video_plan)
     assert not validate_bundle(chinese_video_bundle, {"en"}, {"th", "zh-CN"})
+    chinese_omni_prompt = chinese_video_bundle["prompts"][0]["prompt"]
+    assert "看看这个菠萝玩具" not in chinese_omni_prompt
+    assert "voiceover_provider=doubao_tts_2_0" in chinese_omni_prompt
+    assert "omni_audio_policy=environment_only" in chinese_omni_prompt
+    assert "No spoken voice, narration, dialogue, singing, humming, or background music" in chinese_omni_prompt
+    assert chinese_video_bundle["prompts"][0]["dialogue"][0]["text"] == "看看这个菠萝玩具"
+
+    leaked_chinese_dialogue = copy.deepcopy(chinese_video_bundle)
+    leaked_chinese_dialogue["prompts"][0]["prompt"] += "\n7.0–10.0s: 看看这个菠萝玩具"
+    leaked_errors = validate_bundle(leaked_chinese_dialogue, {"en"}, {"th", "zh-CN"})
+    assert any("must not be sent to Omni" in error for error in leaked_errors)
+
+    wrong_chinese_provider = copy.deepcopy(chinese_video_plan)
+    wrong_chinese_provider["voiceover_provider"] = "omni_native"
+    try:
+        compile_plan(wrong_chinese_provider)
+    except ValueError as error:
+        assert "doubao_tts_2_0" in str(error)
+    else:
+        raise AssertionError("Chinese spoken video must use Doubao TTS 2.0")
+
+    chinese_natural_sound = copy.deepcopy(chinese_video_plan)
+    chinese_natural_sound["voiceover_provider"] = "none"
+    chinese_natural_sound["segments"][0]["audio_mode"] = "natural_sound_only"
+    chinese_natural_sound["segments"][0]["dialogue"] = []
+    natural_bundle = compile_plan(chinese_natural_sound)
+    assert not validate_bundle(natural_bundle, {"en"}, {"th", "zh-CN"})
+    assert "voiceover_provider=none" in natural_bundle["prompts"][0]["prompt"]
+    assert "Doubao TTS 2.0" not in natural_bundle["prompts"][0]["prompt"]
 
     chinese_control_text = copy.deepcopy(chinese_video_plan)
     chinese_control_text["segments"][0]["subject_identity"] = "只使用同一只狗"

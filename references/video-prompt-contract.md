@@ -6,7 +6,7 @@ Read this contract before writing any Omni video-generation prompt for a portrai
 
 ## Language and source-of-truth gate
 
-Read `plan/language-lock.json` before writing the prompt. `target_spoken_language` must be `th` (Thai) or `zh-CN` (Chinese); when the user did not specify it, the task-start lock is `zh-CN`. Every spoken line, voice instruction, and timed dialogue window must use that one locked language. All surrounding generation control text must be English. A script value that differs from the task lock is a planning-data conflict: stop and fix the data before generation. Do not add a translated second dialogue line. If the selected audio mode is `natural_sound_only`, include no dialogue or voiceover at all.
+Read `plan/language-lock.json` before writing the prompt. `target_spoken_language` must be `th` (Thai) or `zh-CN` (Chinese); when the user did not specify it, the task-start lock is `zh-CN`. Every spoken line, voice instruction, and timed dialogue window must use that one locked language. All generation control text must be English. A script value that differs from the task lock is a planning-data conflict: stop and fix the data before generation. Do not add a translated second dialogue line. If the selected audio mode is `natural_sound_only`, include no dialogue or voiceover at all. Chinese spoken dialogue is post-produced with Doubao TTS 2.0 and therefore remains outside every Omni prompt.
 
 ## Segment-scoped dialogue gate
 
@@ -14,15 +14,16 @@ The approved full-film script and video prompt are planning sources, not payload
 
 - Assign each approved spoken line to exactly one 10-second Segment unless the approved script explicitly marks an intentional repeat.
 - Rebase the assigned line's timing to the current Job's local `0.0–10.0s` window.
-- Include only the current Segment's literal spoken lines in its prompt. Do not quote earlier or later Segment dialogue anywhere, including summaries, continuity context, examples, or negative instructions; use a generic instruction such as `Do not speak any other line` instead.
+- For Thai native-Omni speech, include only the current Segment's literal spoken lines in its prompt. Do not quote earlier or later Segment dialogue anywhere.
+- For Chinese, keep exact lines and local timing in the allocation manifest and compiled bundle metadata for Doubao TTS and subtitle production, but include no literal Chinese dialogue in any Omni prompt. The prompt must contain no Chinese characters.
 - A `natural_sound_only` Segment contains no spoken line.
 - If any line crosses a Segment boundary or its assignment is ambiguous, stop before submission and fix the approved timing data. Do not improvise a split, duplicate the line, or let Omni continue it across Jobs.
 
-Validate the complete prompt set as one unit before submitting any Job: every manifest line must occur in exactly its assigned prompt and no other prompt, subject only to an explicitly approved intentional repeat. Store the manifest and exact submitted per-segment prompts in the run package.
+Validate the complete prompt set as one unit before submitting any Job: Thai native-Omni lines must occur in exactly their assigned prompt; Chinese external-TTS lines must occur in no Omni prompt and must remain assigned exactly once in bundle metadata. Store the manifest and exact submitted per-segment prompts in the run package.
 
 ## Compiler input and evidence
 
-Create `plan/generation-prompt-plan.json` with schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, `prompt_language: "en"`, the locked `target_spoken_language`, `raw_segment_seconds: 10`, common approved constraints, and one entry per Segment. Each entry provides its input role map, continuous `beats` from `0.0` to `10.0`, hard constraints, subject identity, local dialogue allocation, audio mode, and continuity handoff.
+Create `plan/generation-prompt-plan.json` with schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, `prompt_language: "en"`, the locked `target_spoken_language`, `raw_segment_seconds: 10`, common approved constraints, and one entry per Segment. Chinese spoken plans must declare `voiceover_provider: "doubao_tts_2_0"` and `omni_audio_policy: "environment_only"`; Thai spoken plans declare `voiceover_provider: "omni_native"` and `omni_audio_policy: "native_dialogue"`. Each entry provides its input role map, continuous `beats` from `0.0` to `10.0`, hard constraints, subject identity, local dialogue allocation, audio mode, and continuity handoff.
 
 Compile and validate before submitting any Job:
 
@@ -60,7 +61,13 @@ State that the routed `subject_anchor` and selected subject record are the only 
 
 ### 4. LANGUAGE, AUDIO AND TIMED DIALOGUE
 
-State the locked `target_spoken_language`, voice type/style, audio behavior and every dialogue window assigned to the current Segment. Use only Segment-local `0.0–10.0s` times. Each assigned line must have an explicit start and end time and must be spoken exactly in the locked language. Block headings and all visual/product control instructions must be English. State whether the raw Omni segment should generate native voice audio or remain natural-sound-only. Spoken dialogue is audio only; it must never be visualized as text. Do not add a translated or transliterated alternate spoken line. For spoken modes, include only this Segment's actual approved dialogue and state `Do not speak any other line` without quoting dialogue assigned to another Segment.
+State the locked `target_spoken_language`, selected provider and raw-Omni audio policy. Block headings and all visual/product control instructions must be English.
+
+- Chinese `spoken` and `sparse_spoken`: state `voiceover_provider=doubao_tts_2_0` and `omni_audio_policy=environment_only`, then require `Generate synchronized environmental sounds only. No spoken voice, narration, dialogue, singing, humming, or background music.` Keep the exact dialogue and local timing only in bundle metadata; do not place Chinese text, phonetic spelling, translated dialogue, lip-sync instructions, or a request for native speech in the Omni prompt.
+- Thai native-Omni speech: include only this Segment's approved literal dialogue with Segment-local `0.0–10.0s` start/end times and state `Do not speak any other line`.
+- `natural_sound_only`: request synchronized environmental sounds only and include no dialogue or voiceover.
+
+Spoken dialogue is audio only and must never be visualized as text.
 
 ### 5. NO TEXT AND CROSS-SEGMENT CONTINUITY
 
@@ -76,10 +83,10 @@ Use the five block headings verbatim or an unambiguous equivalent in every final
 4. the prompt contains no conflicting product geometry or subject description;
 5. every Segment repeats the subject identity lock and continuity handoff;
 6. the no-text rule is explicit and does not conflict with the dialogue block;
-7. every approved spoken line appears in exactly its assigned Segment prompt and no other prompt, except an explicitly approved intentional repeat;
+7. every Thai native-Omni line appears in exactly its assigned Segment prompt, while every Chinese external-TTS line appears in no Omni prompt and remains assigned exactly once in bundle metadata;
 8. every dialogue window uses Segment-local `0.0–10.0s` timing; and
 9. no prompt quotes dialogue from an earlier or later Segment anywhere in its text.
 
 If the prompt fails any check, do not submit the Job. Fix the task/script/data conflict first or stop and report it.
 
-After generation, run ASR on each raw Segment before assembly. Reject and regenerate only the affected Segment when ASR shows an omitted assigned line, an unapproved added line, or dialogue belonging to another Segment. Assembly does not waive this per-Segment gate; run full-film ASR again after assembly to verify order and boundaries.
+After generation, ASR-check every Chinese raw Segment and reject any clip containing speech because Chinese Omni output must be environment-only. For Thai native speech, reject and regenerate only the affected Segment when ASR shows an omitted assigned line, an unapproved added line, or dialogue belonging to another Segment. Assembly does not waive these gates; run full-film ASR again after assembly to verify the final approved dialogue and boundaries.

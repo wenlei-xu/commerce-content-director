@@ -10,12 +10,15 @@ from pathlib import Path
 from typing import Any
 
 from compile_generation_prompts import (
+    CHINESE_VOICEOVER_PROVIDER,
+    ENVIRONMENT_ONLY,
     FIXED_PANEL_RATIO,
     FIXED_RAW_SEGMENT_SECONDS,
     FIXED_STORYBOARD_COLUMNS,
     FIXED_STORYBOARD_ROWS,
     SOURCE_FRAME_ROLES,
     TARGET_PRODUCTION_UNIT,
+    THAI_VOICEOVER_PROVIDER,
     validate_beats,
     validate_inputs,
     validate_source_narrative_mapping,
@@ -100,6 +103,21 @@ def validate_bundle(
     prompts = bundle.get("prompts")
     if not isinstance(prompts, list) or not prompts:
         return errors + ["prompts must be a non-empty list"]
+    if kind == "final_video":
+        audio_modes = {entry.get("audio_mode", "spoken") for entry in prompts if isinstance(entry, dict)}
+        has_voiceover = bool(audio_modes & {"spoken", "sparse_spoken"})
+        expected_provider = (
+            CHINESE_VOICEOVER_PROVIDER
+            if has_voiceover and target_spoken_language == "zh-CN"
+            else THAI_VOICEOVER_PROVIDER
+            if has_voiceover
+            else "none"
+        )
+        expected_policy = ENVIRONMENT_ONLY if target_spoken_language == "zh-CN" or not has_voiceover else "native_dialogue"
+        if bundle.get("voiceover_provider") != expected_provider:
+            errors.append(f"voiceover_provider must be {expected_provider} for this final-video bundle")
+        if bundle.get("omni_audio_policy") != expected_policy:
+            errors.append(f"omni_audio_policy must be {expected_policy} for this final-video bundle")
     if kind == "storyboard_image" and isinstance(target_seconds, (int, float)) and not isinstance(target_seconds, bool):
         expected_count = int(float(target_seconds) / float(raw_seconds))
         if len(prompts) != expected_count:
@@ -123,10 +141,11 @@ def validate_bundle(
                 errors.append(f"{prefix} is missing heading {heading!r}")
         control_text = prompt
         dialogue_payload = entry.get("dialogue") or []
-        for line in dialogue_payload:
-            text = line.get("text") if isinstance(line, dict) else None
-            if isinstance(text, str) and text:
-                control_text = control_text.replace(text, "")
+        if not (kind == "final_video" and target_spoken_language == "zh-CN"):
+            for line in dialogue_payload:
+                text = line.get("text") if isinstance(line, dict) else None
+                if isinstance(text, str) and text:
+                    control_text = control_text.replace(text, "")
         if THAI.search(control_text) or HAN.search(control_text):
             errors.append(f"{prefix} contains non-English control text")
         try:
@@ -159,6 +178,24 @@ def validate_bundle(
         if kind == "storyboard_image" and dialogue:
             errors.append(f"{prefix}: storyboard-image prompt cannot contain dialogue")
         if kind == "final_video":
+            if entry.get("voiceover_provider") != bundle.get("voiceover_provider"):
+                errors.append(f"{prefix}: voiceover_provider does not match the bundle")
+            if entry.get("omni_audio_policy") != bundle.get("omni_audio_policy"):
+                errors.append(f"{prefix}: omni_audio_policy does not match the bundle")
+            if target_spoken_language == "zh-CN":
+                required_audio_markers = (
+                    f"voiceover_provider={bundle.get('voiceover_provider')}",
+                    "omni_audio_policy=environment_only",
+                    "No spoken voice",
+                    "No spoken voice, narration, dialogue, singing, humming, or background music",
+                )
+                for marker in required_audio_markers:
+                    if marker not in prompt:
+                        errors.append(f"{prefix}: Chinese external-TTS prompt is missing {marker!r}")
+                for line in dialogue_payload:
+                    text = line.get("text") if isinstance(line, dict) else None
+                    if isinstance(text, str) and text and text in prompt:
+                        errors.append(f"{prefix}: Chinese dialogue must not be sent to Omni")
             if entry.get("audio_mode") == "natural_sound_only" and dialogue:
                 errors.append(f"{prefix}: natural_sound_only cannot contain dialogue")
             for line_index, line in enumerate(dialogue):
