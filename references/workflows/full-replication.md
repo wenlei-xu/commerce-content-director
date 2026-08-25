@@ -1,10 +1,22 @@
-# Workflow: full replication storyboard
+# Workflow: high-fidelity full replication storyboard
 
 Read [storyboard-generation.md](storyboard-generation.md), [gpt-image-2-execution.md](../gpt-image-2-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [reference-asset-contract.md](../reference-asset-contract.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
 
-Use this workflow only for the `full_replication` task mode. Full replication preserves the complete commercial narrative chain: hook, segment order, information release, proof order, payoff, emotion and CTA position. It does not perform chronological per-second or per-frame product replacement.
+Use this workflow for `high_fidelity_replication`. Treat the legacy value `full_replication` as a compatibility alias with identical requirements. High-fidelity replication preserves the source's signature hook, shot/action sequence, relative pacing, dialogue-function order, emotional reactions, information release, proof order, payoff and CTA position. It is a narrative-level and shot-level replication, not chronological per-second or pixel-level replacement.
 
-Run `python scripts/preflight.py --workflow storyboard_generation --mode full_replication --target-spoken-language <th|zh-CN> --json`; when the user did not specify a language, pass the resolved default `zh-CN`. Source-video download and ffmpeg are conditional tools for deriving missing local start/result frames from retained evidence; ASR is not an execution prerequisite when the accepted breakdown already contains the narrative facts and time ranges.
+Run `python scripts/preflight.py --workflow storyboard_generation --mode high_fidelity_replication --target-spoken-language <th|zh-CN> --json`; when the user did not specify a language, pass the resolved default `zh-CN`. Source-video download and ffmpeg are conditional tools for deriving missing local start/result frames from retained evidence; ASR is not an execution prerequisite when the accepted breakdown already contains the narrative facts and time ranges.
+
+## Mode-selection contract
+
+Select this mode when the user asks for the result to resemble the source, retain its essence, preserve signature shots or reactions, route start/result frames, or change only product-conflicting details. `structure_replication` is a different mode: it may retain only the abstract selling skeleton and must not be presented as high-fidelity replication.
+
+Once this mode is selected, it cannot silently fall back. A failed compatibility or source-evidence gate stops the run and reports the exact incompatible source element. Continuing as `structure_replication` requires a new explicit user decision and a new run identity.
+
+## Source-essence contract
+
+Before writing the target script, create `plan/source-essence-map.json`. For every source narrative segment, record the signature hook or shot, entering composition/state, ordered visible actions, result state, relative pacing cue, dialogue function, emotional reaction, proof purpose, transition and CTA relationship. Mark each element as `must_preserve` or `adaptable` and cite the accepted breakdown evidence and source time range.
+
+Then create `plan/source-target-correspondence.json`. Map every source narrative segment to ordered target Beat IDs and record exactly what is preserved, what product conflict requires substitution, and why the substitution retains the original commercial and emotional function. Product substitution may change only facts, geometry or actions that conflict with the current product; it must not replace a compatible signature hook, shot, reaction, proof step or pacing relationship merely for convenience.
 
 ## Product compatibility gate
 
@@ -12,7 +24,7 @@ Fresh-read exactly one `资产状态=可用` breakdown and the selected active p
 
 Before any image generation, compare the source and target on product category and user, core interaction, proof chain, required scene, and source-specific functions or claims. Write `plan/replication-compatibility.json` with the decision, evidence and one assessment per narrative segment.
 
-Full replication passes only when every segment can retain its narrative task and the source proof order without inventing a target-product function or claim. Product facts may change the visible action, but not the segment's commercial purpose. If any core segment or proof step must be replaced, stop this mode and report `structure_replication`, `hook_replication` or `not_recommended`; do not silently continue as full replication.
+High-fidelity replication passes only when every segment can retain its narrative task, signature source element and proof order without inventing a target-product function or claim. Product facts may change a conflicting visible action, but not the segment's commercial or emotional purpose. If any signature hook, shot, reaction, core segment or proof step cannot be retained, stop this mode and report the incompatibility plus the possible alternatives `structure_replication`, `hook_replication` or `not_recommended`; do not silently continue under another mode.
 
 ## Production unit and rhythm authority
 
@@ -56,7 +68,13 @@ Create the two-frame evidence pool inside the current run package. Reuse accepte
 2. For each source narrative segment, record its narrative task, start/result frames, preserved mechanism, relative pacing cue, required target-product substitution and prohibited source-product carryover. These pairs form the evidence pool; they do not each trigger generation.
 3. Build the rhythm map and target 10-second production Segments from the locked target script. For each target production Segment, record its contiguous target time range, mapped source narrative IDs and four target Beats. Select exactly two routed source boundary frames from the evidence pool: the entering frame of the first mapped source narrative and the result frame of the last mapped source narrative. Intermediate evidence pairs remain planning evidence represented by the target Beats; do not send all retained frames by default.
 4. Generate two self-contained complete 2×2 storyboard packages for each target production Segment, one for script version A and one for B. The routed start frame owns entering composition/state and the routed result frame owns visible payoff/handoff. Under `preserve_source_subject`, they also preserve the original person or animal and no subject anchor is added. Under `replace_subject`, the selected subject anchor overrides source-subject identity. The current product anchor always overrides source-product identity. Keep generation artifacts in the run package; do not create a candidate or review table.
-5. Validate both complete A/B packages for target duration, Segment order, source-narrative coverage, target Beat coverage, correct start/result states, hook/payoff/proof/CTA order, product actions and cross-Segment continuity. Write each ordered package directly to its corresponding script-table record with `脚本版本=A/B` and `脚本状态=待审核`. Machine validation is a visual preflight only; human approval is performed on the two complete script records by setting the selected version to `脚本状态=已锁定` and the other to `脚本状态=未采用`, not by checking one candidate per Segment.
+5. Validate both complete A/B packages for target duration, Segment order, source-narrative coverage, target Beat coverage, correct start/result states, signature hook/shot/reaction coverage, relative pacing, dialogue-function order, hook/payoff/proof/CTA order, product actions and cross-Segment continuity. A and B must share the same source-essence contract but declare a non-empty `variant_delta`; identical scripts and identical adaptation decisions are not two versions. Write each ordered package directly to its corresponding script-table record with `脚本版本=A/B` and `脚本状态=待审核`. Machine validation is a visual preflight only; human approval is performed on the two complete script records by setting the selected version to `脚本状态=已锁定` and the other to `脚本状态=未采用`, not by checking one candidate per Segment.
+
+## Source-comparison similarity gate
+
+Before either storyboard version can be marked ready for human review, create `plan/source-similarity-review.json` and compare the source evidence with the complete target package side by side. Review the signature hook, entering and result compositions, shot/action order, relative pacing, dialogue-function order, emotional reactions, proof chain and CTA position. Each source element must be classified as `preserved`, `adapted_with_product_reason`, or `missing` with evidence.
+
+Any `missing` element marked `must_preserve`, an undocumented substitution, an unrouted start/result frame, or a target package whose similarity comes only from the generic “hook—interaction—result” skeleton fails this mode. Product correctness and prompt-contract validation do not substitute for source similarity. Only packages with no unresolved source-fidelity failure may proceed to human review.
 
 Do not create MF/RF mappings, fixed six-frame batches, replacement contact sheets, balanced dynamic masters, video, subtitles or voiceover in this workflow. If the two local frames do not provide enough evidence, reselect them from retained segment evidence. Return to the breakdown workflow only when the accepted narrative facts or time ranges themselves are wrong or insufficient; do not restart chronological frame replacement.
 

@@ -4,4 +4,6 @@
 
 `spoken` 与 `sparse_spoken` 还必须具有通过的 `dialogue_quality_gate`：`instruction_manual_restatement_only` 必须为 `false`；`pain_line_ids`、`benefit_line_ids`、`proof_line_ids`、`natural_cta_line_ids` 均不得为空且只能引用现有台词；结尾的 `cta_line_id` 必须包含在 `natural_cta_line_ids`。缺少任一角色、仅用说明书式台词复述可见动作，或 CTA 与前文脱节，均阻断脚本锁定。
 
+生活化口播的字数、单句单动作、书面连接词控制和自然反应频率是软规则，不是阻断项。校验器不得仅因单句超过 6–14 字建议范围、偶尔超过 18 字、某个 2–3 秒窗口缺少“哎/诶/你看”等反应，或出现连接词而判定失败；这些问题应作为审核提示，优先通过拆句、口语化改写和跟随画面调整来改善。
+
 只有脚本检查状态为通过的脚本能锁定。

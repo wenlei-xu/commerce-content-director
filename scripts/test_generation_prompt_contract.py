@@ -80,6 +80,9 @@ FULL_REPLICATION_PLAN["segments"][0]["inputs"].extend([
     {"position": 4, "role": "source_segment_result", "asset_id": "source-result", "sha256": "d" * 64, "clean_for_generation": True, "reason": "Visible payoff and handoff state."},
 ])
 
+HIGH_FIDELITY_REPLICATION_PLAN = copy.deepcopy(FULL_REPLICATION_PLAN)
+HIGH_FIDELITY_REPLICATION_PLAN["replication_mode"] = "high_fidelity_replication"
+
 
 def main() -> None:
     bundle = compile_plan(IMAGE_PLAN)
@@ -236,6 +239,10 @@ def main() -> None:
 
     full_bundle = compile_plan(FULL_REPLICATION_PLAN)
     assert not validate_bundle(full_bundle, {"en", "zh-CN"})
+
+    high_fidelity_bundle = compile_plan(HIGH_FIDELITY_REPLICATION_PLAN)
+    assert high_fidelity_bundle["replication_mode"] == "high_fidelity_replication"
+    assert not validate_bundle(high_fidelity_bundle, {"en", "zh-CN"})
 
     preserve_plan = copy.deepcopy(FULL_REPLICATION_PLAN)
     preserve_plan["segments"][0]["subject_strategy"] = "preserve_source_subject"

@@ -20,7 +20,7 @@
     "th": "th"
   },
   "default_speakers": {
-    "zh-CN": "zh_female_gaolengyujie_uranus_bigtts",
+    "zh-CN": "zh_female_qinqienv_uranus_bigtts",
     "th": "th_female_bv568_neutral_uranus_bigtts"
   },
   "speaker_env": {

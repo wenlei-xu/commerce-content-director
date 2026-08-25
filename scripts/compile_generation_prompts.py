@@ -15,6 +15,8 @@ NON_ENGLISH_CONTROL = re.compile(r"[\u0E00-\u0E7F\u3400-\u4DBF\u4E00-\u9FFF]")
 
 SOURCE_FRAME_ROLES = {"source_segment_start", "source_segment_result"}
 SUBJECT_STRATEGIES = {"preserve_source_subject", "replace_subject", "structure_only"}
+HIGH_FIDELITY_REPLICATION_MODES = {"high_fidelity_replication", "full_replication"}
+REPLICATION_MODES = HIGH_FIDELITY_REPLICATION_MODES | {"structure_replication"}
 TARGET_PRODUCTION_UNIT = "target_production_segment"
 FIXED_RAW_SEGMENT_SECONDS = 10
 FIXED_STORYBOARD_COLUMNS = 2
@@ -156,7 +158,7 @@ def validate_inputs(segment: dict[str, Any], job_kind: str) -> list[dict[str, An
 def validate_subject_strategy(
     segment: dict[str, Any], replication_mode: str | None, inputs: list[dict[str, Any]]
 ) -> str | None:
-    if replication_mode not in {"full_replication", "structure_replication"}:
+    if replication_mode not in REPLICATION_MODES:
         return None
     strategy = segment.get("subject_strategy")
     if strategy not in SUBJECT_STRATEGIES:
@@ -164,13 +166,13 @@ def validate_subject_strategy(
     roles = [item["role"] for item in inputs]
     source_counts_ok = all(roles.count(role) == 1 for role in SOURCE_FRAME_ROLES)
     if strategy == "preserve_source_subject":
-        if replication_mode != "full_replication" or not source_counts_ok:
-            raise fail("preserve_source_subject requires full_replication and exactly two source frames")
+        if replication_mode not in HIGH_FIDELITY_REPLICATION_MODES or not source_counts_ok:
+            raise fail("preserve_source_subject requires high-fidelity replication and exactly two source frames")
         if "subject_anchor" in roles:
             raise fail("preserve_source_subject forbids subject_anchor")
     elif strategy == "replace_subject":
-        if replication_mode != "full_replication" or not source_counts_ok:
-            raise fail("replace_subject requires full_replication and exactly two source frames")
+        if replication_mode not in HIGH_FIDELITY_REPLICATION_MODES or not source_counts_ok:
+            raise fail("replace_subject requires high-fidelity replication and exactly two source frames")
         if roles.count("subject_anchor") != 1:
             raise fail("replace_subject requires exactly one subject_anchor")
     else:
@@ -199,7 +201,7 @@ def validate_target_time_range(segment: dict[str, Any], index: int, raw_seconds:
 
 
 def validate_source_narrative_mapping(segment: dict[str, Any], replication_mode: str | None) -> list[str]:
-    if replication_mode not in {"full_replication", "structure_replication"}:
+    if replication_mode not in REPLICATION_MODES:
         return []
     values = segment.get("source_narrative_segment_ids")
     if not isinstance(values, list) or not values:
@@ -322,13 +324,13 @@ def validate_plan(plan: dict[str, Any]) -> None:
             )
             validate_target_time_range(segment, segment_index, raw_seconds)
             validate_source_narrative_mapping(segment, plan.get("replication_mode"))
-        if job_kind == "storyboard_image" and plan.get("replication_mode") == "full_replication":
+        if job_kind == "storyboard_image" and plan.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
             roles = [item["role"] for item in inputs]
             for role in SOURCE_FRAME_ROLES:
                 if roles.count(role) != 1:
-                    raise fail(f"{segment_id}: full_replication requires exactly one {role}")
+                    raise fail(f"{segment_id}: high-fidelity replication requires exactly one {role}")
             if "source_contact_sheet" in roles:
-                raise fail(f"{segment_id}: full_replication cannot use source_contact_sheet")
+                raise fail(f"{segment_id}: high-fidelity replication cannot use source_contact_sheet")
         if job_kind == "storyboard_image":
             validate_subject_strategy(segment, plan.get("replication_mode"), inputs)
         if job_kind == "storyboard_image" and segment.get("dialogue"):

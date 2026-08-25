@@ -21,6 +21,7 @@ from compile_generation_prompts import (
     FIXED_STORYBOARD_SIZE,
     FIXED_STORYBOARD_COLUMNS,
     FIXED_STORYBOARD_ROWS,
+    HIGH_FIDELITY_REPLICATION_MODES,
     SOURCE_FRAME_ROLES,
     TARGET_PRODUCTION_UNIT,
     THAI_VOICEOVER_PROVIDER,
@@ -219,13 +220,13 @@ def validate_bundle(
                 )
                 validate_target_time_range(segment, index, float(raw_seconds))
                 validate_source_narrative_mapping(segment, bundle.get("replication_mode"))
-            if kind == "storyboard_image" and bundle.get("replication_mode") == "full_replication":
+            if kind == "storyboard_image" and bundle.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
                 roles = [item.get("role") for item in entry.get("inputs") or []]
                 for role in SOURCE_FRAME_ROLES:
                     if roles.count(role) != 1:
-                        errors.append(f"{prefix}: full_replication requires exactly one {role}")
+                        errors.append(f"{prefix}: high-fidelity replication requires exactly one {role}")
                 if "source_contact_sheet" in roles:
-                    errors.append(f"{prefix}: full_replication cannot use source_contact_sheet")
+                    errors.append(f"{prefix}: high-fidelity replication cannot use source_contact_sheet")
             if kind == "storyboard_image":
                 validate_subject_strategy(segment, bundle.get("replication_mode"), inputs)
         except ValueError as error:
