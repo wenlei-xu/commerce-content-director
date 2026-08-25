@@ -39,7 +39,7 @@ Read only the invariants named by the selected workflow:
 
 1. Run python scripts/preflight.py --workflow <workflow> --json.
 2. Read config/base-schema.json and fresh-read only the tables needed by the workflow.
-3. A script workflow requires one locked creative direction. It must build and validate structured_script locally before creating or revising a Feishu script record.
+3. A script workflow requires one locked creative direction. It must build and validate structured_script locally before creating or revising a Feishu script record. Chinese spoken scripts also follow a **soft lifestyle-delivery guide**, not a blocking gate: aim for 6–14 Chinese characters per line, keep 18 characters as a suggested maximum, let each line express one action or reaction, avoid written connectors such as “直到、而是、之后、从而”, add a natural reaction or现场回应 roughly every 2–3 seconds when the visual beat allows it, and let the dialogue follow what is visibly happening instead of fully explaining the product mechanism. These are review signals and rewrite prompts; exceeding a suggestion does not fail validation by itself.
 4. Only validation_status=passed scripts may become locked. Only locked scripts may enter storyboard production. Only storyboard-passed scripts may enter final-video production.
 5. Keep structured_script as the only machine source of truth. Render every human-readable script field from it after validation; do not independently edit duplicate text fields.
 6. Product hard facts, product assets and selected subjects are execution authority. Do not use publication-risk or claim-verification gates in this first version.
