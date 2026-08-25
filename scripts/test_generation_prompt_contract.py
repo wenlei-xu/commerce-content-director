@@ -12,8 +12,8 @@ from validate_prompt_bundle import validate_bundle
 IMAGE_PLAN = {
     "schema": "commerce-generation-prompt-plan-v1",
     "job_kind": "storyboard_image",
-    "executor": "flow2api_mcp",
-    "model": "gemini-3.1-flash-image-portrait",
+    "executor": "gpt_image_2",
+    "model": "gpt-image-2",
     "generation_unit": "target_production_segment",
     "prompt_language": "en",
     "target_spoken_language": "zh-CN",
@@ -21,6 +21,7 @@ IMAGE_PLAN = {
     "raw_segment_seconds": 10,
     "candidates_per_segment": 2,
     "storyboard": {"columns": 2, "rows": 2, "panel_ratio": "9:16"},
+    "image_output": {"size": "1152x2048", "quality": "high", "format": "png"},
     "segments": [{
         "segment_id": "Segment-01",
         "target_time_range": {"start": 0, "end": 10},
@@ -86,7 +87,8 @@ def main() -> None:
     assert bundle["candidates_per_segment"] == 2
     assert bundle["expected_candidate_job_count"] == 2
     assert bundle["expected_job_count"] == 2
-    assert bundle["submission_policy"]["method"] == "flow_submit_batch"
+    assert bundle["submission_policy"]["method"] == "gpt_image_2_concurrent"
+    assert bundle["submission_policy"]["max_concurrency"] == 5
     assert bundle["submission_policy"]["scope"] == "single_script_single_stage"
     assert len(bundle["execution_jobs"]) == 2
     assert bundle["execution_jobs"][0]["idempotency_key_template"] == (
@@ -165,20 +167,21 @@ def main() -> None:
     assert len(thirty_second_bundle["prompts"]) == 3
     assert thirty_second_bundle["expected_candidate_job_count"] == 6
     assert thirty_second_bundle["expected_job_count"] == 6
-    assert thirty_second_bundle["submission_policy"]["method"] == "flow_submit_batch"
+    assert thirty_second_bundle["submission_policy"]["method"] == "gpt_image_2_concurrent"
+    assert thirty_second_bundle["submission_policy"]["max_concurrency"] == 5
     assert len(thirty_second_bundle["execution_jobs"]) == 6
     assert not validate_bundle(thirty_second_bundle, {"en", "zh-CN"})
 
     single_job_plan = copy.deepcopy(IMAGE_PLAN)
     single_job_plan["candidates_per_segment"] = 1
     single_job_bundle = compile_plan(single_job_plan)
-    assert single_job_bundle["submission_policy"]["method"] == "flow_submit_image"
+    assert single_job_bundle["submission_policy"]["method"] == "gpt_image_2_single"
     assert not validate_bundle(single_job_bundle, {"en", "zh-CN"})
 
     wrong_submission_policy = copy.deepcopy(bundle)
-    wrong_submission_policy["submission_policy"]["method"] = "flow_submit_image"
+    wrong_submission_policy["submission_policy"]["method"] = "gpt_image_2_single"
     assert any(
-        "flow_submit_batch" in error
+        "concurrent GPT Image 2" in error
         for error in validate_bundle(wrong_submission_policy, {"en", "zh-CN"})
     )
 
@@ -191,27 +194,45 @@ def main() -> None:
     else:
         raise AssertionError("storyboard plans must declare the candidate count")
 
-    gpt_image_plan = copy.deepcopy(IMAGE_PLAN)
-    gpt_image_plan["executor"] = "gpt_image"
+    flow_image_plan = copy.deepcopy(IMAGE_PLAN)
+    flow_image_plan["executor"] = "flow2api_mcp"
     try:
-        compile_plan(gpt_image_plan)
+        compile_plan(flow_image_plan)
     except ValueError as error:
-        assert "flow2api_mcp" in str(error)
+        assert "gpt_image_2" in str(error)
     else:
-        raise AssertionError("GPT Image must be rejected for storyboard generation")
+        raise AssertionError("Flow2API must be rejected for storyboard generation")
 
-    gpt_image_bundle = copy.deepcopy(bundle)
-    gpt_image_bundle["executor"] = "gpt_image"
-    assert any("flow2api_mcp" in error for error in validate_bundle(gpt_image_bundle, {"en", "zh-CN"}))
+    flow_image_bundle = copy.deepcopy(bundle)
+    flow_image_bundle["executor"] = "flow2api_mcp"
+    assert any("gpt_image_2" in error for error in validate_bundle(flow_image_bundle, {"en", "zh-CN"}))
 
     missing_image_model = copy.deepcopy(IMAGE_PLAN)
     missing_image_model.pop("model")
     try:
         compile_plan(missing_image_model)
     except ValueError as error:
-        assert "Flow2API catalog model ID" in str(error)
+        assert "gpt-image-2" in str(error)
     else:
-        raise AssertionError("storyboard generation without a Flow2API model must fail")
+        raise AssertionError("storyboard generation without GPT Image 2 must fail")
+
+    wrong_image_model = copy.deepcopy(IMAGE_PLAN)
+    wrong_image_model["model"] = "chatgpt-image-latest"
+    try:
+        compile_plan(wrong_image_model)
+    except ValueError as error:
+        assert "gpt-image-2" in str(error)
+    else:
+        raise AssertionError("storyboard generation with another image model must fail")
+
+    wrong_image_output = copy.deepcopy(IMAGE_PLAN)
+    wrong_image_output["image_output"]["size"] = "1024x1536"
+    try:
+        compile_plan(wrong_image_output)
+    except ValueError as error:
+        assert "1152x2048" in str(error)
+    else:
+        raise AssertionError("storyboard generation with the wrong output geometry must fail")
 
     full_bundle = compile_plan(FULL_REPLICATION_PLAN)
     assert not validate_bundle(full_bundle, {"en", "zh-CN"})

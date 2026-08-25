@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
-"""Prepare cached, Flow2API-compatible image inputs from approved Feishu media.
+"""Prepare cached, GPT Image-compatible inputs from approved Feishu media.
 
 The input JSON contains an ``assets`` list. Each item needs ``role``, ``field``,
-``file_token``, and ``filename``. The script keeps original downloads and a
-complete, uncropped transport rendition in the skill-local cache, plus a plain
-Base64 sidecar for the Flow2API MCP ``input_images`` payload.
+``file_token``, and ``filename``. The script retains the original download and
+creates one complete, uncropped JPEG rendition for ordered reference-image use.
 """
 
 from __future__ import annotations
 
 import argparse
-import base64
 import hashlib
 import json
 import os
@@ -33,10 +31,10 @@ from download_feishu_media import (
 
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
-DEFAULT_CACHE_DIR = SKILL_DIR / ".cache" / "flow-inputs"
-RENDER_POLICY = "flow-input-v2-max-edge-2048-jpeg-q88-no-crop"
+DEFAULT_CACHE_DIR = SKILL_DIR / ".cache" / "image-inputs"
+RENDER_POLICY = "gpt-image-input-v1-max-edge-2048-jpeg-q92-no-crop"
 MAX_EDGE = 2048
-JPEG_QUALITY = 88
+JPEG_QUALITY = 92
 
 
 def sha256_file(path: Path) -> str:
@@ -87,16 +85,20 @@ def load_cache_manifest(path: Path, asset: dict[str, str]) -> dict[str, Any] | N
     except (OSError, json.JSONDecodeError):
         return None
 
-    expected = {"file_token": asset["file_token"], "filename": asset["filename"], "render_policy": RENDER_POLICY}
+    expected = {
+        "file_token": asset["file_token"],
+        "filename": asset["filename"],
+        "render_policy": RENDER_POLICY,
+    }
     if any(manifest.get(key) != value for key, value in expected.items()):
         return None
-    for relative in ("source_path", "flow_image_path", "base64_path"):
+    for relative in ("source_path", "image_path"):
         if not isinstance(manifest.get(relative), str) or not (path / manifest[relative]).is_file():
             return None
     return manifest
 
 
-def render_flow_image(source: Path, destination: Path) -> tuple[str, tuple[int, int]]:
+def render_image(source: Path, destination: Path) -> tuple[str, tuple[int, int]]:
     try:
         with Image.open(source) as image:
             image.load()
@@ -117,40 +119,37 @@ def render_flow_image(source: Path, destination: Path) -> tuple[str, tuple[int, 
         raise RuntimeError(f"downloaded asset is not a valid image: {source.name}") from exc
 
 
-def prepare_one(
-    asset: dict[str, str],
-    cache_dir: Path,
-    domain: str,
-    access_token: str,
-) -> dict[str, Any]:
+def prepared_result(asset: dict[str, str], destination: Path, manifest: dict[str, Any], status: str) -> dict[str, Any]:
+    return {
+        "role": asset["role"],
+        "field": asset["field"],
+        "file_token": asset["file_token"],
+        "filename": asset["filename"],
+        "cache_status": status,
+        "cache_dir": os.fspath(destination),
+        "source_sha256": manifest["source_sha256"],
+        "image_sha256": manifest["image_sha256"],
+        "mime_type": manifest["mime_type"],
+        "image_path": os.fspath(destination / manifest["image_path"]),
+        "source_dimensions": manifest["source_dimensions"],
+    }
+
+
+def prepare_one(asset: dict[str, str], cache_dir: Path, domain: str, access_token: str) -> dict[str, Any]:
     destination = cache_dir / cache_key(asset)
     manifest = load_cache_manifest(destination, asset)
     if manifest is not None:
-        return {
-            "role": asset["role"],
-            "field": asset["field"],
-            "file_token": asset["file_token"],
-            "filename": asset["filename"],
-            "cache_status": "hit",
-            "cache_dir": os.fspath(destination),
-            "source_sha256": manifest["source_sha256"],
-            "mime_type": manifest["mime_type"],
-            "base64_path": os.fspath(destination / manifest["base64_path"]),
-            "flow_image_path": os.fspath(destination / manifest["flow_image_path"]),
-            "source_dimensions": manifest["source_dimensions"],
-        }
+        return prepared_result(asset, destination, manifest, "hit")
 
     destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = Path(tempfile.mkdtemp(prefix="flow-input-", dir=destination.parent))
+    temporary = Path(tempfile.mkdtemp(prefix="image-input-", dir=destination.parent))
     try:
         source_name = "source" + Path(asset["filename"]).suffix.lower()
         source_path = temporary / source_name
         download_media(domain, access_token, asset["file_token"], source_path)
         source_sha256 = sha256_file(source_path)
-        flow_image_path = temporary / "flow-input.jpg"
-        mime_type, dimensions = render_flow_image(source_path, flow_image_path)
-        base64_path = temporary / "flow-input.b64"
-        base64_path.write_text(base64.b64encode(flow_image_path.read_bytes()).decode("ascii"), encoding="ascii")
+        image_path = temporary / "image-input.jpg"
+        mime_type, dimensions = render_image(source_path, image_path)
         manifest = {
             "file_token": asset["file_token"],
             "filename": asset["filename"],
@@ -158,39 +157,28 @@ def prepare_one(
             "role": asset["role"],
             "render_policy": RENDER_POLICY,
             "source_path": source_name,
-            "flow_image_path": "flow-input.jpg",
-            "base64_path": "flow-input.b64",
+            "image_path": "image-input.jpg",
             "source_sha256": source_sha256,
-            "flow_image_sha256": sha256_file(flow_image_path),
+            "image_sha256": sha256_file(image_path),
             "mime_type": mime_type,
             "source_dimensions": {"width": dimensions[0], "height": dimensions[1]},
             "prepared_at": datetime.now(UTC).isoformat(),
         }
-        (temporary / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+        (temporary / "manifest.json").write_text(
+            json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
         if destination.exists():
             shutil.rmtree(temporary)
         else:
             temporary.replace(destination)
-        return {
-            "role": asset["role"],
-            "field": asset["field"],
-            "file_token": asset["file_token"],
-            "filename": asset["filename"],
-            "cache_status": "miss",
-            "cache_dir": os.fspath(destination),
-            "source_sha256": manifest["source_sha256"],
-            "mime_type": manifest["mime_type"],
-            "base64_path": os.fspath(destination / manifest["base64_path"]),
-            "flow_image_path": os.fspath(destination / manifest["flow_image_path"]),
-            "source_dimensions": manifest["source_dimensions"],
-        }
+        return prepared_result(asset, destination, manifest, "miss")
     finally:
         if temporary.exists():
             shutil.rmtree(temporary)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Prepare cached Flow2API image inputs from Feishu assets")
+    parser = argparse.ArgumentParser(description="Prepare cached GPT Image reference inputs from Feishu assets")
     parser.add_argument("--asset-plan", required=True, type=Path, help="JSON file with an assets list")
     parser.add_argument("--out", required=True, type=Path, help="write scrubbed cache manifest JSON here")
     parser.add_argument("--cache-dir", type=Path, default=DEFAULT_CACHE_DIR, help="local cache directory")
@@ -208,15 +196,22 @@ def main() -> int:
             require_env(values, "FEISHU_APP_SECRET"),
             domain,
         )
+        cache_dir = args.cache_dir.expanduser().resolve()
         result = {
             "render_policy": RENDER_POLICY,
-            "cache_dir": os.fspath(args.cache_dir.expanduser().resolve()),
-            "assets": [prepare_one(asset, args.cache_dir.expanduser().resolve(), domain, access_token) for asset in assets],
+            "cache_dir": os.fspath(cache_dir),
+            "assets": [prepare_one(asset, cache_dir, domain, access_token) for asset in assets],
         }
         output = args.out.expanduser().resolve()
         output.parent.mkdir(parents=True, exist_ok=True)
         output.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(json.dumps({"output": os.fspath(output), "assets": [{"role": item["role"], "cache_status": item["cache_status"]} for item in result["assets"]]}, ensure_ascii=False))
+        print(json.dumps({
+            "output": os.fspath(output),
+            "assets": [
+                {"role": item["role"], "cache_status": item["cache_status"]}
+                for item in result["assets"]
+            ],
+        }, ensure_ascii=False))
     except (RuntimeError, OSError) as exc:
         print(str(exc), file=sys.stderr)
         return 1

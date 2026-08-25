@@ -15,6 +15,11 @@ from migrate_schema_v6 import Feishu, text
 SKILL_DIR = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = SKILL_DIR / "config" / "base-schema.json"
 FIXED_VIDEO_MODEL = "omni_portrait"
+FIXED_IMAGE_EXECUTOR = "gpt_image_2"
+FIXED_IMAGE_MODEL = "gpt-image-2"
+FIXED_IMAGE_SIZE = "1152x2048"
+FIXED_IMAGE_QUALITY = "high"
+FIXED_IMAGE_FORMAT = "png"
 FIXED_RAW_SEGMENT_SECONDS = 10
 FIXED_VIDEO_RATIO = "9:16"
 
@@ -74,6 +79,8 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
         raise ValueError("目标时长必须能被 Omni 的 10 秒原始分段整除")
     if image_max_inputs < 1 or video_max_inputs < 1:
         raise ValueError("模型输入上限必须为正整数")
+    if image_model != FIXED_IMAGE_MODEL:
+        raise ValueError(f"分镜生图模型必须固定为 {FIXED_IMAGE_MODEL}")
     if video_model != FIXED_VIDEO_MODEL:
         raise ValueError(f"最终视频模型必须固定为 {FIXED_VIDEO_MODEL}")
     return {
@@ -85,7 +92,11 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
         "weights": {"retention": weights[0], "conversion": weights[1], "execution": weights[2]},
         "storyboard": {"columns": int(columns), "rows": int(rows), "panel_ratio": ratio},
         "model_catalog": {
-            "image_model": image_model,
+            "image_executor": FIXED_IMAGE_EXECUTOR,
+            "image_model": FIXED_IMAGE_MODEL,
+            "image_size": FIXED_IMAGE_SIZE,
+            "image_quality": FIXED_IMAGE_QUALITY,
+            "image_format": FIXED_IMAGE_FORMAT,
             "video_model": FIXED_VIDEO_MODEL,
             "image_max_inputs": image_max_inputs,
             "video_max_inputs": video_max_inputs,

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for the Flow2API portrait-panel board validator."""
+"""Regression checks for the GPT Image 2 portrait-panel board validator."""
 
 from __future__ import annotations
 

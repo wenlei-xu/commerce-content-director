@@ -18,6 +18,7 @@ class PreflightContractTests(unittest.TestCase):
             with self.subTest(workflow=workflow):
                 requirements = resolve_requirements(self.policy, workflow)
                 self.assertEqual(requirements["feishu"], "required")
+                self.assertEqual(requirements["gpt_image"], "not_required")
                 self.assertEqual(requirements["flow2api"], "not_required")
                 self.assertEqual(requirements["ffmpeg"], "not_required")
                 self.assertEqual(requirements["asr"], "not_required")
@@ -26,16 +27,18 @@ class PreflightContractTests(unittest.TestCase):
         silent = resolve_requirements(self.policy, "short_video_breakdown")
         with_audio = resolve_requirements(self.policy, "short_video_breakdown", source_has_audio=True)
         self.assertEqual(silent["feishu"], "required")
+        self.assertEqual(silent["gpt_image"], "not_required")
         self.assertEqual(silent["flow2api"], "not_required")
         self.assertEqual(silent["ffmpeg"], "required")
         self.assertEqual(silent["image_tools"], "required")
         self.assertEqual(silent["asr"], "not_required")
         self.assertEqual(with_audio["asr"], "required")
 
-    def test_standard_storyboard_requires_flow_but_not_media_runtime(self) -> None:
+    def test_standard_storyboard_requires_gpt_image_but_not_flow_or_media_runtime(self) -> None:
         requirements = resolve_requirements(self.policy, "storyboard_generation", mode="original")
         self.assertEqual(requirements["feishu"], "required")
-        self.assertEqual(requirements["flow2api"], "required")
+        self.assertEqual(requirements["gpt_image"], "required")
+        self.assertEqual(requirements["flow2api"], "not_required")
         self.assertEqual(requirements["ffmpeg"], "not_required")
         self.assertEqual(requirements["asr"], "not_required")
 
@@ -49,6 +52,8 @@ class PreflightContractTests(unittest.TestCase):
         spoken = resolve_requirements(self.policy, "final_video", audio_mode="spoken", target_spoken_language="zh-CN")
         thai_spoken = resolve_requirements(self.policy, "final_video", audio_mode="spoken", target_spoken_language="th")
         self.assertEqual(silent["ffmpeg"], "required")
+        self.assertEqual(silent["gpt_image"], "not_required")
+        self.assertEqual(silent["flow2api"], "required")
         self.assertEqual(silent["asr"], "not_required")
         self.assertEqual(silent["audio_separator"], "not_required")
         self.assertEqual(spoken["asr"], "required")

@@ -20,6 +20,12 @@ FIXED_RAW_SEGMENT_SECONDS = 10
 FIXED_STORYBOARD_COLUMNS = 2
 FIXED_STORYBOARD_ROWS = 2
 FIXED_PANEL_RATIO = "9:16"
+FIXED_STORYBOARD_EXECUTOR = "gpt_image_2"
+FIXED_STORYBOARD_MODEL = "gpt-image-2"
+FIXED_STORYBOARD_SIZE = "1152x2048"
+FIXED_STORYBOARD_QUALITY = "high"
+FIXED_STORYBOARD_FORMAT = "png"
+DEFAULT_STORYBOARD_CONCURRENCY = 5
 STORYBOARD_PANEL_ORDER = ("top_left", "top_right", "bottom_left", "bottom_right")
 STORYBOARD_PANEL_LABELS = {
     "top_left": "Top-left",
@@ -220,10 +226,10 @@ def validate_plan(plan: dict[str, Any]) -> None:
     if raw_seconds <= 0:
         raise fail("raw_segment_seconds must be positive")
     if job_kind == "storyboard_image":
-        if plan.get("executor") != "flow2api_mcp":
-            raise fail("storyboard_image executor must be flow2api_mcp; GPT Image and provider fallback are forbidden")
-        if not isinstance(plan.get("model"), str) or not plan["model"].strip():
-            raise fail("storyboard_image model must be a non-empty Flow2API catalog model ID")
+        if plan.get("executor") != FIXED_STORYBOARD_EXECUTOR:
+            raise fail(f"storyboard_image executor must be {FIXED_STORYBOARD_EXECUTOR}; Flow2API image generation is forbidden")
+        if plan.get("model") != FIXED_STORYBOARD_MODEL:
+            raise fail(f"storyboard_image model must be exactly {FIXED_STORYBOARD_MODEL}")
         if plan.get("generation_unit") != TARGET_PRODUCTION_UNIT:
             raise fail(f"storyboard_image generation_unit must be {TARGET_PRODUCTION_UNIT}")
         if abs(raw_seconds - FIXED_RAW_SEGMENT_SECONDS) > 1e-6:
@@ -242,6 +248,16 @@ def validate_plan(plan: dict[str, Any]) -> None:
             or storyboard["panel_ratio"] != FIXED_PANEL_RATIO
         ):
             raise fail("storyboard_image output must be one 2x2 board with four 9:16 panels")
+        expected_output = {
+            "size": FIXED_STORYBOARD_SIZE,
+            "quality": FIXED_STORYBOARD_QUALITY,
+            "format": FIXED_STORYBOARD_FORMAT,
+        }
+        if plan.get("image_output") != expected_output:
+            raise fail(
+                "storyboard_image image_output must be "
+                f"{FIXED_STORYBOARD_SIZE}/high/png"
+            )
         positive_integer(
             plan.get("candidates_per_segment"), "candidates_per_segment"
         )
@@ -509,15 +525,24 @@ def build_execution_jobs(
 def build_submission_policy(job_kind: str, job_count: int) -> dict[str, Any]:
     is_batch = job_count >= BATCH_SUBMISSION_THRESHOLD
     stage_name = "storyboard" if job_kind == "storyboard_image" else "video"
-    single_tool = (
-        "flow_submit_image" if job_kind == "storyboard_image"
-        else "flow_submit_video"
-    )
+    if job_kind == "storyboard_image":
+        return {
+            "scope": BATCH_SCOPE,
+            "ready_job_count": job_count,
+            "batch_threshold": BATCH_SUBMISSION_THRESHOLD,
+            "method": "gpt_image_2_concurrent" if is_batch else "gpt_image_2_single",
+            "max_concurrency": DEFAULT_STORYBOARD_CONCURRENCY if is_batch else 1,
+            "request_group_id_template": f"{{run_id}}:{stage_name}:initial",
+            "single_submit_allowed_only_when": [
+                "one_ready_job",
+                "one_repair_job",
+            ],
+        }
     return {
         "scope": BATCH_SCOPE,
         "ready_job_count": job_count,
         "batch_threshold": BATCH_SUBMISSION_THRESHOLD,
-        "method": "flow_submit_batch" if is_batch else single_tool,
+        "method": "flow_submit_batch" if is_batch else "flow_submit_video",
         "batch_kind": "image" if job_kind == "storyboard_image" else "video",
         "batch_id_template": f"{{run_id}}:{stage_name}:initial",
         "single_submit_allowed_only_when": [
@@ -580,6 +605,7 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "target_duration_seconds": plan.get("target_duration_seconds"),
         "raw_segment_seconds": plan["raw_segment_seconds"],
         "storyboard": plan.get("storyboard"),
+        "image_output": plan.get("image_output"),
         "candidates_per_segment": candidates_per_segment,
         "expected_candidate_job_count": (
             len(prompts) * candidates_per_segment

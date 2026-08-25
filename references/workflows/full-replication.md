@@ -1,6 +1,6 @@
 # Workflow: full replication storyboard
 
-Read [storyboard-generation.md](storyboard-generation.md), [storyboard-candidate-contract.md](../storyboard-candidate-contract.md), [flow2api-image-execution.md](../flow2api-image-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [reference-asset-contract.md](../reference-asset-contract.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
+Read [storyboard-generation.md](storyboard-generation.md), [gpt-image-2-execution.md](../gpt-image-2-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [reference-asset-contract.md](../reference-asset-contract.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
 
 Use this workflow only for the `full_replication` task mode. Full replication preserves the complete commercial narrative chain: hook, segment order, information release, proof order, payoff, emotion and CTA position. It does not perform chronological per-second or per-frame product replacement.
 
@@ -60,4 +60,4 @@ Create the two-frame evidence pool inside the current run package. Reuse accepte
 
 Do not create MF/RF mappings, fixed six-frame batches, replacement contact sheets, balanced dynamic masters, video, subtitles or voiceover in this workflow. If the two local frames do not provide enough evidence, reselect them from retained segment evidence. Return to the breakdown workflow only when the accepted narrative facts or time ranges themselves are wrong or insufficient; do not restart chronological frame replacement.
 
-All target storyboard boards in this workflow are Flow2API MCP image Jobs. Do not use GPT Image for replacement, cleanup, blank-scene preparation or fallback. A subject strategy is resolved through the routed generation inputs described above, not through an extra provider or an intermediate image-cleaning pass.
+All target storyboard boards in this workflow are GPT Image 2 requests with `model=gpt-image-2`. Do not use Flow2API for replacement, cleanup, blank-scene preparation or fallback. A subject strategy is resolved through the routed generation inputs described above, not through an extra provider or an intermediate image-cleaning pass.

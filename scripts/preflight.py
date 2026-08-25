@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Resolve and check local dependencies for one director workflow.
 
-Remote Feishu and Flow2API checks stay at the MCP seam. This script reports
-which of those checks the caller must make, and verifies only local runtime
-requirements selected by config/workflow-capabilities.json.
+Remote Feishu, GPT Image and Flow2API checks stay at their execution seams.
+This script reports which checks the caller must make, and verifies only local
+runtime requirements selected by config/workflow-capabilities.json.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ SKILL_DIR = Path(__file__).resolve().parent.parent
 CAPABILITY_CONFIG = SKILL_DIR / "config" / "workflow-capabilities.json"
 BASE_SCHEMA = SKILL_DIR / "config" / "base-schema.json"
 ASR_BACKENDS = ("faster_whisper", "whisper", "mlx_whisper")
-REMOTE_CAPABILITIES = {"feishu", "flow2api"}
+REMOTE_CAPABILITIES = {"feishu", "gpt_image", "flow2api"}
 LANGUAGE_LOCK_WORKFLOWS = {"creative_direction", "script_production", "storyboard_generation", "final_video"}
 
 
@@ -205,7 +205,7 @@ def main() -> int:
         if report["target_spoken_language"]:
             print(f"target spoken language: {report['target_spoken_language']} ({report['target_spoken_language_source']})")
         print("requirements: " + ", ".join(f"{key}={value}" for key, value in sorted(report["requirements"].items())))
-        print("remote MCP checks: " + (", ".join(report["remote_checks_required"]) or "none"))
+        print("remote execution checks: " + (", ".join(report["remote_checks_required"]) or "none"))
         for name, value in report["local_checks"].items():
             print(f"{name}: {value}")
     if report["missing_local_requirements"]:

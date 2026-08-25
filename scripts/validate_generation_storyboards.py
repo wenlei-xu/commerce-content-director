@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate portrait-panel Flow2API storyboard boards before Feishu upload."""
+"""Validate portrait-panel GPT Image 2 storyboard boards before Feishu upload."""
 
 from __future__ import annotations
 

@@ -14,6 +14,11 @@ from compile_generation_prompts import (
     ENVIRONMENT_ONLY,
     FIXED_PANEL_RATIO,
     FIXED_RAW_SEGMENT_SECONDS,
+    FIXED_STORYBOARD_EXECUTOR,
+    FIXED_STORYBOARD_FORMAT,
+    FIXED_STORYBOARD_MODEL,
+    FIXED_STORYBOARD_QUALITY,
+    FIXED_STORYBOARD_SIZE,
     FIXED_STORYBOARD_COLUMNS,
     FIXED_STORYBOARD_ROWS,
     SOURCE_FRAME_ROLES,
@@ -86,10 +91,10 @@ def validate_bundle(
     if kind not in {"storyboard_image", "final_video"}:
         return ["job_kind must be storyboard_image or final_video"]
     if kind == "storyboard_image":
-        if bundle.get("executor") != "flow2api_mcp":
-            errors.append("storyboard_image executor must be flow2api_mcp; GPT Image and provider fallback are forbidden")
-        if not isinstance(bundle.get("model"), str) or not bundle["model"].strip():
-            errors.append("storyboard_image model must be a non-empty Flow2API catalog model ID")
+        if bundle.get("executor") != FIXED_STORYBOARD_EXECUTOR:
+            errors.append(f"storyboard_image executor must be {FIXED_STORYBOARD_EXECUTOR}; Flow2API image generation is forbidden")
+        if bundle.get("model") != FIXED_STORYBOARD_MODEL:
+            errors.append(f"storyboard_image model must be exactly {FIXED_STORYBOARD_MODEL}")
         if bundle.get("generation_unit") != TARGET_PRODUCTION_UNIT:
             errors.append(f"storyboard_image generation_unit must be {TARGET_PRODUCTION_UNIT}")
         storyboard = bundle.get("storyboard")
@@ -99,6 +104,16 @@ def validate_bundle(
             or storyboard.get("panel_ratio") != FIXED_PANEL_RATIO
         ):
             errors.append("storyboard_image output must be one 2x2 board with four 9:16 panels")
+        expected_output = {
+            "size": FIXED_STORYBOARD_SIZE,
+            "quality": FIXED_STORYBOARD_QUALITY,
+            "format": FIXED_STORYBOARD_FORMAT,
+        }
+        if bundle.get("image_output") != expected_output:
+            errors.append(
+                "storyboard_image image_output must be "
+                f"{FIXED_STORYBOARD_SIZE}/high/png"
+            )
         candidates_per_segment = bundle.get("candidates_per_segment")
         if (
             not isinstance(candidates_per_segment, int)
@@ -304,8 +319,8 @@ def validate_bundle(
     expected_policy = build_submission_policy(kind, len(expected_execution_jobs))
     if bundle.get("submission_policy") != expected_policy:
         errors.append(
-            "submission_policy must require flow_submit_batch for two or more "
-            "ready Jobs within one script stage"
+            "submission_policy must match concurrent GPT Image 2 execution for "
+            "storyboards or Flow2API batch execution for final video"
         )
     return errors
 
