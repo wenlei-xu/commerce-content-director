@@ -21,22 +21,50 @@ IMAGE_PLAN = {
     "raw_segment_seconds": 10,
     "candidates_per_segment": 2,
     "storyboard": {"columns": 2, "rows": 2, "panel_ratio": "9:16"},
-    "common_constraints": ["Natural handheld phone-video texture."],
     "segments": [{
         "segment_id": "Segment-01",
         "target_time_range": {"start": 0, "end": 10},
         "product_visible": True,
+        "visual_continuity": [
+            "Natural handheld phone-video texture.",
+            "Use the same room, floor surface and natural light across all four panels.",
+        ],
         "inputs": [
             {"position": 1, "role": "product_anchor", "asset_id": "product", "sha256": "a" * 64, "clean_for_generation": True, "reason": "Product appears in the proof beat."},
             {"position": 2, "role": "subject_anchor", "asset_id": "subject", "sha256": "b" * 64, "clean_for_generation": True, "reason": "The dog recurs across the Segment."},
         ],
         "beats": [
-            {"start": 0, "end": 1.5, "description": "Hook."},
-            {"start": 1.5, "end": 4, "description": "Introduce the product."},
-            {"start": 4, "end": 7, "description": "Show the proof action."},
-            {"start": 7, "end": 10, "description": "Reaction and CTA state."},
+            {
+                "panel": "top_left", "start": 0, "end": 1.5,
+                "camera": "Tight handheld close-up.",
+                "description": "A frozen hook moment.",
+                "continuity": "Opening state in the same room and light.",
+                "human_presence": "none",
+            },
+            {
+                "panel": "top_right", "start": 1.5, "end": 4,
+                "camera": "Product-forward medium close-up.",
+                "description": "A frozen product introduction moment.",
+                "continuity": "Carry forward the same room, dog and product scale.",
+                "human_presence": "one_hand",
+            },
+            {
+                "panel": "bottom_left", "start": 4, "end": 7,
+                "camera": "Unobstructed proof close-up.",
+                "description": "One directly observable proof instant.",
+                "continuity": "Carry forward the exact product orientation.",
+                "human_presence": "one_hand",
+            },
+            {
+                "panel": "bottom_right", "start": 7, "end": 10,
+                "camera": "Natural reaction medium shot.",
+                "description": "A frozen reaction and closing state.",
+                "continuity": "Same scene, light, product and subject.",
+                "human_presence": "none",
+            },
         ],
-        "hard_constraints": ["No readable text."],
+        "hard_constraints": ["Use only the approved product interaction path."],
+        "negative_constraints": ["No readable text."],
         "subject_identity": "Use the selected dog only.",
     }],
 }
@@ -65,11 +93,65 @@ def main() -> None:
         "{run_id}:Segment-01:storyboard:1"
     )
     assert bundle["prompts"][0]["candidate_attempts"] == [1, 2]
+    assert bundle["prompts"][0]["visual_continuity"] == IMAGE_PLAN["segments"][0]["visual_continuity"]
     prompt = bundle["prompts"][0]["prompt"]
     assert "0.0–1.5s" in prompt
     assert "1.5–4.0s" in prompt
     assert "target production storyboard board" in prompt
-    assert "RHYTHM AUTHORITY" in prompt
+    assert "OUTPUT SPECIFICATION" in prompt
+    assert "GLOBAL VISUAL CONTINUITY" in prompt
+    assert "REFERENCE AND IDENTITY AUTHORITY" in prompt
+    assert "FOUR STATIC KEYFRAMES" in prompt
+    assert "RHYTHM AUTHORITY" not in prompt
+    assert "Mapped source narratives:" not in prompt
+    assert "Do not locally compose" not in prompt
+    assert "Do not infer or reinterpret appearance from the product name or category" in prompt
+    assert "Top-left (0.0–1.5s)" in prompt
+    assert "Human presence: Exactly one natural human hand" in prompt
+
+    missing_visual_continuity = copy.deepcopy(IMAGE_PLAN)
+    missing_visual_continuity["segments"][0].pop("visual_continuity")
+    try:
+        compile_plan(missing_visual_continuity)
+    except ValueError as error:
+        assert "visual_continuity" in str(error)
+    else:
+        raise AssertionError("storyboard plans must declare global visual continuity")
+
+    legacy_common_constraints = copy.deepcopy(IMAGE_PLAN)
+    legacy_common_constraints["common_constraints"] = ["Legacy mixed constraint."]
+    try:
+        compile_plan(legacy_common_constraints)
+    except ValueError as error:
+        assert "visual_continuity instead of common_constraints" in str(error)
+    else:
+        raise AssertionError("storyboard plans must separate visual continuity from other facts")
+
+    missing_panel_keyframe = copy.deepcopy(IMAGE_PLAN)
+    missing_panel_keyframe["segments"][0]["beats"].pop()
+    missing_panel_keyframe["segments"][0]["beats"][-1]["end"] = 10
+    try:
+        compile_plan(missing_panel_keyframe)
+    except ValueError as error:
+        assert "exactly four static panel keyframes" in str(error)
+    else:
+        raise AssertionError("storyboard plans must define exactly four static panel keyframes")
+
+    missing_continuity = copy.deepcopy(IMAGE_PLAN)
+    missing_continuity["segments"][0]["beats"][1].pop("continuity")
+    try:
+        compile_plan(missing_continuity)
+    except ValueError as error:
+        assert "continuity" in str(error)
+    else:
+        raise AssertionError("every storyboard keyframe must declare inherited continuity")
+
+    leaked_workflow_metadata = copy.deepcopy(bundle)
+    leaked_workflow_metadata["prompts"][0]["prompt"] += "\nMapped source narratives: SourceNarrative-01."
+    assert any(
+        "workflow metadata" in error
+        for error in validate_bundle(leaked_workflow_metadata, {"en", "zh-CN"})
+    )
 
     thirty_second_plan = copy.deepcopy(IMAGE_PLAN)
     thirty_second_plan["target_duration_seconds"] = 30
@@ -250,6 +332,7 @@ def main() -> None:
 
     video_plan = copy.deepcopy(IMAGE_PLAN)
     video_plan.pop("storyboard")
+    video_plan["common_constraints"] = ["Natural handheld phone-video texture."]
     video_plan["job_kind"] = "final_video"
     video_plan["target_spoken_language"] = "th"
     video_plan["voiceover_provider"] = "omni_native"

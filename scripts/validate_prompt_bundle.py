@@ -24,6 +24,8 @@ from compile_generation_prompts import (
     validate_beats,
     validate_inputs,
     validate_source_narrative_mapping,
+    validate_string_list,
+    validate_storyboard_keyframes,
     validate_subject_strategy,
     validate_target_time_range,
 )
@@ -31,7 +33,19 @@ from compile_generation_prompts import (
 
 THAI = re.compile(r"[\u0E00-\u0E7F]")
 HAN = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF]")
-IMAGE_HEADINGS = ("OUTPUT", "INPUT IMAGE ROLES", "HARD FACTS", "RHYTHM AUTHORITY", "TIMELINE", "NEGATIVE CONSTRAINTS")
+IMAGE_HEADINGS = (
+    "OUTPUT SPECIFICATION",
+    "GLOBAL VISUAL CONTINUITY",
+    "REFERENCE AND IDENTITY AUTHORITY",
+    "PRODUCT AND ACTION CONSTRAINTS",
+    "FOUR STATIC KEYFRAMES",
+    "NEGATIVE CONSTRAINTS",
+)
+IMAGE_WORKFLOW_METADATA_MARKERS = (
+    "RHYTHM AUTHORITY",
+    "Mapped source narratives:",
+    "Do not locally compose",
+)
 VIDEO_HEADINGS = (
     "INPUT IMAGE ROLES AND AUTHORITY",
     "PRODUCT STRUCTURE AND INTERACTION HARD CONSTRAINTS",
@@ -155,6 +169,12 @@ def validate_bundle(
         for heading in headings:
             if heading not in prompt:
                 errors.append(f"{prefix} is missing heading {heading!r}")
+        if kind == "storyboard_image":
+            for marker in IMAGE_WORKFLOW_METADATA_MARKERS:
+                if marker in prompt:
+                    errors.append(
+                        f"{prefix} contains workflow metadata that must stay outside the image prompt: {marker!r}"
+                    )
         control_text = prompt
         dialogue_payload = entry.get("dialogue") or []
         if not (kind == "final_video" and target_spoken_language == "zh-CN"):
@@ -177,6 +197,11 @@ def validate_bundle(
             inputs = validate_inputs(segment, kind)
             validate_beats(segment, float(raw_seconds))
             if kind == "storyboard_image":
+                validate_storyboard_keyframes(segment, float(raw_seconds))
+                validate_string_list(
+                    entry.get("visual_continuity"),
+                    f"{prefix}.visual_continuity",
+                )
                 validate_target_time_range(segment, index, float(raw_seconds))
                 validate_source_narrative_mapping(segment, bundle.get("replication_mode"))
             if kind == "storyboard_image" and bundle.get("replication_mode") == "full_replication":

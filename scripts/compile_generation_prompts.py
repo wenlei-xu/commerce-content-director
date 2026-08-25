@@ -20,6 +20,19 @@ FIXED_RAW_SEGMENT_SECONDS = 10
 FIXED_STORYBOARD_COLUMNS = 2
 FIXED_STORYBOARD_ROWS = 2
 FIXED_PANEL_RATIO = "9:16"
+STORYBOARD_PANEL_ORDER = ("top_left", "top_right", "bottom_left", "bottom_right")
+STORYBOARD_PANEL_LABELS = {
+    "top_left": "Top-left",
+    "top_right": "Top-right",
+    "bottom_left": "Bottom-left",
+    "bottom_right": "Bottom-right",
+}
+STORYBOARD_HUMAN_PRESENCE = {
+    "none": "No person or human body part visible.",
+    "one_hand": "Exactly one natural human hand is visible; no extra hand, arm, person, or fingers.",
+    "partial_person": "Only the explicitly described part of one person is visible.",
+    "full_person": "Exactly one complete person is visible only as explicitly described.",
+}
 IMAGE_ROLES = {
     "product_anchor", "product_detail", "product_scene", "subject_anchor",
     "source_contact_sheet", *SOURCE_FRAME_ROLES,
@@ -69,6 +82,42 @@ def validate_beats(segment: dict[str, Any], raw_seconds: float) -> list[dict[str
     if abs(cursor - raw_seconds) > 1e-6:
         raise fail(f"beats end at {cursor:g}s, expected {raw_seconds:g}s")
     return beats
+
+
+def validate_string_list(value: object, field: str, *, allow_empty: bool = False) -> list[str]:
+    if not isinstance(value, list) or (not value and not allow_empty):
+        requirement = "a list" if allow_empty else "a non-empty list"
+        raise fail(f"{field} must be {requirement} of non-empty strings")
+    if not all(isinstance(item, str) and item.strip() for item in value):
+        raise fail(f"{field} must contain only non-empty strings")
+    return [item.strip() for item in value]
+
+
+def validate_storyboard_keyframes(
+    segment: dict[str, Any], raw_seconds: float
+) -> list[dict[str, Any]]:
+    keyframes = validate_beats(segment, raw_seconds)
+    if len(keyframes) != len(STORYBOARD_PANEL_ORDER):
+        raise fail(
+            f"{segment.get('segment_id', '<unknown>')}: storyboard beats must contain "
+            "exactly four static panel keyframes"
+        )
+    observed_panels = tuple(keyframe.get("panel") for keyframe in keyframes)
+    if observed_panels != STORYBOARD_PANEL_ORDER:
+        raise fail(
+            f"{segment.get('segment_id', '<unknown>')}: storyboard panels must be "
+            "top_left, top_right, bottom_left, bottom_right in reading order"
+        )
+    for index, keyframe in enumerate(keyframes):
+        for field in ("camera", "continuity"):
+            if not isinstance(keyframe.get(field), str) or not keyframe[field].strip():
+                raise fail(f"storyboard keyframe {index}.{field} must be a non-empty string")
+        if keyframe.get("human_presence") not in STORYBOARD_HUMAN_PRESENCE:
+            raise fail(
+                f"storyboard keyframe {index}.human_presence must be one of "
+                f"{', '.join(sorted(STORYBOARD_HUMAN_PRESENCE))}"
+            )
+    return keyframes
 
 
 def validate_inputs(segment: dict[str, Any], job_kind: str) -> list[dict[str, Any]]:
@@ -196,6 +245,10 @@ def validate_plan(plan: dict[str, Any]) -> None:
         positive_integer(
             plan.get("candidates_per_segment"), "candidates_per_segment"
         )
+        if plan.get("common_constraints"):
+            raise fail(
+                "storyboard_image plans must use visual_continuity instead of common_constraints"
+            )
     segments = plan.get("segments")
     if not isinstance(segments, list) or not segments:
         raise fail("segments must be a non-empty list")
@@ -236,6 +289,21 @@ def validate_plan(plan: dict[str, Any]) -> None:
         validate_beats(segment, raw_seconds)
         inputs = validate_inputs(segment, job_kind)
         if job_kind == "storyboard_image":
+            validate_storyboard_keyframes(segment, raw_seconds)
+            validate_string_list(
+                segment.get("visual_continuity"),
+                f"{segment_id}.visual_continuity",
+            )
+            validate_string_list(
+                segment.get("hard_constraints", []),
+                f"{segment_id}.hard_constraints",
+                allow_empty=True,
+            )
+            validate_string_list(
+                segment.get("negative_constraints", []),
+                f"{segment_id}.negative_constraints",
+                allow_empty=True,
+            )
             validate_target_time_range(segment, segment_index, raw_seconds)
             validate_source_narrative_mapping(segment, plan.get("replication_mode"))
         if job_kind == "storyboard_image" and plan.get("replication_mode") == "full_replication":
@@ -259,44 +327,95 @@ def role_lines(inputs: list[dict[str, Any]]) -> list[str]:
     return [f"Input {item['position']} → {item['role']}: {item['reason']}" for item in inputs]
 
 
+def storyboard_keyframe_lines(keyframes: list[dict[str, Any]]) -> list[str]:
+    lines = [
+        "Each panel must depict one frozen, directly observable instant. "
+        "Do not describe or blend a multi-step process inside one panel."
+    ]
+    for keyframe in keyframes:
+        label = STORYBOARD_PANEL_LABELS[keyframe["panel"]]
+        human_presence = STORYBOARD_HUMAN_PRESENCE[keyframe["human_presence"]]
+        lines.append(
+            f"{label} ({keyframe['start']:.1f}–{keyframe['end']:.1f}s): "
+            f"Camera: {keyframe['camera'].strip()} "
+            f"Keyframe: {keyframe['description'].strip()} "
+            f"Continuity: {keyframe['continuity'].strip()} "
+            f"Human presence: {human_presence}"
+        )
+    return lines
+
+
 def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
     storyboard = plan["storyboard"]
     inputs = validate_inputs(segment, "storyboard_image")
-    constraints = [*plan.get("common_constraints", []), *segment.get("hard_constraints", [])]
-    facts = [item for item in constraints if isinstance(item, str) and item.strip()]
+    continuity = validate_string_list(
+        segment.get("visual_continuity"),
+        f"{segment.get('segment_id', '<unknown>')}.visual_continuity",
+    )
+    constraints = validate_string_list(
+        segment.get("hard_constraints", []),
+        f"{segment.get('segment_id', '<unknown>')}.hard_constraints",
+        allow_empty=True,
+    )
+    negative_constraints = validate_string_list(
+        segment.get("negative_constraints", []),
+        f"{segment.get('segment_id', '<unknown>')}.negative_constraints",
+        allow_empty=True,
+    )
+    authority = role_lines(inputs)
+    product_anchor = next((item for item in inputs if item["role"] == "product_anchor"), None)
+    if product_anchor is not None:
+        authority.append(
+            f"Input {product_anchor['position']} is the product appearance authority. "
+            "Match its exact colorway, silhouette, proportions, surface texture, feature count, "
+            "openings, and relative positions. Do not infer or reinterpret appearance from the "
+            "product name or category."
+        )
+    subject_anchor = next((item for item in inputs if item["role"] == "subject_anchor"), None)
+    if subject_anchor is not None:
+        authority.append(
+            f"Input {subject_anchor['position']} is the subject identity authority. "
+            "Keep the same identity, markings, proportions, age, accessories, and body features "
+            "across all four panels."
+        )
     subject = segment.get("subject_identity")
     if isinstance(subject, str) and subject.strip():
-        facts.append(subject)
+        authority.append(subject.strip())
     strategy = validate_subject_strategy(segment, plan.get("replication_mode"), inputs)
     if strategy == "preserve_source_subject":
-        facts.append("SUBJECT STRATEGY: Preserve the source person or animal exactly; replace only the source product using the target product anchor. Do not add or redesign a subject.")
+        authority.append("Preserve the source person or animal exactly; replace only the source product using the target product anchor. Do not add or redesign a subject.")
     elif strategy == "replace_subject":
-        facts.append("SUBJECT STRATEGY: The target subject anchor overrides source-subject identity. Replace subject and product in one generation step; do not create an empty-scene intermediate.")
+        authority.append("The target subject anchor overrides source-subject identity. Replace subject and product in one generation step; do not create an empty-scene intermediate.")
     elif strategy == "structure_only":
-        facts.append("SUBJECT STRATEGY: Source frames are planning evidence only and are not generation inputs. Target product and subject anchors own identity.")
-    source_ids = validate_source_narrative_mapping(segment, plan.get("replication_mode"))
-    if source_ids:
-        rhythm = (
-            "Source narrative order and relative pacing are evidence only. "
-            "The locked target script and this target production Segment timeline own exact timing. "
-            "Do not copy source timestamps or divide the four panels evenly unless the target Beats require it. "
-            f"Mapped source narratives: {', '.join(source_ids)}."
-        )
-    else:
-        rhythm = (
-            "The locked target script and this target production Segment timeline own exact timing. "
-            "Do not divide the four panels evenly unless the target Beats require it."
-        )
+        authority.append("Source frames are planning evidence only and are not generation inputs. Target product and subject anchors own identity.")
+    validate_source_narrative_mapping(segment, plan.get("replication_mode"))
+    keyframes = validate_storyboard_keyframes(
+        segment, float(plan["raw_segment_seconds"])
+    )
+    negatives = [
+        "No readable text, captions, subtitles, labels, logos, watermarks, UI, timecodes, or panel numbers.",
+        "No visible divider lines, blank gutters, decorative borders, grooves, panel fusion, or content crossing between panels.",
+        "No duplicate product or subject, extra people or body parts, malformed hands, extra fingers, or fact-incompatible product structure or action.",
+        *negative_constraints,
+    ]
     return "\n\n".join([
-        "OUTPUT\n"
+        "OUTPUT SPECIFICATION\n"
         f"Generate one complete {plan['raw_segment_seconds']:g}-second target production storyboard board: "
         f"exactly {storyboard['columns']} columns × {storyboard['rows']} rows, exactly four {storyboard['panel_ratio']} target panels, "
-        "zero gutter, left-to-right then top-to-bottom reading order. Do not locally compose or split the returned board.",
-        "INPUT IMAGE ROLES\n" + "\n".join(role_lines(inputs)),
-        "HARD FACTS\n" + ("\n".join(facts) if facts else "Use only the approved facts for this Segment."),
-        "RHYTHM AUTHORITY\n" + rhythm,
-        "TIMELINE\n" + "\n".join(timing_lines(validate_beats(segment, float(plan['raw_segment_seconds'])))),
-        "NEGATIVE CONSTRAINTS\nNo readable text, captions, subtitles, labels, logos, watermarks, UI, panel numbers, or fact-incompatible product structure/action.",
+        "left-to-right then top-to-bottom reading order. The four panels touch edge-to-edge and remain visually independent with hard boundaries. "
+        "There is no blank gutter, gap, groove, visible divider line, decorative border, panel label, or content crossing between panels.",
+        "GLOBAL VISUAL CONTINUITY\n" + "\n".join([
+            *continuity,
+            "Keep the same scene, surface, lighting, product identity, subject identity, and spatial relationship across all four panels unless a keyframe explicitly changes one of them.",
+        ]),
+        "REFERENCE AND IDENTITY AUTHORITY\n" + "\n".join(authority),
+        "PRODUCT AND ACTION CONSTRAINTS\n" + (
+            "\n".join(constraints)
+            if constraints
+            else "Use only the approved product and action facts for this Segment."
+        ),
+        "FOUR STATIC KEYFRAMES\n" + "\n".join(storyboard_keyframe_lines(keyframes)),
+        "NEGATIVE CONSTRAINTS\n" + "\n".join(negatives),
     ])
 
 
@@ -429,6 +548,7 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
             "target_time_range": segment.get("target_time_range"),
             "source_narrative_segment_ids": segment.get("source_narrative_segment_ids", []),
             "subject_strategy": segment.get("subject_strategy"),
+            "visual_continuity": segment.get("visual_continuity"),
             "prompt": compiled_prompt,
             "inputs": validate_inputs(segment, plan["job_kind"]),
             "beats": validate_beats(segment, float(plan["raw_segment_seconds"])),
