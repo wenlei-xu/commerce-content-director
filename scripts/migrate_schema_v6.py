@@ -298,7 +298,7 @@ def apply(api: Feishu, run_id: str) -> dict[str, Any]:
         select("脚本模式", ["原创", "钩子复刻", "结构复刻", "全量复刻"]), simple("目标时长（秒）", 2, {"formatter": "0"}),
         simple("目标口播语言"), select("音频模式", ["完整口播", "少量口播", "纯自然声"]), select("字幕模式", ["最终音频自动生成", "不生成"]),
         simple("表达者设定"), simple("创作策略"), simple("脚本修订号", 2, {"formatter": "0"}),
-        select("脚本状态", ["待审核", "需修改", "已锁定"]), select("脚本检查状态", ["待检查", "未通过", "通过"]),
+        select("脚本状态", ["待审核", "需修改", "已锁定", "未采用"]), select("脚本检查状态", ["待检查", "未通过", "通过"]),
         simple("脚本锁定时间", 5, {"date_formatter": "yyyy-MM-dd HH:mm", "auto_fill": False}), simple("一句话脚本"), simple("钩子包"),
         simple("留存设计"), simple("节拍时间线"), simple("三轨脚本"), simple("台词清单"), simple("屏幕文字清单"),
         simple("声音与表演"), simple("产品动作"), simple("分段衔接"), simple("悬念回收"), simple("结尾与CTA"), simple("脚本正文"),

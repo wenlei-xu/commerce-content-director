@@ -20,8 +20,8 @@ generated it. The candidate table is an audit/execution surface, not the human
 approval surface.
 
 The human review surface is the script-version record. It owns `脚本版本`
-(for example A/B), `完整分镜方案` attachments in Segment order,
-`分镜组合映射`, source script identity and `版本审核状态`. A version may mix
+(for example A/B), `最终分镜图` attachments in Segment order,
+`分镜组合映射`, source script identity and `脚本状态`. A version may mix
 Segment candidates only when the complete package passes cross-Segment
 continuity validation.
 
@@ -55,8 +55,8 @@ its attachment identity and hash, then publish it as `待选择`. A partial uplo
 remains visible and resumes on the same candidate ID.
 
 Human selection is per complete storyboard version. The reviewer compares the
-ordered A/B packages and marks at most one version `版本审核状态=已通过`; the
-other version becomes `未采用`. No human-facing workflow requires checking one
+ordered A/B packages and marks at most one version `脚本状态=已锁定`; the
+other version becomes `脚本状态=未采用`. No human-facing workflow requires checking one
 candidate per Segment. The selected version's mapping remains explicit so the
 chosen Segment boards are traceable to their backend candidates.
 
@@ -73,8 +73,9 @@ continuity evidence. Missing, duplicate, unexpected or attachment-less
 Segments block finalization.
 
 Write the ordered attachments and mapping to the script-version record, set
-`版本审核状态=待审核`, and fresh-read again. Only the human-approved version
-(`版本审核状态=已通过`) may enter final-video production.
+`脚本状态=待审核`, and fresh-read again. Only the human-approved version
+(`脚本状态=已锁定`) may enter final-video production; the other version must
+be `脚本状态=未采用`.
 
 Rejected candidates remain in the backend candidate log for audit unless an
 explicit lifecycle policy authorizes archival/deletion after all version records
@@ -96,5 +97,6 @@ python scripts/storyboard_candidates.py publish `
 Assemble and publish a complete script-version package, then use the
 version-record writer configured for the active Feishu schema. It must
 fresh-read the version record and mapped candidates, write the ordered package,
-and set `版本审核状态=已通过` only after authorized human approval. There is
+and set the selected version's `脚本状态=已锁定` only after authorized human
+approval, while the other version is `脚本状态=未采用`. There is
 no per-Segment checkbox selection in the human workflow.

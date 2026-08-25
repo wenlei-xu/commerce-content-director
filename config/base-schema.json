@@ -208,18 +208,15 @@
         "storyboard_review_notes": "分镜审核意见",
         "parent_script_record_id": "父脚本记录ID",
         "script_version": "脚本版本",
-        "complete_storyboard_package": "完整分镜方案",
         "storyboard_combo_mapping": "分镜组合映射",
-        "version_review_status": "版本审核状态",
         "video_prompt": "视频提示词",
         "execution_limit": "执行次数上限",
         "accepted_film_count": "已验收成片数",
         "remaining_executions": "剩余执行次数"
       },
-      "script_status_values": {"pending_review": "待审核", "revision_required": "需修改", "locked": "已锁定"},
+      "script_status_values": {"pending_review": "待审核", "revision_required": "需修改", "locked": "已锁定", "not_adopted": "未采用"},
       "validation_status_values": {"pending": "待检查", "failed": "未通过", "passed": "通过"},
       "storyboard_status_values": {"not_started": "未开始", "generating": "生成中", "pending_review": "待审核", "passed": "已通过", "rejected": "已驳回"},
-      "version_review_status_values": {"pending_review": "待审核", "approved": "已通过", "not_adopted": "未采用"},
       "subtitle_mode_values": {"plain": "普通字幕", "emphasis": "重点强调字幕", "none": "不生成"}
     },
     "final_films": {

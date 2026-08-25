@@ -7,7 +7,7 @@ The source precedence is:
 1. Current Feishu record and field metadata;
 2. Current product hard facts and assets;
 3. Locked creative direction and locked structured script;
-4. For storyboard generation and review, the linked script-version record, its ordered `完整分镜方案`, `分镜组合映射` and `版本审核状态`. There is no separate storyboard candidate or storyboard review table;
+4. For storyboard generation and review, the linked script-version record, its ordered `最终分镜图`, `分镜组合映射` and `脚本状态`. There is no separate storyboard candidate or storyboard review table;
 5. Local run package created for the current run.
 
 Do not infer a direction, script, product action, dialogue or relation from stale local material.
