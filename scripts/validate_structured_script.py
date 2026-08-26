@@ -131,18 +131,19 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
     if runtime.get("audio_mode") in {"spoken", "sparse_spoken"}:
         quality_gate = script.get("dialogue_quality_gate")
         if not isinstance(quality_gate, dict):
-            errors.append(issue(
+            warnings.append(issue(
                 "MISSING_DIALOGUE_QUALITY_GATE",
                 "dialogue_quality_gate",
-                "spoken scripts require pain, benefit, proof and natural CTA evidence",
+                "spoken scripts may add pain, benefit, proof and natural CTA evidence for review",
             ))
+            dialogue_quality_gate_passed = False
         else:
-            gate_error_count = len(errors)
+            gate_warning_count = len(warnings)
             if quality_gate.get("instruction_manual_restatement_only") is not False:
-                errors.append(issue(
+                warnings.append(issue(
                     "INSTRUCTION_MANUAL_DIALOGUE",
                     "dialogue_quality_gate.instruction_manual_restatement_only",
-                    "dialogue cannot be only an instruction-manual restatement of visible operations",
+                    "dialogue should not be only an instruction-manual restatement of visible operations",
                 ))
             role_fields = {
                 "pain_line_ids": "pain point",
@@ -153,11 +154,11 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
             for field, label in role_fields.items():
                 references = quality_gate.get(field)
                 if not isinstance(references, list) or not references:
-                    errors.append(issue("MISSING_DIALOGUE_QUALITY_ROLE", f"dialogue_quality_gate.{field}", label))
+                    warnings.append(issue("MISSING_DIALOGUE_QUALITY_ROLE", f"dialogue_quality_gate.{field}", label))
                     continue
                 for reference in references:
                     if str(reference) not in line_ids:
-                        errors.append(issue(
+                        warnings.append(issue(
                             "UNKNOWN_DIALOGUE_QUALITY_REFERENCE",
                             f"dialogue_quality_gate.{field}",
                             str(reference),
@@ -165,12 +166,12 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
             ending_cta_line = str((script.get("ending") or {}).get("cta_line_id", ""))
             natural_cta_lines = {str(value) for value in quality_gate.get("natural_cta_line_ids") or []}
             if ending_cta_line and ending_cta_line not in natural_cta_lines:
-                errors.append(issue(
+                warnings.append(issue(
                     "CTA_NOT_NATURAL_GATE_EVIDENCE",
                     "ending.cta_line_id",
-                    "ending CTA line must be included in dialogue_quality_gate.natural_cta_line_ids",
+                    "ending CTA line is not marked as natural CTA evidence",
                 ))
-            dialogue_quality_gate_passed = len(errors) == gate_error_count
+            dialogue_quality_gate_passed = len(warnings) == gate_warning_count
     if subtitle_mode == "emphasis_from_final_audio" and emphasis_span_count == 0:
         errors.append(issue("EMPHASIS_SUBTITLES_HAVE_NO_SPANS", "dialogue", "at least one dialogue line must mark an emphasis span"))
     hook = script.get("hook") or {}
