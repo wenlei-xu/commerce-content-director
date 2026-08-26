@@ -1,6 +1,6 @@
 # Workflow: structure replication storyboard
 
-Read [storyboard-generation.md](storyboard-generation.md), [gpt-image-2-execution.md](../gpt-image-2-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
+Read [storyboard-generation.md](storyboard-generation.md), [gpt-image-2-execution.md](../gpt-image-2-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [interaction-substitution-protocol.md](../interaction-substitution-protocol.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
 
 Use this workflow only when the user explicitly requests `structure_replication` / “结构复刻”. A generic request to “复刻” defaults to `high_fidelity_replication`; do not choose this mode merely because it is easier to adapt to another product.
 
@@ -16,6 +16,17 @@ Structure replication preserves five source-level relationships:
 
 It does not require source shots, source frames, exact framing, specific actions, people/animals, locations, original lines or exact claims to remain unchanged. Product-conflicting shots and actions may be rewritten when the target still preserves the source narrative role and proves the target-product benefit honestly. Do not replace a compatible source visual treatment with generic studio, cinematic or premium styling unless the user explicitly requests a style change.
 
+## Action-substitution boundary
+
+Before deciding that a source action conflicts, split it into two layers:
+
+1. **Product-specific hardware mechanism**: the source product's physical mechanism or component, including fixed mounts or suction, elastic elements, sound-making units, detachable parts, and their specific operating paths.
+2. **Transferable behavior and narrative function**: the visible human or animal behavior and its story purpose, including tugging, chasing, biting, carrying, competing for an item, and excitement reactions.
+
+Only a conflict in the first layer authorizes a replacement. A changed or unavailable hardware mechanism must not automatically delete a compatible second-layer behavior. When the target has an evidence-backed contact point or attachment path, preserve the behavior's narrative function through that real target interaction. Replace only the mechanism, force path, or contact path that conflicts with target-product facts.
+
+If a transferable behavior is not supported by the target product, record the missing evidence and design another target-supported behavior with the same story role, pacing cue, proof purpose, and emotional transition. Do not silently collapse it into generic sniffing, pawing, or food-search behavior merely because the source hardware differs.
+
 ## Visual-style contract
 
 Create `plan/source-visual-style-profile.json` from the accepted breakdown and available source evidence. Record the dimensions above, cite the evidence and separate stable global treatment from segment-specific variation. The profile must include `style_fingerprint_en` and `anti_style_constraints_en` as concise English control text. Copy both values verbatim into `source_visual_style` in `plan/generation-prompt-plan.json`; the compiler must pass them into every target storyboard Segment. Source frames remain planning evidence only in this mode and must not be routed as generation inputs.
@@ -24,7 +35,7 @@ Create `plan/source-visual-style-profile.json` from the accepted breakdown and a
 
 Before writing the target script, create `plan/source-structure-map.json`. For every source narrative segment, record its story role, commercial function, proof purpose, relative pacing cue, emotional state/transition and CTA relationship. Cite accepted breakdown evidence and source time range, then label source-specific visual elements as `not_preserved_by_mode`.
 
-Create `plan/source-target-structure-correspondence.json`. Map each source narrative segment to ordered target Beat IDs and explain how the target beat preserves the source story role, proof purpose, pacing relationship and emotional function. A target product may require different scenes and actions, but it must not remove a required proof step or replace the source's selling logic with a generic product introduction.
+Create `plan/source-target-structure-correspondence.json`. Map each source narrative segment to ordered target Beat IDs and explain how the target beat preserves the source story role, proof purpose, pacing relationship and emotional function. For every changed interaction, record the source hardware mechanism, transferable behavior, target contact path, and whether the behavior is `preserved`, `adapted_with_product_reason`, or `not_supported_with_evidence`. A target product may require different scenes and actions, but it must not remove a required proof step or replace the source's selling logic with a generic product introduction.
 
 Use `subject_strategy=structure_only`. Route approved target product and subject anchors when they are visible. Do not route `source_segment_start`, `source_segment_result` or `source_contact_sheet` into storyboard generation; source evidence is planning material only in this mode. The source visual-style profile is the permitted style handoff.
 
@@ -32,4 +43,4 @@ Use `subject_strategy=structure_only`. Route approved target product and subject
 
 Before human review, create `plan/source-structure-similarity-review.json`. Compare the source and target side by side for the five preserved relationships above. Classify each source segment and each style dimension as `preserved`, `adapted_with_product_reason`, or `missing`, with evidence.
 
-Fail the mode when the target loses the source narrative order, skips an essential proof function, changes the relative pacing so the payoff or proof no longer lands in the same role, flattens the emotional curve into a generic demonstration, or discards the transferable visual treatment without a documented reason. Do not fail merely because the target uses different product-conflicting shots, actions, subjects or scenes; those differences are expected in this mode.
+Fail the mode when the target loses the source narrative order, skips an essential proof function, changes the relative pacing so the payoff or proof no longer lands in the same role, flattens the emotional curve into a generic demonstration, discards the transferable visual treatment without a documented reason, or removes a target-supported transferable behavior solely because the source hardware mechanism changed. Do not fail merely because the target uses different product-conflicting shots, mechanisms, contact paths, subjects or scenes; those differences are expected in this mode.
