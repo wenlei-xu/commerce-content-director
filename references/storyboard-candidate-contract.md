@@ -2,28 +2,24 @@
 
 > This document is retained only for historical run packages and migration audits. The active workflow does not create, write, or review a `分镜候选` table. New storyboard work writes two complete A/B packages directly to the script table. Do not use the candidate contract for new runs.
 
-The generation candidate unit is one complete 2×2 storyboard board for one
-configured 10-second target production Segment. It is never one panel, a start
-frame, or an end frame. A candidate is not a human approval unit; approval is
-performed on a complete storyboard version that contains the ordered boards
-for every Segment in the script.
+Historical generation candidate artifacts represent one complete 2×2
+storyboard board for one configured 10-second target production Segment. They
+are never one panel, a start frame, or an end frame. A candidate is not a human
+approval unit; current approval is performed on a complete A/B storyboard
+version that contains the ordered boards for every Segment in the script.
 
 ## Remote authority
 
-Every successful candidate is persisted as one backend record in the Feishu
-`分镜候选` table (or the configured internal candidate store) and linked to
-exactly one locked script and Segment. The record owns one `候选四宫格`
-attachment, `Segment ID`, `Segment 序号`, target time range, attempt, run ID,
-Flow2API Job ID, idempotency key, model ID and attachment hash. Local files are
-resumable staging caches only; no candidate may depend on the computer that
-generated it. The candidate table is an audit/execution surface, not the human
-approval surface.
+Historical runs may contain per-Segment candidate records, but current runs
+keep boards, request manifests and retry state in the local run package. The
+only remote storyboard write is the complete A/B package on its script-version
+record. Local artifacts must remain resumable and must not depend on the
+computer that generated them.
 
 The human review surface is the script-version record. It owns `脚本版本`
-(for example A/B), `最终分镜图` attachments in Segment order,
-`分镜组合映射`, source script identity and `脚本状态`. A version may mix
-Segment candidates only when the complete package passes cross-Segment
-continuity validation.
+(for example A/B), `最终分镜图` attachments in Segment order, source script
+identity and `脚本状态`. A version is written only after its complete package
+passes cross-Segment continuity validation.
 
 ## Counts and identity
 
@@ -49,16 +45,15 @@ increments attempt and creates one new record; it never creates another script.
 
 ## Publish and select
 
-Validate the complete board before the first Feishu candidate mutation. Create
-the candidate record in `候选状态=提交中`, upload exactly one board, fresh-read
-its attachment identity and hash, then publish it as `待选择`. A partial upload
-remains visible and resumes on the same candidate ID.
+Validate every complete board before packaging. Persist the request manifest,
+input/output hashes and deterministic retry identities locally; resume only
+missing requests under the same `run_id`.
 
 Human selection is per complete storyboard version. The reviewer compares the
 ordered A/B packages and marks at most one version `脚本状态=已锁定`; the
-other version becomes `脚本状态=未采用`. No human-facing workflow requires checking one
-candidate per Segment. The selected version's mapping remains explicit so the
-chosen Segment boards are traceable to their backend candidates.
+other version becomes `脚本状态=未采用`. No human-facing workflow requires
+checking one candidate per Segment. The local run manifest keeps the selected
+boards traceable to their generation requests.
 
 Do not crop panels or combine panels from different candidate boards. If one
 panel is unusable, reject the complete candidate board and choose or generate
@@ -66,25 +61,22 @@ another complete board for that Segment.
 
 ## Finalize
 
-Version finalization fresh-reads the source script, the complete version record
-and every mapped backend candidate. Require one attachment for each contiguous
-target Segment, chronological ordering, complete source-candidate mapping and
-continuity evidence. Missing, duplicate, unexpected or attachment-less
-Segments block finalization.
+Version finalization fresh-reads the source script and each complete A/B version
+record. Require one attachment for each contiguous target Segment, deterministic
+chronological ordering and continuity evidence. Missing, duplicate, unexpected
+or attachment-less Segments block finalization.
 
-Write the ordered attachments and mapping to the script-version record, set
+Write the ordered attachments to the script-version record, set
 `脚本状态=待审核`, and fresh-read again. Only the human-approved version
 (`脚本状态=已锁定`) may enter final-video production; the other version must
 be `脚本状态=未采用`.
 
-Rejected candidates remain in the backend candidate log for audit unless an
-explicit lifecycle policy authorizes archival/deletion after all version records
-have been verified. Never overwrite an approved version with a different
-attachment set.
+Rejected candidate artifacts remain in the local run package for audit. Never
+overwrite an approved version with a different attachment set.
 
 ## Operator commands
 
-After each successful Flow2API result, publish the complete board:
+Historical operator command (not used by current storyboard runs):
 
 ```powershell
 python scripts/storyboard_candidates.py publish `
@@ -94,9 +86,9 @@ python scripts/storyboard_candidates.py publish `
   --model-id <model_id> --board <board_path> --profile <config_snapshot_path>
 ```
 
-Assemble and publish a complete script-version package, then use the
-version-record writer configured for the active Feishu schema. It must
-fresh-read the version record and mapped candidates, write the ordered package,
-and set the selected version's `脚本状态=已锁定` only after authorized human
-approval, while the other version is `脚本状态=未采用`. There is
-no per-Segment checkbox selection in the human workflow.
+Current runs assemble each complete A/B script-version package from the local
+run manifest, write only the ordered `最终分镜图` attachments to the
+version-record writer configured for the active Feishu schema, and fresh-read
+the version record. Set the selected version's `脚本状态=已锁定` only after
+authorized human approval, while the other version is `脚本状态=未采用`.
+There is no per-Segment checkbox selection in the human workflow.

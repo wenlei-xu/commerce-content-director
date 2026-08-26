@@ -208,7 +208,6 @@
         "storyboard_review_notes": "分镜审核意见",
         "parent_script_record_id": "父脚本记录ID",
         "script_version": "脚本版本",
-        "storyboard_combo_mapping": "分镜组合映射",
         "video_prompt": "视频提示词",
         "execution_limit": "执行次数上限",
         "accepted_film_count": "已验收成片数",
