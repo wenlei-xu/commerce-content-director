@@ -1,6 +1,6 @@
 # Workflow: script production
 
-读取任务的 `plan/language-lock.json`；缺失时按用户选择或默认中文创建并锁定。使用同一值运行预检。读取一条已锁定创意方向，以及产品硬事实、主体和当前配置。生成本地 structured_script，先运行校验器，再渲染全部审核字段；只有校验通过才创建或更新待审核脚本。将锁定值原样写入 `structured_script.runtime.target_spoken_language` 和飞书脚本字段 `目标口播语言`，写入后回读验证。
+读取任务的 `plan/language-lock.json`；缺失时按用户选择或默认中文创建并锁定。使用同一值运行预检。读取一条已锁定创意方向，以及产品硬事实、主体和当前配置。先读并执行 [action-direction.md](action-direction.md)：在写 Beat 前形成一段动作导演说明，只描述场景、主体动作、真实接触方式、反应与节奏；不创建 JSON 或新字段。生成本地 structured_script，先运行校验器，再渲染全部审核字段；只有校验通过才创建或更新待审核脚本。将锁定值原样写入 `structured_script.runtime.target_spoken_language` 和飞书脚本字段 `目标口播语言`，写入后回读验证。
 
 先完成 Beat 的叙事任务和视觉/产品动作；再逐 Beat 判断是否需要口播或屏幕文字。需要语言表达时，只读取 `句式模板库` 中 `审核状态=可用` 且用途、语言与任务锁匹配的记录，优先取最多 3 条候选。填槽并自然化为锁定语言（`th` 泰语或 `zh-CN` 中文）后写入 `structured_script`。不匹配时可以用锁定语言原创表达；不得为了套用句式而改变已锁定的叙事或产品事实。
 
