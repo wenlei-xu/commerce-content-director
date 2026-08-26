@@ -13,22 +13,42 @@ This Skill runs the production chain:
 
 A script is the only executable content object. It owns the strategy snapshot, Beat timeline, visual/audio/screen-text tracks, dialogue, product actions, continuity, storyboard state, and final-film relationship.
 
-## Workflow routing
+## Routing model
 
-Choose one workflow for the requested action:
+Resolve the request on four separate axes. They are not peer choices:
 
-For a production request that says only “复刻”, “replicate”, “参考原片做一条” or otherwise asks to reproduce a source without naming a narrower mode, default to `high_fidelity_replication`. Select `structure_replication` or `hook_replication` only when the user explicitly asks for that narrower mode. Product substitution is not a reason to choose a lower-fidelity mode. If high-fidelity compatibility fails, stop and ask for a new explicit mode decision; never downgrade the active run automatically.
+1. Select one **primary workflow** for the action being performed now.
+2. Resolve one **production mode** when the work uses an external reference.
+3. Load any **nested workflow** required by the primary workflow.
+4. Load the **execution contract** declared by the selected workflow or mode.
+
+Read the primary workflow first, then the active mode, nested workflow and execution contract. A mode extends a primary workflow; it never replaces that workflow.
+
+### Primary workflows
 
 - **Expand or lock creative directions**: read [creative-direction.md](references/workflows/creative-direction.md).
 - **Analyze, distill, or choose an external short-video reference**: read [short-video-breakdown.md](references/workflows/short-video-breakdown.md).
 - **Learn, review, or use reusable language patterns**: read [sentence-pattern-learning.md](references/workflows/sentence-pattern-learning.md).
-- **Design pet, person, and product movement before a script**: read [action-direction.md](references/workflows/action-direction.md). It produces one scene-description paragraph only; it does not create a new data object or approval step.
 - **Generate, revise, validate, or lock a script**: read [script-production.md](references/workflows/script-production.md).
-- **Generate, select, or review a storyboard**: read [storyboard-generation.md](references/workflows/storyboard-generation.md) and [gpt-image-2-execution.md](references/gpt-image-2-execution.md). Storyboard images use GPT Image 2 exclusively; never route image generation through Flow2API or silently change models/providers.
-- **Assess and produce a structure replication**: use `structure_replication` and read [structure-replication.md](references/workflows/structure-replication.md). This mode preserves the source's story skeleton, commercial proof chain, relative pacing, emotional curve and transferable visual style, while rewriting product-conflicting shots/actions and allowing subject or scene changes. It does not claim shot-level or mechanism-level fidelity.
-- **Assess and produce a high-fidelity full replication**: use `high_fidelity_replication` and read [full-replication.md](references/workflows/full-replication.md). The legacy value `full_replication` is a compatibility alias for the same mode. This mode preserves the source's story structure, signature hook, shot/action sequence, camera language, relative pacing, emotional reactions, visual style, proof chain and CTA position; it routes one start frame and one result frame from the mapped source evidence into each target storyboard Segment and substitutes only product-conflicting facts or actions. Never silently downgrade it to `structure_replication`.
+- **Generate, select, or review a storyboard**: read [storyboard-generation.md](references/workflows/storyboard-generation.md), then apply the active production mode and storyboard execution contract below.
 - **Generate and accept a final video**: read [final-video.md](references/workflows/final-video.md).
 - **Archive the creative chain**: read [lifecycle.md](references/workflows/lifecycle.md).
+
+### Production modes
+
+- **Original production**: use `original` when the work does not reproduce an external source. No replication workflow is loaded.
+- **Structure replication**: use `structure_replication` only when the user explicitly requests structure replication, then read [structure-replication.md](references/workflows/structure-replication.md). It preserves the story skeleton, commercial proof chain, relative pacing, emotional curve and transferable visual style while allowing product-conflicting shots, actions, subjects or scenes to change.
+- **High-fidelity replication**: use `high_fidelity_replication` for a request that says only “复刻”, “replicate”, “参考原片做一条” or otherwise asks to reproduce a source without naming a narrower mode, then read [full-replication.md](references/workflows/full-replication.md). The legacy value `full_replication` is a compatibility alias. Product substitution is not a reason to lower fidelity. If compatibility fails, stop and require a new explicit mode decision; never downgrade the active run automatically.
+- **Hook replication**: select `hook_replication` only when the user explicitly requests it. No active hook-replication workflow is defined; stop and report the unsupported mode instead of improvising or substituting another mode.
+
+### Nested workflows
+
+- [action-direction.md](references/workflows/action-direction.md) is a planning step inside script production and runs before writing Beats. It produces one scene-description paragraph, not a new data object or approval step. Read it directly only when the user requests that paragraph as the complete deliverable.
+
+### Execution contracts
+
+- Every storyboard workflow and replication mode uses [gpt-image-2-execution.md](references/gpt-image-2-execution.md). Storyboard images use GPT Image 2 exclusively; never route image generation through Flow2API or silently change models/providers.
+- Final-video execution belongs to [final-video.md](references/workflows/final-video.md) and the contracts it names; it is not part of storyboard routing.
 
 ## Shared invariants
 
