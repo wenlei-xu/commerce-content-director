@@ -73,12 +73,19 @@ IMAGE_PLAN = {
 
 FULL_REPLICATION_PLAN = copy.deepcopy(IMAGE_PLAN)
 FULL_REPLICATION_PLAN["replication_mode"] = "full_replication"
+FULL_REPLICATION_PLAN["source_visual_style"] = {
+    "style_fingerprint_en": "Match the source's casual low-angle handheld phone capture, natural indoor exposure, moderate softness and social-platform compression.",
+    "anti_style_constraints_en": "Do not turn the source treatment into studio lighting, cinematic depth of field, commercial sharpness or overly polished composition.",
+}
 FULL_REPLICATION_PLAN["segments"][0]["subject_strategy"] = "replace_subject"
 FULL_REPLICATION_PLAN["segments"][0]["source_narrative_segment_ids"] = ["SourceNarrative-01", "SourceNarrative-02"]
 FULL_REPLICATION_PLAN["segments"][0]["inputs"].extend([
     {"position": 3, "role": "source_segment_start", "asset_id": "source-start", "sha256": "c" * 64, "clean_for_generation": True, "reason": "Entering composition and state."},
     {"position": 4, "role": "source_segment_result", "asset_id": "source-result", "sha256": "d" * 64, "clean_for_generation": True, "reason": "Visible payoff and handoff state."},
 ])
+
+HIGH_FIDELITY_REPLICATION_PLAN = copy.deepcopy(FULL_REPLICATION_PLAN)
+HIGH_FIDELITY_REPLICATION_PLAN["replication_mode"] = "high_fidelity_replication"
 
 
 def main() -> None:
@@ -236,6 +243,30 @@ def main() -> None:
 
     full_bundle = compile_plan(FULL_REPLICATION_PLAN)
     assert not validate_bundle(full_bundle, {"en", "zh-CN"})
+    assert full_bundle["source_visual_style"] == FULL_REPLICATION_PLAN["source_visual_style"]
+    for style_value in FULL_REPLICATION_PLAN["source_visual_style"].values():
+        assert style_value in full_bundle["prompts"][0]["prompt"]
+
+    missing_source_style = copy.deepcopy(FULL_REPLICATION_PLAN)
+    missing_source_style.pop("source_visual_style")
+    try:
+        compile_plan(missing_source_style)
+    except ValueError as error:
+        assert "source_visual_style" in str(error)
+    else:
+        raise AssertionError("high-fidelity replication without source visual style should fail")
+
+    style_drift_bundle = copy.deepcopy(full_bundle)
+    fingerprint = style_drift_bundle["source_visual_style"]["style_fingerprint_en"]
+    style_drift_bundle["prompts"][0]["prompt"] = style_drift_bundle["prompts"][0]["prompt"].replace(fingerprint, "")
+    assert any(
+        "style_fingerprint_en verbatim" in error
+        for error in validate_bundle(style_drift_bundle, {"en", "zh-CN"})
+    )
+
+    high_fidelity_bundle = compile_plan(HIGH_FIDELITY_REPLICATION_PLAN)
+    assert high_fidelity_bundle["replication_mode"] == "high_fidelity_replication"
+    assert not validate_bundle(high_fidelity_bundle, {"en", "zh-CN"})
 
     preserve_plan = copy.deepcopy(FULL_REPLICATION_PLAN)
     preserve_plan["segments"][0]["subject_strategy"] = "preserve_source_subject"
@@ -256,10 +287,23 @@ def main() -> None:
 
     structure_plan = copy.deepcopy(IMAGE_PLAN)
     structure_plan["replication_mode"] = "structure_replication"
+    structure_plan["source_visual_style"] = copy.deepcopy(FULL_REPLICATION_PLAN["source_visual_style"])
     structure_plan["segments"][0]["subject_strategy"] = "structure_only"
     structure_plan["segments"][0]["source_narrative_segment_ids"] = ["SourceNarrative-01"]
     structure_bundle = compile_plan(structure_plan)
     assert not validate_bundle(structure_bundle, {"en", "zh-CN"})
+    assert structure_bundle["source_visual_style"] == structure_plan["source_visual_style"]
+    for style_value in structure_plan["source_visual_style"].values():
+        assert style_value in structure_bundle["prompts"][0]["prompt"]
+
+    structure_without_style = copy.deepcopy(structure_plan)
+    structure_without_style.pop("source_visual_style")
+    try:
+        compile_plan(structure_without_style)
+    except ValueError as error:
+        assert "source_visual_style" in str(error)
+    else:
+        raise AssertionError("structure replication without source visual style should fail")
 
     structure_with_source = copy.deepcopy(structure_plan)
     structure_with_source["segments"][0]["inputs"].append({

@@ -16,6 +16,10 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
   "generation_unit": "target_production_segment",
   "prompt_language": "en",
   "target_spoken_language": "zh-CN",
+  "source_visual_style": {
+    "style_fingerprint_en": "Match the source's casual low-angle handheld phone capture, natural indoor exposure, moderate softness and social-platform compression.",
+    "anti_style_constraints_en": "Do not turn the source treatment into studio lighting, cinematic depth of field, commercial sharpness or overly polished composition."
+  },
   "target_duration_seconds": 10,
   "raw_segment_seconds": 10,
   "candidates_per_segment": 2,
@@ -89,6 +93,8 @@ The control prompt uses English (`en`) only. It contains no Thai or Chinese beca
 
 For `full_replication`, every target production Segment declares the ordered `source_narrative_segment_ids` mapped into its 10-second target window. Its input plan contains exactly two routed source-reference roles: `source_segment_start` from the first mapped source narrative and `source_segment_result` from the last. The target-script timeline describes the target-product action connecting those states. Intermediate source evidence, source timestamps, per-second frames, RF batches and replacement contact sheets are not generation inputs.
 
+For `high_fidelity_replication`, its `full_replication` alias, and `structure_replication`, the plan must contain `source_visual_style.style_fingerprint_en` and `source_visual_style.anti_style_constraints_en`, copied from the evidence-backed source visual-style profile. Both values must be non-empty English control text and are passed verbatim into every Segment's `GLOBAL VISUAL CONTINUITY` block. They preserve transferable capture treatment, not source-product identity: product and subject authority may replace conflicting objects/actions, but must not restyle the scene without an explicit user request. A replication plan without this source-style payload fails compilation.
+
 Source narrative order and relative pacing are planning evidence. The locked target script owns exact Beat timing. Keep source narrative IDs, source timestamps, rhythm-authority explanations and workflow instructions in the plan and compiled bundle metadata; never send them to the image model.
 
 Every replication Segment declares `subject_strategy`. `preserve_source_subject` requires the two source frames and product anchor but forbids a subject anchor. `replace_subject` additionally requires exactly one subject anchor. `structure_only` is valid only for structure replication, requires product and subject anchors, and forbids source frames as generation inputs. Prompts must state which identity authority wins; never create a blank-scene cleaning step.
@@ -104,7 +110,7 @@ Do not add a colour, material, finish, feature count or shape adjective merely b
 Compile every image prompt from the plan with these blocks, in this order:
 
 1. `OUTPUT SPECIFICATION`: one complete board, raw Segment duration, exact 2×2 layout, four 9:16 panels and reading order. Say that panels touch edge-to-edge, remain visually independent and have hard boundaries, while forbidding blank gutters, gaps, grooves, visible divider lines, decorative borders, labels and cross-panel fusion.
-2. `GLOBAL VISUAL CONTINUITY`: concise phone-video style plus the same scene, surface, lighting, product identity, subject identity and spatial relationship across all four panels unless a keyframe explicitly changes one.
+2. `GLOBAL VISUAL CONTINUITY`: for any replication mode, first include the exact source `style_fingerprint_en` and `anti_style_constraints_en`; then include Segment continuity plus the same scene, surface, lighting, product identity, subject identity and spatial relationship across all four panels unless a keyframe explicitly changes one.
 3. `REFERENCE AND IDENTITY AUTHORITY`: exact `Input N → role` mapping, product-anchor appearance lock, subject identity lock and the selected subject strategy.
 4. `PRODUCT AND ACTION CONSTRAINTS`: only approved product facts and permitted actions relevant to this Segment. Do not repeat generic layout, workflow or source-reference metadata here.
 5. `FOUR STATIC KEYFRAMES`: exactly one entry for each panel in reading order. Each entry includes its target time range, camera intent, one frozen visible instant, inherited continuity and minimum human presence. Restate carried orientation or state whenever omitting it could invert the action.

@@ -21,7 +21,10 @@ from compile_generation_prompts import (
     FIXED_STORYBOARD_SIZE,
     FIXED_STORYBOARD_COLUMNS,
     FIXED_STORYBOARD_ROWS,
+    HIGH_FIDELITY_REPLICATION_MODES,
+    REPLICATION_MODES,
     SOURCE_FRAME_ROLES,
+    SOURCE_VISUAL_STYLE_FIELDS,
     TARGET_PRODUCTION_UNIT,
     THAI_VOICEOVER_PROVIDER,
     build_execution_jobs,
@@ -29,6 +32,7 @@ from compile_generation_prompts import (
     validate_beats,
     validate_inputs,
     validate_source_narrative_mapping,
+    validate_source_visual_style,
     validate_string_list,
     validate_storyboard_keyframes,
     validate_subject_strategy,
@@ -121,6 +125,11 @@ def validate_bundle(
             or candidates_per_segment < 1
         ):
             errors.append("candidates_per_segment must be a positive integer")
+    source_visual_style = None
+    try:
+        source_visual_style = validate_source_visual_style(bundle)
+    except ValueError as error:
+        errors.append(str(error))
     if bundle.get("prompt_language") not in allowed_languages:
         errors.append("prompt_language is not allowed by the schema")
     target_spoken_language = bundle.get("target_spoken_language")
@@ -190,6 +199,12 @@ def validate_bundle(
                     errors.append(
                         f"{prefix} contains workflow metadata that must stay outside the image prompt: {marker!r}"
                     )
+            if bundle.get("replication_mode") in REPLICATION_MODES and source_visual_style:
+                for field in SOURCE_VISUAL_STYLE_FIELDS:
+                    if source_visual_style[field] not in prompt:
+                        errors.append(
+                            f"{prefix} must include source_visual_style.{field} verbatim"
+                        )
         control_text = prompt
         dialogue_payload = entry.get("dialogue") or []
         if not (kind == "final_video" and target_spoken_language == "zh-CN"):
@@ -219,13 +234,13 @@ def validate_bundle(
                 )
                 validate_target_time_range(segment, index, float(raw_seconds))
                 validate_source_narrative_mapping(segment, bundle.get("replication_mode"))
-            if kind == "storyboard_image" and bundle.get("replication_mode") == "full_replication":
+            if kind == "storyboard_image" and bundle.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
                 roles = [item.get("role") for item in entry.get("inputs") or []]
                 for role in SOURCE_FRAME_ROLES:
                     if roles.count(role) != 1:
-                        errors.append(f"{prefix}: full_replication requires exactly one {role}")
+                        errors.append(f"{prefix}: high-fidelity replication requires exactly one {role}")
                 if "source_contact_sheet" in roles:
-                    errors.append(f"{prefix}: full_replication cannot use source_contact_sheet")
+                    errors.append(f"{prefix}: high-fidelity replication cannot use source_contact_sheet")
             if kind == "storyboard_image":
                 validate_subject_strategy(segment, bundle.get("replication_mode"), inputs)
         except ValueError as error:
