@@ -34,6 +34,7 @@ from compile_generation_prompts import (
     validate_source_narrative_mapping,
     validate_source_visual_style,
     validate_string_list,
+    validate_product_visual_lock,
     validate_storyboard_keyframes,
     validate_subject_strategy,
     validate_target_time_range,
@@ -222,11 +223,17 @@ def validate_bundle(
                 "inputs": entry.get("inputs"),
                 "beats": entry.get("beats"),
                 "product_visible": entry.get("product_visible"),
+                "product_visual_lock": entry.get("product_visual_lock"),
                 "subject_strategy": entry.get("subject_strategy"),
             }
             inputs = validate_inputs(segment, kind)
             validate_beats(segment, float(raw_seconds))
             if kind == "storyboard_image":
+                product_visual_lock = validate_product_visual_lock(segment)
+                if product_visual_lock and product_visual_lock not in prompt:
+                    errors.append(
+                        f"{prefix}: product_visual_lock must be copied verbatim into the prompt"
+                    )
                 validate_storyboard_keyframes(segment, float(raw_seconds))
                 validate_string_list(
                     entry.get("visual_continuity"),

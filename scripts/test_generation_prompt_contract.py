@@ -26,6 +26,7 @@ IMAGE_PLAN = {
         "segment_id": "Segment-01",
         "target_time_range": {"start": 0, "end": 10},
         "product_visible": True,
+        "product_visual_lock": "Treat all approved integrated product components as one inseparable structure. Preserve their approved positions and connection path in every panel; do not omit, replace, reconnect, hide, or rotate them into an ambiguous orientation.",
         "visual_continuity": [
             "Natural handheld phone-video texture.",
             "Use the same room, floor surface and natural light across all four panels.",
@@ -115,6 +116,7 @@ def main() -> None:
     assert "Mapped source narratives:" not in prompt
     assert "Do not locally compose" not in prompt
     assert "Do not infer or reinterpret appearance from the product name or category" in prompt
+    assert IMAGE_PLAN["segments"][0]["product_visual_lock"] in prompt
     assert "Top-left (0.0–1.5s)" in prompt
     assert "Human presence: Exactly one natural human hand" in prompt
 
@@ -145,6 +147,36 @@ def main() -> None:
         assert "exactly four static panel keyframes" in str(error)
     else:
         raise AssertionError("storyboard plans must define exactly four static panel keyframes")
+
+    product_not_first = copy.deepcopy(IMAGE_PLAN)
+    product_not_first["segments"][0]["inputs"][0]["position"] = 2
+    product_not_first["segments"][0]["inputs"][1]["position"] = 1
+    try:
+        compile_plan(product_not_first)
+    except ValueError as error:
+        assert "product_anchor at input position 1" in str(error)
+    else:
+        raise AssertionError("visible storyboard products must route the product anchor first")
+
+    scene_before_subject = copy.deepcopy(IMAGE_PLAN)
+    scene_before_subject["replication_mode"] = "structure_replication"
+    scene_before_subject["source_visual_style"] = {
+        "style_fingerprint_en": "Match the source's casual handheld phone capture and natural indoor exposure.",
+        "anti_style_constraints_en": "Do not turn the source treatment into studio lighting or polished commercial imagery.",
+    }
+    scene_before_subject["segments"][0]["subject_strategy"] = "structure_only"
+    scene_before_subject["segments"][0]["source_narrative_segment_ids"] = ["SourceNarrative-01"]
+    scene_before_subject["segments"][0]["inputs"][1]["role"] = "source_scene_reference"
+    scene_before_subject["segments"][0]["inputs"][1]["reason"] = "Source room geometry only."
+    scene_before_subject["segments"][0]["inputs"].append(
+        {"position": 3, "role": "subject_anchor", "asset_id": "subject", "sha256": "c" * 64, "clean_for_generation": True, "reason": "The dog identity recurs across the Segment."}
+    )
+    try:
+        compile_plan(scene_before_subject)
+    except ValueError as error:
+        assert "subject_anchor must precede source_scene_reference" in str(error)
+    else:
+        raise AssertionError("subject identity must precede source scene space")
 
     missing_continuity = copy.deepcopy(IMAGE_PLAN)
     missing_continuity["segments"][0]["beats"][1].pop("continuity")

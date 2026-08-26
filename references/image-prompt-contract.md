@@ -31,6 +31,7 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
     "source_narrative_segment_ids": ["SourceNarrative-01", "SourceNarrative-02"],
     "subject_strategy": "preserve_source_subject",
     "product_visible": true,
+    "product_visual_lock": "Treat all approved integrated product components as one inseparable structure. Preserve their approved positions and connection path in every panel; do not omit, replace, reconnect, hide, or rotate them into an ambiguous orientation.",
     "visual_continuity": [
       "Natural handheld phone-video texture.",
       "Use the same room, floor surface and natural light across all four panels."
@@ -103,6 +104,8 @@ Every replication Segment declares `subject_strategy`. `preserve_source_subject`
 
 When a product anchor is routed, let that input own visual identity. The compiler states that the model must match its exact colourway, silhouette, proportions, surface texture, feature count, openings and relative positions, and must not reinterpret appearance from the product name or category.
 
+When the product record declares a fixed integrated visual structure, every product-visible Segment must also carry `product_visual_lock`: concise English control text that names the integral components, their approved relative positions and connection path, and the forbidden omission, substitution, reconnection, concealment or ambiguous rotation. Copy it verbatim into that Segment's `PRODUCT AND ACTION CONSTRAINTS` block. The complete front product anchor that visibly includes every locked component must be Input 1; when both target subject and source scene-space assets are used, route the subject as Input 2 and the source scene-space reference as Input 3. Later references may inform subject identity or scene space, but may not dilute product identity or alter the locked topology.
+
 Do not add a colour, material, finish, feature count or shape adjective merely because it is typical of the named product category. Name such an attribute only when the current product record explicitly states it. Otherwise refer to the exact appearance shown in the routed anchor. A prompt-plan fact that conflicts with the anchor blocks submission.
 
 ## Required prompt blocks
@@ -111,8 +114,8 @@ Compile every image prompt from the plan with these blocks, in this order:
 
 1. `OUTPUT SPECIFICATION`: one complete board, raw Segment duration, exact 2×2 layout, four 9:16 panels and reading order. Say that panels touch edge-to-edge, remain visually independent and have hard boundaries, while forbidding blank gutters, gaps, grooves, visible divider lines, decorative borders, labels and cross-panel fusion.
 2. `GLOBAL VISUAL CONTINUITY`: for any replication mode, first include the exact source `style_fingerprint_en` and `anti_style_constraints_en`; then include Segment continuity plus the same scene, surface, lighting, product identity, subject identity and spatial relationship across all four panels unless a keyframe explicitly changes one.
-3. `REFERENCE AND IDENTITY AUTHORITY`: exact `Input N → role` mapping, product-anchor appearance lock, subject identity lock and the selected subject strategy.
-4. `PRODUCT AND ACTION CONSTRAINTS`: only approved product facts and permitted actions relevant to this Segment. Do not repeat generic layout, workflow or source-reference metadata here.
+3. `REFERENCE AND IDENTITY AUTHORITY`: exact `Input N → role` mapping, product-anchor appearance lock, subject identity lock and the selected subject strategy. A product-visible Segment with `product_visual_lock` makes the complete front product anchor Input 1 the highest-priority identity reference.
+4. `PRODUCT AND ACTION CONSTRAINTS`: first copy `product_visual_lock` verbatim when present, then include only approved product facts and permitted actions relevant to this Segment. Product contact, force path and camera must preserve the lock; do not omit or conceal an integrated component to imitate a source action. Do not repeat generic layout, workflow or source-reference metadata here.
 5. `FOUR STATIC KEYFRAMES`: exactly one entry for each panel in reading order. Each entry includes its target time range, camera intent, one frozen visible instant, inherited continuity and minimum human presence. Restate carried orientation or state whenever omitting it could invert the action.
 6. `NEGATIVE CONSTRAINTS`: no readable text, captions, UI, watermark, logo, timecode or panel label; no visible grid lines, gutters, borders, panel fusion, duplicate subjects/products, malformed hands or fact-incompatible structure/action.
 

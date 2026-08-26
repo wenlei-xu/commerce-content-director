@@ -103,6 +103,20 @@ def validate_string_list(value: object, field: str, *, allow_empty: bool = False
     return [item.strip() for item in value]
 
 
+def validate_product_visual_lock(segment: dict[str, Any]) -> str | None:
+    value = segment.get("product_visual_lock")
+    if value is None:
+        return None
+    if segment.get("product_visible") is not True:
+        raise fail("product_visual_lock requires product_visible=true")
+    if not isinstance(value, str) or not value.strip():
+        raise fail("product_visual_lock must be non-empty English control text")
+    normalized = value.strip()
+    if NON_ENGLISH_CONTROL.search(normalized):
+        raise fail("product_visual_lock must be English control text")
+    return normalized
+
+
 def validate_source_visual_style(plan: dict[str, Any]) -> dict[str, str] | None:
     if (
         plan.get("job_kind") != "storyboard_image"
@@ -172,6 +186,24 @@ def validate_inputs(segment: dict[str, Any], job_kind: str) -> list[dict[str, An
         raise fail("input positions must be contiguous from 1")
     if segment.get("product_visible") and "product_anchor" not in {item["role"] for item in inputs}:
         raise fail("a visible product requires product_anchor")
+    if job_kind == "storyboard_image" and segment.get("product_visible"):
+        product_anchors = [item for item in inputs if item["role"] == "product_anchor"]
+        if len(product_anchors) != 1 or product_anchors[0]["position"] != 1:
+            raise fail("a visible storyboard product requires exactly one product_anchor at input position 1")
+        subject_anchor = next((item for item in inputs if item["role"] == "subject_anchor"), None)
+        scene_reference = next(
+            (item for item in inputs if item["role"] == SOURCE_SCENE_REFERENCE_ROLE),
+            None,
+        )
+        if (
+            subject_anchor is not None
+            and scene_reference is not None
+            and subject_anchor["position"] > scene_reference["position"]
+        ):
+            raise fail(
+                "when both subject_anchor and source_scene_reference are routed, "
+                "subject_anchor must precede source_scene_reference"
+            )
     if sum(item["role"] == SOURCE_SCENE_REFERENCE_ROLE for item in inputs) > 1:
         raise fail("a Segment may use at most one source_scene_reference")
     return sorted(inputs, key=lambda item: item["position"])
@@ -205,7 +237,7 @@ def validate_subject_strategy(
         if replication_mode != "structure_replication":
             raise fail("structure_only requires structure_replication")
         if any(role in roles for role in SOURCE_FRAME_ROLES | {"source_contact_sheet"}):
-            raise fail("structure_only forbids source action frames and source_contact_sheet as generation inputs")
+            raise fail("structure_only forbids source frames and source_contact_sheet as generation inputs")
         if roles.count(SOURCE_SCENE_REFERENCE_ROLE) > 1:
             raise fail("structure_only permits at most one source_scene_reference")
         if roles.count("subject_anchor") != 1:
@@ -336,6 +368,7 @@ def validate_plan(plan: dict[str, Any]) -> None:
         validate_beats(segment, raw_seconds)
         inputs = validate_inputs(segment, job_kind)
         if job_kind == "storyboard_image":
+            validate_product_visual_lock(segment)
             validate_storyboard_keyframes(segment, raw_seconds)
             validate_string_list(
                 segment.get("visual_continuity"),
@@ -404,6 +437,7 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         f"{segment.get('segment_id', '<unknown>')}.hard_constraints",
         allow_empty=True,
     )
+    product_visual_lock = validate_product_visual_lock(segment)
     negative_constraints = validate_string_list(
         segment.get("negative_constraints", []),
         f"{segment.get('segment_id', '<unknown>')}.negative_constraints",
@@ -418,6 +452,12 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
             "openings, and relative positions. Do not infer or reinterpret appearance from the "
             "product name or category."
         )
+        if product_visual_lock is not None:
+            authority.append(
+                "Input 1 has highest product-identity priority. Later subject and scene "
+                "references must not alter, hide, omit, replace, reconnect, or reorient "
+                "the locked product structure."
+            )
     subject_anchor = next((item for item in inputs if item["role"] == "subject_anchor"), None)
     if subject_anchor is not None:
         authority.append(
@@ -472,8 +512,8 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         ]),
         "REFERENCE AND IDENTITY AUTHORITY\n" + "\n".join(authority),
         "PRODUCT AND ACTION CONSTRAINTS\n" + (
-            "\n".join(constraints)
-            if constraints
+            "\n".join([item for item in [product_visual_lock, *constraints] if item])
+            if product_visual_lock or constraints
             else "Use only the approved product and action facts for this Segment."
         ),
         "FOUR STATIC KEYFRAMES\n" + "\n".join(storyboard_keyframe_lines(keyframes)),
@@ -619,6 +659,7 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
             "target_time_range": segment.get("target_time_range"),
             "source_narrative_segment_ids": segment.get("source_narrative_segment_ids", []),
             "subject_strategy": segment.get("subject_strategy"),
+            "product_visual_lock": validate_product_visual_lock(segment),
             "visual_continuity": segment.get("visual_continuity"),
             "prompt": compiled_prompt,
             "inputs": validate_inputs(segment, plan["job_kind"]),

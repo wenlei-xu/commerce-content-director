@@ -17,7 +17,7 @@
 | 可用替代动作 | 只替换冲突的机制、受力或接触路径；明确谁、以何方向、通过哪个已证实部位完成动作 |
 | 保留锚点 | 必须保持的机位、手位、景别、背景、节奏、转场 |
 | 禁止画面 | 所有会否定硬事实的部件、开口、方向、拆件或接触路径 |
-| 可视验收点 | 审图时必须一眼可见的结构、方向和接触证据 |
+| 可视验收点 | 审图时必须一眼可见的结构、方向和接触证据；如产品存在一体外观锁定，必须同时写明固定连接点、独立开口/部件位置及其不可混淆关系 |
 
 ## 规则
 
@@ -28,5 +28,6 @@
 5. 除冲突的产品机制与接触路径外，原片的构图、手位、环境、人物/宠物位置、光线和节奏应保留。
 6. Review the conflicting panels before accepting their replacement contact sheet. If a viewer can still read the image as a cap opening, disassembly, wrong-hole filling, or wrong orientation, the batch fails.
 7. The contact-sheet image prompt must state the substitution action and prohibited imagery literally; never replace this with a vague instruction such as "use correctly".
+8. 当目标产品存在固定一体外观结构时，替代动作的接触位置、受力方向和机位必须让该结构保持可读。不得用遮挡、翻转、省略连接部件或改接开口来保留动作表面形式。
 
 不要在本协议中保存任何产品示例。替代动作、禁止画面和可视验收点只能从本次的 `product-interaction-facts.md` 引用；换产品时不得继承此前产品的部件、开口、朝向、装粮路径或出粮/漏食规则。

@@ -28,6 +28,8 @@ Only a conflict in the first layer authorizes a replacement. A changed or unavai
 
 If a transferable behavior is not supported by the target product, record the missing evidence and design another target-supported behavior with the same story role, pacing cue, proof purpose, and emotional transition. Do not silently collapse it into generic sniffing, pawing, or food-search behavior merely because the source hardware differs.
 
+When the target product has a fixed integrated visual structure, preserve every integral component and its relative position while adapting the behavior. Change the contact point, pulling path, framing or camera angle before considering a different action; never make the product appear to lose, relocate or reconnect a component just to imitate the source action.
+
 ## Visual-style contract
 
 Create `plan/source-visual-style-profile.json` from the accepted breakdown and available source evidence. Record the dimensions above, cite the evidence and separate stable global treatment from segment-specific variation. The profile must include `style_fingerprint_en` and `anti_style_constraints_en` as concise English control text. Copy both values verbatim into `source_visual_style` in `plan/generation-prompt-plan.json`; the compiler must pass them into every target storyboard Segment. If scene reuse is selected, route at most one cleaned `source_scene_reference` per Segment. It controls only scene space, camera, light and spatial staging; it must never control target subject, target product, text, logo or source-specific hardware identity. Source action frames and contact sheets remain planning evidence only.
