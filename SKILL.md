@@ -26,6 +26,12 @@ Choose one workflow for the requested action:
 - **Generate and accept a final video**: read [final-video.md](references/workflows/final-video.md).
 - **Archive the creative chain**: read [lifecycle.md](references/workflows/lifecycle.md).
 
+### Flow2API MCP routing
+
+- External Codex final-video calls must use the standard MCP HTTP endpoint from `FLOW2API_MCP_HTTP_URL`; for the configured cloud deployment this is `http://43.153.49.143:38200/mcp`, authenticated with `FLOW2API_MCP_HTTP_TOKEN`.
+- Never use `http://43.153.49.143:38000/internal/mcp/v1` as an external MCP endpoint. Port `38000` is the Flow2API private bridge used internally by the MCP gateway; it is not the public MCP interface.
+- Keep `FLOW2API_MCP_FLOW_BRIDGE_URL` only in the server-side MCP deployment configuration. When the standard MCP endpoint returns an error, diagnose the gateway/bridge boundary and do not bypass it by submitting directly to the private bridge.
+
 ## Shared invariants
 
 Read only the invariants named by the selected workflow:
