@@ -97,7 +97,7 @@ For `high_fidelity_replication`, its `full_replication` alias, and `structure_re
 
 Source narrative order and relative pacing are planning evidence. The locked target script owns exact Beat timing. Keep source narrative IDs, source timestamps, rhythm-authority explanations and workflow instructions in the plan and compiled bundle metadata; never send them to the image model.
 
-Every replication Segment declares `subject_strategy`. `preserve_source_subject` requires the two source frames and product anchor but forbids a subject anchor. `replace_subject` additionally requires exactly one subject anchor. `structure_only` is valid only for structure replication, requires product and subject anchors, and forbids source frames as generation inputs. Prompts must state which identity authority wins; never create a blank-scene cleaning step.
+Every replication Segment declares `subject_strategy`. `preserve_source_subject` requires the two source frames and product anchor but forbids a subject anchor. `replace_subject` additionally requires exactly one subject anchor. `structure_only` is valid only for structure replication, requires product and subject anchors, and forbids source action frames and source contact sheets as generation inputs. It may optionally include one `source_scene_reference`, which controls only scene space, camera, light and spatial composition; it must not transfer the source subject, product, text, logo or source-specific hardware. Prompts must state which identity authority wins; never create a blank-scene cleaning step.
 
 ## Product-appearance authority
 

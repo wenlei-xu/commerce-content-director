@@ -14,6 +14,7 @@ NON_ENGLISH_CONTROL = re.compile(r"[\u0E00-\u0E7F\u3400-\u4DBF\u4E00-\u9FFF]")
 
 
 SOURCE_FRAME_ROLES = {"source_segment_start", "source_segment_result"}
+SOURCE_SCENE_REFERENCE_ROLE = "source_scene_reference"
 SUBJECT_STRATEGIES = {"preserve_source_subject", "replace_subject", "structure_only"}
 HIGH_FIDELITY_REPLICATION_MODES = {"high_fidelity_replication", "full_replication"}
 REPLICATION_MODES = HIGH_FIDELITY_REPLICATION_MODES | {"structure_replication"}
@@ -44,7 +45,7 @@ STORYBOARD_HUMAN_PRESENCE = {
 }
 IMAGE_ROLES = {
     "product_anchor", "product_detail", "product_scene", "subject_anchor",
-    "source_contact_sheet", *SOURCE_FRAME_ROLES,
+    "source_contact_sheet", SOURCE_SCENE_REFERENCE_ROLE, *SOURCE_FRAME_ROLES,
 }
 VIDEO_ROLES = IMAGE_ROLES | {"storyboard_board", "continuity_frame"}
 AUDIO_MODES = {"spoken", "sparse_spoken", "natural_sound_only"}
@@ -171,6 +172,8 @@ def validate_inputs(segment: dict[str, Any], job_kind: str) -> list[dict[str, An
         raise fail("input positions must be contiguous from 1")
     if segment.get("product_visible") and "product_anchor" not in {item["role"] for item in inputs}:
         raise fail("a visible product requires product_anchor")
+    if sum(item["role"] == SOURCE_SCENE_REFERENCE_ROLE for item in inputs) > 1:
+        raise fail("a Segment may use at most one source_scene_reference")
     return sorted(inputs, key=lambda item: item["position"])
 
 
@@ -185,11 +188,15 @@ def validate_subject_strategy(
     roles = [item["role"] for item in inputs]
     source_counts_ok = all(roles.count(role) == 1 for role in SOURCE_FRAME_ROLES)
     if strategy == "preserve_source_subject":
+        if SOURCE_SCENE_REFERENCE_ROLE in roles:
+            raise fail("source_scene_reference is available only for structure_only")
         if replication_mode not in HIGH_FIDELITY_REPLICATION_MODES or not source_counts_ok:
             raise fail("preserve_source_subject requires high-fidelity replication and exactly two source frames")
         if "subject_anchor" in roles:
             raise fail("preserve_source_subject forbids subject_anchor")
     elif strategy == "replace_subject":
+        if SOURCE_SCENE_REFERENCE_ROLE in roles:
+            raise fail("source_scene_reference is available only for structure_only")
         if replication_mode not in HIGH_FIDELITY_REPLICATION_MODES or not source_counts_ok:
             raise fail("replace_subject requires high-fidelity replication and exactly two source frames")
         if roles.count("subject_anchor") != 1:
@@ -198,7 +205,9 @@ def validate_subject_strategy(
         if replication_mode != "structure_replication":
             raise fail("structure_only requires structure_replication")
         if any(role in roles for role in SOURCE_FRAME_ROLES | {"source_contact_sheet"}):
-            raise fail("structure_only forbids source frames as generation inputs")
+            raise fail("structure_only forbids source action frames and source_contact_sheet as generation inputs")
+        if roles.count(SOURCE_SCENE_REFERENCE_ROLE) > 1:
+            raise fail("structure_only permits at most one source_scene_reference")
         if roles.count("subject_anchor") != 1:
             raise fail("structure_only requires exactly one subject_anchor")
     return str(strategy)
@@ -419,13 +428,21 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
     subject = segment.get("subject_identity")
     if isinstance(subject, str) and subject.strip():
         authority.append(subject.strip())
+    scene_reference = next((item for item in inputs if item["role"] == SOURCE_SCENE_REFERENCE_ROLE), None)
+    if scene_reference is not None:
+        authority.append(
+            f"Input {scene_reference['position']} is a source scene-space reference only. Preserve its spatial layout, camera direction, lighting, background geometry, subject scale and action staging; replace its people, animals, products, text, logos and source-specific hardware with the target authorities."
+        )
     strategy = validate_subject_strategy(segment, plan.get("replication_mode"), inputs)
     if strategy == "preserve_source_subject":
         authority.append("Preserve the source person or animal exactly; replace only the source product using the target product anchor. Do not add or redesign a subject.")
     elif strategy == "replace_subject":
         authority.append("The target subject anchor overrides source-subject identity. Replace subject and product in one generation step; do not create an empty-scene intermediate.")
     elif strategy == "structure_only":
-        authority.append("Source frames are planning evidence only and are not generation inputs. Target product and subject anchors own identity.")
+        if scene_reference is None:
+            authority.append("Source action frames are planning evidence only and are not generation inputs. Target product and subject anchors own identity.")
+        else:
+            authority.append("The source scene-space reference controls environment and spatial composition only. Target product and subject anchors own identity; do not copy the source subject, product, text or hardware mechanism.")
     validate_source_narrative_mapping(segment, plan.get("replication_mode"))
     keyframes = validate_storyboard_keyframes(
         segment, float(plan["raw_segment_seconds"])
