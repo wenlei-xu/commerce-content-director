@@ -50,6 +50,12 @@ Read the primary workflow first, then the active mode, nested workflow and execu
 - Every storyboard workflow and replication mode uses [gpt-image-2-execution.md](references/gpt-image-2-execution.md). Storyboard images use GPT Image 2 exclusively; never route image generation through Flow2API or silently change models/providers.
 - Final-video execution belongs to [final-video.md](references/workflows/final-video.md) and the contracts it names; it is not part of storyboard routing.
 
+### Flow2API MCP routing
+
+- External Codex final-video calls must use the standard MCP HTTP endpoint from `FLOW2API_MCP_HTTP_URL`; for the configured cloud deployment this is `http://43.153.49.143:38200/mcp`, authenticated with `FLOW2API_MCP_HTTP_TOKEN`.
+- Never use `http://43.153.49.143:38000/internal/mcp/v1` as an external MCP endpoint. Port `38000` is the Flow2API private bridge used internally by the MCP gateway; it is not the public MCP interface.
+- Keep `FLOW2API_MCP_FLOW_BRIDGE_URL` only in the server-side MCP deployment configuration. When the standard MCP endpoint returns an error, diagnose the gateway/bridge boundary and do not bypass it by submitting directly to the private bridge.
+
 ## Shared invariants
 
 Read only the invariants named by the selected workflow:
