@@ -18,7 +18,7 @@ computer that generated them.
 
 The human review surface is the script-version record. It owns `脚本版本`
 (for example A/B), `最终分镜图` attachments in Segment order, source script
-identity and `脚本状态`. A version is written only after its complete package
+identity and `分镜状态`. A version is written only after its complete package
 passes cross-Segment continuity validation.
 
 ## Counts and identity
@@ -49,10 +49,10 @@ Validate every complete board before packaging. Persist the request manifest,
 input/output hashes and deterministic retry identities locally; resume only
 missing requests under the same `run_id`.
 
-Human selection is per complete storyboard version. The reviewer compares the
-ordered A/B packages and marks at most one version `脚本状态=已锁定`; the
-other version becomes `脚本状态=未采用`. No human-facing workflow requires
-checking one candidate per Segment. The local run manifest keeps the selected
+Human selection is per complete storyboard version. The reviewer may approve
+either or both ordered A/B packages by setting each approved version to
+`分镜状态=已通过`. No human-facing workflow requires checking one candidate per
+Segment. The local run manifest keeps the approved
 boards traceable to their generation requests.
 
 Do not crop panels or combine panels from different candidate boards. If one
@@ -67,28 +67,21 @@ chronological ordering and continuity evidence. Missing, duplicate, unexpected
 or attachment-less Segments block finalization.
 
 Write the ordered attachments to the script-version record, set
-`脚本状态=待审核`, and fresh-read again. Only the human-approved version
-(`脚本状态=已锁定`) may enter final-video production; the other version must
-be `脚本状态=未采用`.
+`分镜状态=待审核`, and fresh-read again. Any human-approved version
+(`分镜状态=已通过`) may enter final-video production.
 
 Rejected candidate artifacts remain in the local run package for audit. Never
 overwrite an approved version with a different attachment set.
 
 ## Operator commands
 
-Historical operator command (not used by current storyboard runs):
-
-```powershell
-python scripts/storyboard_candidates.py publish `
-  --script-record-id <record_id> --segment-index <N> --attempt <N> `
-  --run-id <run_id> --job-id <flow_job_id> `
-  --idempotency-key <run_id>:Segment-<NN>:storyboard:<N> `
-  --model-id <model_id> --board <board_path> --profile <config_snapshot_path>
-```
+The historical `storyboard_candidates.py` operator was removed. Do not revive
+it or use its per-Segment record model. Current runs use
+`scripts/publish_storyboard_versions.py` and write only complete A/B packages.
 
 Current runs assemble each complete A/B script-version package from the local
 run manifest, write only the ordered `最终分镜图` attachments to the
 version-record writer configured for the active Feishu schema, and fresh-read
-the version record. Set the selected version's `脚本状态=已锁定` only after
-authorized human approval, while the other version is `脚本状态=未采用`.
+the version record. Set each approved version's `分镜状态=已通过` only after
+authorized human approval.
 There is no per-Segment checkbox selection in the human workflow.

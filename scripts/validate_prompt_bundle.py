@@ -168,11 +168,26 @@ def validate_bundle(
             errors.append(f"omni_audio_policy must be {expected_policy} for this final-video bundle")
     if kind == "storyboard_image" and isinstance(target_seconds, (int, float)) and not isinstance(target_seconds, bool):
         expected_count = int(float(target_seconds) / float(raw_seconds))
-        if len(prompts) != expected_count:
-            errors.append(f"storyboard_image requires {expected_count} target production Segment(s)")
+        versions = bundle.get("versions")
+        version_count = len(versions) if isinstance(versions, list) and versions else 1
+        if len(prompts) != expected_count * version_count:
+            errors.append(f"storyboard_image requires {expected_count * version_count} Segment/version prompt(s)")
+        if isinstance(versions, list) and versions and set(versions) != {"A", "B"}:
+            errors.append("storyboard versions must contain exactly A and B")
+        if isinstance(versions, list) and set(versions) == {"A", "B"}:
+            expected_per_version = expected_count
+            observed = {version: 0 for version in versions}
+            for entry in prompts:
+                version = entry.get("version") if isinstance(entry, dict) else None
+                if version in observed:
+                    observed[version] += 1
+                else:
+                    errors.append("every versioned storyboard prompt must declare version A or B")
+            if any(count != expected_per_version for count in observed.values()):
+                errors.append(f"each storyboard version requires {expected_per_version} prompt(s)")
         candidates_per_segment = bundle.get("candidates_per_segment")
         if isinstance(candidates_per_segment, int) and not isinstance(candidates_per_segment, bool):
-            expected_jobs = expected_count * candidates_per_segment
+            expected_jobs = expected_count * version_count * candidates_per_segment
             if bundle.get("expected_candidate_job_count") != expected_jobs:
                 errors.append(
                     f"expected_candidate_job_count must be {expected_jobs}"
@@ -239,7 +254,10 @@ def validate_bundle(
                     entry.get("visual_continuity"),
                     f"{prefix}.visual_continuity",
                 )
-                validate_target_time_range(segment, index, float(raw_seconds))
+                segment_position = index
+                if isinstance(versions, list) and set(versions) == {"A", "B"}:
+                    segment_position = index % expected_count
+                validate_target_time_range(segment, segment_position, float(raw_seconds))
                 validate_source_narrative_mapping(segment, bundle.get("replication_mode"))
             if kind == "storyboard_image" and bundle.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
                 roles = [item.get("role") for item in entry.get("inputs") or []]
@@ -250,6 +268,18 @@ def validate_bundle(
                     errors.append(f"{prefix}: high-fidelity replication cannot use source_contact_sheet")
             if kind == "storyboard_image":
                 validate_subject_strategy(segment, bundle.get("replication_mode"), inputs)
+                director = entry.get("director")
+                if not isinstance(director, dict) or director.get("module") != "Director":
+                    errors.append(f"{prefix}: storyboard prompt must include Director output")
+                elif director.get("script_mutation") != "forbidden":
+                    errors.append(f"{prefix}: Director must declare script_mutation=forbidden")
+                elif not isinstance(director.get("panels"), list) or len(director["panels"]) != 4:
+                    errors.append(f"{prefix}: Director output must contain four panels")
+                else:
+                    required_panel_fields = ("static_moment", "camera", "composition", "performance", "continuity")
+                    for panel_index, panel in enumerate(director["panels"]):
+                        if not isinstance(panel, dict) or any(not isinstance(panel.get(field), str) or not panel[field].strip() for field in required_panel_fields):
+                            errors.append(f"{prefix}: Director panel {panel_index} is missing a visual decision")
         except ValueError as error:
             errors.append(f"{prefix}: {error}")
         dialogue = entry.get("dialogue") or []

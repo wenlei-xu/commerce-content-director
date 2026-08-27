@@ -11,8 +11,9 @@ Treat Feishu writes and media uploads as a resumable Saga, not an assumed transa
 For storyboard generation, keep each board and request manifest local until a
 complete A/B package is ready. Persist the deterministic request-to-version/
 Segment mapping, exact model/output settings, input hashes and idempotency
-identities before execution. The only storyboard writeback is the complete A/B
-package to its script-version record; there is no remote candidate record,
+identities before execution. Use the single A/B writer to create or resume two
+script-version records, each with an actual `来源脚本` relation, its `脚本版本`
+and ordered attachments. There is no remote per-Segment candidate record,
 `提交中`/`待选择` candidate state or storyboard-mapping field.
 
 Completion requires both local evidence and a fresh remote read of the A/B script

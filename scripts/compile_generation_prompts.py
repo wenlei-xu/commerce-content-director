@@ -9,6 +9,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from director import direct_segment
+
 
 NON_ENGLISH_CONTROL = re.compile(r"[\u0E00-\u0E7F\u3400-\u4DBF\u4E00-\u9FFF]")
 
@@ -30,6 +32,9 @@ FIXED_STORYBOARD_SIZE = "1152x2048"
 FIXED_STORYBOARD_QUALITY = "high"
 FIXED_STORYBOARD_FORMAT = "png"
 DEFAULT_STORYBOARD_CONCURRENCY = 5
+# ``candidates_per_segment`` is retained as a plan compatibility key for
+# local retry slots only.  It never creates a Feishu record; remote authority
+# is the complete A/B script-version package.
 STORYBOARD_PANEL_ORDER = ("top_left", "top_right", "bottom_left", "bottom_right")
 STORYBOARD_PANEL_LABELS = {
     "top_left": "Top-left",
@@ -288,6 +293,15 @@ def validate_plan(plan: dict[str, Any]) -> None:
     if raw_seconds <= 0:
         raise fail("raw_segment_seconds must be positive")
     if job_kind == "storyboard_image":
+        versions = plan.get("versions")
+        if versions is not None and versions != ["A", "B"]:
+            raise fail("storyboard_image versions must be exactly ['A', 'B']")
+        if versions == ["A", "B"]:
+            specs = plan.get("version_specs")
+            if isinstance(specs, dict):
+                deltas = [specs.get(version, {}).get("variant_delta") if isinstance(specs.get(version), dict) else None for version in versions]
+                if all(isinstance(delta, str) and delta.strip() for delta in deltas) and deltas[0].strip() == deltas[1].strip():
+                    raise fail("A/B version_specs must declare different variant_delta values")
         if plan.get("executor") != FIXED_STORYBOARD_EXECUTOR:
             raise fail(f"storyboard_image executor must be {FIXED_STORYBOARD_EXECUTOR}; Flow2API image generation is forbidden")
         if plan.get("model") != FIXED_STORYBOARD_MODEL:
@@ -418,7 +432,9 @@ def storyboard_keyframe_lines(keyframes: list[dict[str, Any]]) -> list[str]:
         lines.append(
             f"{label} ({keyframe['start']:.1f}–{keyframe['end']:.1f}s): "
             f"Camera: {keyframe['camera'].strip()} "
-            f"Keyframe: {keyframe['description'].strip()} "
+            f"Composition: {keyframe['composition'].strip()} "
+            f"Static moment: {keyframe['static_moment'].strip()} "
+            f"Performance: {keyframe['performance'].strip()} "
             f"Continuity: {keyframe['continuity'].strip()} "
             f"Human presence: {human_presence}"
         )
@@ -426,6 +442,11 @@ def storyboard_keyframe_lines(keyframes: list[dict[str, Any]]) -> list[str]:
 
 
 def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
+    director_output = direct_segment(
+        segment,
+        variant=str(segment.get("_director_variant", "A")),
+        variant_delta=segment.get("_director_variant_delta"),
+    )
     storyboard = plan["storyboard"]
     inputs = validate_inputs(segment, "storyboard_image")
     continuity = validate_string_list(
@@ -484,9 +505,7 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         else:
             authority.append("The source scene-space reference controls environment and spatial composition only. Target product and subject anchors own identity; do not copy the source subject, product, text or hardware mechanism.")
     validate_source_narrative_mapping(segment, plan.get("replication_mode"))
-    keyframes = validate_storyboard_keyframes(
-        segment, float(plan["raw_segment_seconds"])
-    )
+    keyframes = director_output["panels"]
     source_visual_style = validate_source_visual_style(plan)
     style_lines = (
         [source_visual_style[field] for field in SOURCE_VISUAL_STYLE_FIELDS]
@@ -508,6 +527,7 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         "GLOBAL VISUAL CONTINUITY\n" + "\n".join([
             *style_lines,
             *continuity,
+            f"Director variant {director_output['variant']}: {director_output['variant_delta']}",
             "Keep the same scene, surface, lighting, product identity, subject identity, and spatial relationship across all four panels unless a keyframe explicitly changes one of them.",
         ]),
         "REFERENCE AND IDENTITY AUTHORITY\n" + "\n".join(authority),
@@ -585,6 +605,9 @@ def build_execution_jobs(
     )
     for prompt_index, prompt in enumerate(prompts):
         segment_id = prompt["segment_id"]
+        version = prompt.get("version")
+        version_prefix = f"{version}:" if version else ""
+        version_suffix = f":{version}" if version else ""
         if job_kind == "storyboard_image":
             candidate_count = positive_integer(
                 candidates_per_segment, "candidates_per_segment"
@@ -594,15 +617,16 @@ def build_execution_jobs(
             attempts = range(1, 2)
         for attempt in attempts:
             jobs.append({
-                "job_key": f"{segment_id}:{job_kind}:attempt-{attempt:02d}",
+                "job_key": f"{version_prefix}{segment_id}:{job_kind}:attempt-{attempt:02d}",
                 "prompt_index": prompt_index,
                 "segment_id": segment_id,
+                **({"version": version} if version else {}),
                 "attempt": attempt,
                 "content_id_template": (
-                    f"{{script_record_id}}:{segment_id}:attempt-{attempt:02d}"
+                    f"{{script_record_id}}{version_suffix}:{segment_id}:attempt-{attempt:02d}"
                 ),
                 "idempotency_key_template": (
-                    f"{{run_id}}:{segment_id}:{idempotency_kind}:{attempt}"
+                    f"{{run_id}}{version_suffix}:{segment_id}:{idempotency_kind}:{attempt}"
                 ),
             })
     return jobs
@@ -649,32 +673,54 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
         if plan["job_kind"] == "storyboard_image"
         else None
     )
+    explicit_versions = plan.get("versions")
+    versions = explicit_versions if isinstance(explicit_versions, list) and explicit_versions else [None]
+    if plan["job_kind"] == "storyboard_image" and any(version not in {"A", "B"} for version in versions if version is not None):
+        raise fail("storyboard versions must be A or B")
     prompts = []
-    for segment in plan["segments"]:
-        compiled_prompt = compiler(plan, segment)
-        dialogue = segment.get("dialogue", [])
-        validate_english_control_prompt(compiled_prompt, dialogue)
-        prompts.append({
-            "segment_id": segment["segment_id"],
-            "target_time_range": segment.get("target_time_range"),
-            "source_narrative_segment_ids": segment.get("source_narrative_segment_ids", []),
-            "subject_strategy": segment.get("subject_strategy"),
-            "product_visual_lock": validate_product_visual_lock(segment),
-            "visual_continuity": segment.get("visual_continuity"),
-            "prompt": compiled_prompt,
-            "inputs": validate_inputs(segment, plan["job_kind"]),
-            "beats": validate_beats(segment, float(plan["raw_segment_seconds"])),
-            "dialogue": segment.get("dialogue", []),
-            "audio_mode": segment.get("audio_mode"),
-            "voiceover_provider": plan.get("voiceover_provider"),
-            "omni_audio_policy": plan.get("omni_audio_policy"),
-            "product_visible": bool(segment.get("product_visible")),
-            "candidate_attempts": (
-                list(range(1, candidates_per_segment + 1))
-                if candidates_per_segment is not None
+    for version in versions:
+        for source_segment in plan["segments"]:
+            segment = dict(source_segment)
+            if version is not None:
+                segment["_director_variant"] = version
+                specs = plan.get("version_specs")
+                if isinstance(specs, dict) and isinstance(specs.get(version), dict):
+                    segment["_director_variant_delta"] = specs[version].get("variant_delta")
+            compiled_prompt = compiler(plan, segment)
+            dialogue = segment.get("dialogue", [])
+            validate_english_control_prompt(compiled_prompt, dialogue)
+            director_output = (
+                direct_segment(
+                    segment,
+                    variant=version or "A",
+                    variant_delta=segment.get("_director_variant_delta"),
+                )
+                if plan["job_kind"] == "storyboard_image"
                 else None
-            ),
-        })
+            )
+            prompts.append({
+                "segment_id": segment["segment_id"],
+                **({"version": version} if version else {}),
+                "target_time_range": segment.get("target_time_range"),
+                "source_narrative_segment_ids": segment.get("source_narrative_segment_ids", []),
+                "subject_strategy": segment.get("subject_strategy"),
+                "product_visual_lock": validate_product_visual_lock(segment),
+                "visual_continuity": segment.get("visual_continuity"),
+                "director": director_output,
+                "prompt": compiled_prompt,
+                "inputs": validate_inputs(segment, plan["job_kind"]),
+                "beats": validate_beats(segment, float(plan["raw_segment_seconds"])),
+                "dialogue": segment.get("dialogue", []),
+                "audio_mode": segment.get("audio_mode"),
+                "voiceover_provider": plan.get("voiceover_provider"),
+                "omni_audio_policy": plan.get("omni_audio_policy"),
+                "product_visible": bool(segment.get("product_visible")),
+                "candidate_attempts": (
+                    list(range(1, candidates_per_segment + 1))
+                    if candidates_per_segment is not None
+                    else None
+                ),
+            })
     execution_jobs = build_execution_jobs(
         plan["job_kind"], prompts, candidates_per_segment
     )
@@ -694,6 +740,7 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "raw_segment_seconds": plan["raw_segment_seconds"],
         "storyboard": plan.get("storyboard"),
         "image_output": plan.get("image_output"),
+        "versions": [version for version in versions if version is not None],
         "candidates_per_segment": candidates_per_segment,
         "expected_candidate_job_count": (
             len(prompts) * candidates_per_segment

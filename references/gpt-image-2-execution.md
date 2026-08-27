@@ -17,11 +17,11 @@ Do not infer an alias, use `chatgpt-image-latest`, select another GPT Image mode
 2. Validate the compiled prompt bundle before generation. Persist the complete request manifest, Segment/version mapping, ordered input paths/hashes, output path, model, output settings, and deterministic idempotency identity before the first call.
 3. Every storyboard request has routed reference images, so an official API implementation uses `v1/images/edits` with ordered `image[]` inputs. Map the plan's `format=png` to the API's `output_format=png`. Use `v1/images/generations` only for a future validated request with no image inputs. With `gpt-image-2`, omit `input_fidelity`; the model already processes image inputs at high fidelity.
 4. Compile the complete execution set for one script's storyboard stage before submitting anything. When two or more requests are ready, execute them concurrently with maximum concurrency 5. Capacity or rate limits may reduce concurrency; they do not authorize a provider/model change. Use one request only when exactly one initial or repair request is ready.
-5. Preserve the compiled prompt, input order, requested model and output settings exactly for each request. Record the returned request ID when the transport exposes one. A same-attempt transport retry reuses the same idempotency identity; an intentional new visual candidate increments `attempt`.
+5. Preserve the compiled prompt, input order, requested model and output settings exactly for each request. Record the returned request ID when the transport exposes one. A same-attempt transport retry reuses the same idempotency identity; an intentional replacement board increments the local `attempt` and never creates a remote Segment record.
 
 ## Retrieve and validate
 
-1. Save only a completed image response as the candidate artifact. Do not treat a tool acknowledgement, preview, pending URL, or partial response as the final board.
+1. Save only a completed image response as a local board artifact. Do not treat a tool acknowledgement, preview, pending URL, or partial response as the final board.
 2. Hash the saved output and update the request manifest with completion state, request ID, artifact path, artifact hash, timing, and error evidence when applicable.
 3. Run `scripts/validate_generation_storyboards.py` with the active configuration snapshot, then perform the workflow's visual, product-fidelity and script-coverage preflight. This is machine/agent preflight evidence, not final human approval.
 4. Count qualified boards per script version and Segment. Retry only missing or failed requests; never regenerate a successful board merely because another concurrent request failed.

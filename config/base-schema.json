@@ -16,6 +16,10 @@
   },
   "storyboard_version_policy": {
     "versions_per_script": 2,
+    "versions": ["A", "B"],
+    "source_link_field": "来源脚本",
+    "approval_field": "分镜状态",
+    "writeback_script": "scripts/publish_storyboard_versions.py",
     "batch_submission_threshold": 2,
     "batch_scope": "single_script_single_stage"
   },
@@ -176,7 +180,6 @@
       "status_field": "记录状态",
       "status_active": "活跃",
       "status_archived": "已归档",
-      "script_status_field": "脚本状态",
       "validation_status_field": "脚本检查状态",
       "direction_link_field": "来源创意方向",
       "final_film_link_field": "最终成片",
@@ -229,7 +232,6 @@
         "accepted_film_count": "已验收成片数",
         "remaining_executions": "剩余执行次数"
       },
-      "script_status_values": {"pending_review": "待审核", "revision_required": "需修改", "locked": "已锁定", "not_adopted": "未采用"},
       "validation_status_values": {"pending": "待检查", "failed": "未通过", "passed": "通过"},
       "storyboard_status_values": {"not_started": "未开始", "generating": "生成中", "pending_review": "待审核", "passed": "已通过", "rejected": "已驳回"},
       "subtitle_mode_values": {"plain": "普通字幕", "emphasis": "重点强调字幕", "none": "不生成"}
