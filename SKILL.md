@@ -45,7 +45,7 @@ Read the primary workflow first, then the active mode, nested workflow and execu
 
 - [action-direction.md](references/workflows/action-direction.md) is a planning step inside script production and runs before writing Beats. It produces one scene-description paragraph, not a new data object or approval step. Read it directly only when the user requests that paragraph as the complete deliverable.
 - [dialogue-copy-optimization.md](references/workflows/dialogue-copy-optimization.md) is the dialogue module used when drafting, reviewing, or revising spoken copy. It returns a local proposal and review report; the parent script workflow remains the only writer of `structured_script` and Feishu.
-- The **product action library** is a Feishu knowledge table, not a workflow or a second script authority. During script production, query only `是否可用=可用` actions linked to the active product with `python scripts/query_product_actions.py --product-record-id <record_id>`. Select a listed action and write its scene-specific use into `structured_script.product_actions`; never invent an unlisted product action.
+- The **product action library** is a Feishu knowledge table, not a workflow or a second script authority. During script production, query only `是否可用=可用` actions linked to the active product with `python scripts/query_product_actions.py --product-record-id <record_id>`. Select a listed action and write its scene-specific use into `structured_script.product_actions`; preserve optional `动作示意图` references and `关联卖点（可选）` when present, but never force a pure-interest action to demonstrate a selling point and never invent an unlisted product action.
 
 ### Execution contracts
 

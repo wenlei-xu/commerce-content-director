@@ -68,7 +68,20 @@
           "library_record_id": {"type": "string", "minLength": 1},
           "action": {"type": "string", "minLength": 1},
           "how_to": {"type": "string", "minLength": 1},
-          "visual_focus": {"type": "string", "minLength": 1}
+          "visual_focus": {"type": "string", "minLength": 1},
+          "action_reference_images": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["file_token"],
+              "properties": {
+                "file_token": {"type": "string", "minLength": 1},
+                "name": {"type": "string", "minLength": 1},
+                "type": {"type": "string", "minLength": 1}
+              }
+            }
+          },
+          "related_benefit": {"type": "string", "minLength": 1}
         }
       }
     },

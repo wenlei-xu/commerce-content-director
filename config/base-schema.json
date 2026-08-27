@@ -1,5 +1,5 @@
 {
-  "schema_version": 15,
+  "schema_version": 16,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -65,6 +65,8 @@
         "product_link": "产品",
         "how_to": "怎么玩",
         "visual_focus": "画面重点",
+        "action_reference_images": "动作示意图",
+        "related_benefit": "关联卖点（可选）",
         "availability": "是否可用"
       }
     },

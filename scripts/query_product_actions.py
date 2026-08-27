@@ -24,6 +24,22 @@ if hasattr(sys.stdout, "reconfigure"):
 from migrate_schema_v6 import Feishu, config, linked_ids, text  # noqa: E402
 
 
+def attachment_refs(value: Any) -> list[dict[str, Any]]:
+    """Return stable attachment metadata for optional action references."""
+    if not isinstance(value, list):
+        return []
+    refs: list[dict[str, Any]] = []
+    for item in value:
+        if not isinstance(item, dict) or not item.get("file_token"):
+            continue
+        ref = {"file_token": str(item["file_token"])}
+        for key in ("name", "type"):
+            if item.get(key):
+                ref[key] = str(item[key])
+        refs.append(ref)
+    return refs
+
+
 def query_actions(api: Feishu, schema: dict[str, Any], product_record_id: str, *, include_unavailable: bool = False) -> dict[str, Any]:
     table = schema["tables"]["product_action_library"]
     records = api.records(schema["app_token"], table["table_id"])
@@ -45,6 +61,8 @@ def query_actions(api: Feishu, schema: dict[str, Any], product_record_id: str, *
                 "action": text(values.get(fields["action"])),
                 "how_to": text(values.get(fields["how_to"])),
                 "visual_focus": text(values.get(fields["visual_focus"])),
+                "action_reference_images": attachment_refs(values.get(fields["action_reference_images"])),
+                "related_benefit": text(values.get(fields["related_benefit"])),
                 "availability": availability,
             }
         )
