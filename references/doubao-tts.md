@@ -6,7 +6,7 @@ Use this provider as the mandatory Chinese external voiceover route in the final
 - Authentication: local `DOUBAO_TTS_API_KEY`; never copy it into prompts, manifests, reports, or Feishu.
 - Resource ID: `seed-tts-2.0`.
 - Supported workflow languages: `zh-CN` and `th`. Send `explicit_language=zh-cn` or `explicit_language=th` through `additions` according to the immutable language lock.
-- Default speaker configuration is in `config/doubao-tts.json`: the official Chinese sample voice for `zh-CN`, and the official Mildred neutral Thai 2.0 voice for `th`. Override it with `DOUBAO_TTS_SPEAKER_ZH_CN`, `DOUBAO_TTS_SPEAKER_TH`, or the CLI `--speaker` argument only when the selected voice is a Doubao TTS 2.0 voice that supports the locked language.
+- Default speaker configuration is in `config/doubao-tts.json`: `zh_female_qinqienv_uranus_bigtts` for `zh-CN`, and the official Mildred neutral Thai 2.0 voice for `th`. Override it with `DOUBAO_TTS_SPEAKER_ZH_CN`, `DOUBAO_TTS_SPEAKER_TH`, or the CLI `--speaker` argument only when the selected voice is a Doubao TTS 2.0 voice that supports the locked language.
 - Keep generated audio and the non-secret report inside the current run package. Never log request headers or the API key.
 - Chinese synthesis defaults to `speech_rate=15`. The Thai default remains unchanged.
 

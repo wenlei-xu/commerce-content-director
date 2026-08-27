@@ -17,7 +17,11 @@
     },
     "storyboard_generation": {
       "capabilities": {"feishu": "required", "gpt_image": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "required"},
+      "default_replication_mode": "high_fidelity_replication",
       "modes": {
+        "high_fidelity_replication": {
+          "capabilities": {"ffmpeg": "not_required", "asr": "not_required"}
+        },
         "full_replication": {
           "capabilities": {"ffmpeg": "not_required", "asr": "not_required"}
         }

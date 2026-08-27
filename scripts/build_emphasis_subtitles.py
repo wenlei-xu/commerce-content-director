@@ -9,11 +9,13 @@ from pathlib import Path
 from typing import Any
 
 STYLE_TAGS = {
+    # Keep the production subtitle palette intentionally restrained:
+    # ordinary text is white and every approved emphasis span is yellow.
     "keyword_yellow": r"{\c&H0000FFFF&\b1}",
-    "number_pop": r"{\c&H0000FFFF&\b1\fscx130\fscy130}",
-    "result_pop": r"{\c&H0000FF00&\b1\fscx125\fscy125}",
-    "product_accent": r"{\c&H00FFFF00&\b1}",
-    "pain_point_red": r"{\c&H000000FF&\b1}",
+    "number_pop": r"{\c&H0000FFFF&\b1}",
+    "result_pop": r"{\c&H0000FFFF&\b1}",
+    "product_accent": r"{\c&H0000FFFF&\b1}",
+    "pain_point_red": r"{\c&H0000FFFF&\b1}",
 }
 RESET = r"{\rDefault}"
 
@@ -48,6 +50,36 @@ def render_caption(text: str, spans: list[dict[str, Any]]) -> str:
     return "".join(parts)
 
 
+def wrap_rendered_caption(rendered: str, max_chars: int) -> str:
+    """Insert explicit ASS line breaks without splitting inline style tags."""
+    if max_chars <= 0:
+        return rendered
+    output: list[str] = []
+    visible_chars = 0
+    index = 0
+    while index < len(rendered):
+        if rendered[index] == "{":
+            end = rendered.find("}", index + 1)
+            if end < 0:
+                raise ValueError("unterminated ASS style tag")
+            output.append(rendered[index : end + 1])
+            index = end + 1
+            continue
+        if rendered[index] == "\\" and rendered[index : index + 2] == r"\N":
+            output.append(r"\N")
+            visible_chars = 0
+            index += 2
+            continue
+        punctuation = "，。！？；：、）》」』”’"
+        if visible_chars >= max_chars and rendered[index] not in punctuation:
+            output.append(r"\N")
+            visible_chars = 0
+        output.append(rendered[index])
+        visible_chars += 1
+        index += 1
+    return "".join(output)
+
+
 def timing_cues(value: Any) -> list[dict[str, Any]]:
     cues = (value.get("cues") or value.get("lines")) if isinstance(value, dict) else value
     if not isinstance(cues, list):
@@ -62,6 +94,7 @@ def build_ass(
     font_name: str = "Leelawadee UI",
     font_size: int = 68,
     margin_v: int = 150,
+    wrap_chars: int = 0,
 ) -> str:
     if (script.get("runtime") or {}).get("subtitle_mode") != "emphasis_from_final_audio":
         raise ValueError("structured script is not in emphasis_from_final_audio mode")
@@ -84,7 +117,7 @@ def build_ass(
         if start < 0 or end <= start:
             raise ValueError(f"invalid subtitle timing: {line_id}")
         spans = (line.get("caption") or {}).get("emphasis_spans") or []
-        rendered = render_caption(text, spans)
+        rendered = wrap_rendered_caption(render_caption(text, spans), wrap_chars)
         events.append(f"Dialogue: 0,{ass_time(start)},{ass_time(end)},Default,,0,0,0,,{rendered}")
     header = f"""[Script Info]
 ScriptType: v4.00+
@@ -95,7 +128,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Default,{font_name},{font_size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,4,0,2,70,70,{margin_v},1
+Style: Default,{font_name},{font_size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,0,2,70,70,{margin_v},1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
@@ -111,11 +144,19 @@ def main() -> int:
     parser.add_argument("--font-name", default="Leelawadee UI")
     parser.add_argument("--font-size", type=int, default=68)
     parser.add_argument("--margin-v", type=int, default=150)
+    parser.add_argument("--wrap-chars", type=int, default=0, help="Maximum visible characters per subtitle line; 0 disables explicit wrapping")
     args = parser.parse_args()
     try:
         script = json.loads(args.script.read_text(encoding="utf-8"))
         timing = json.loads(args.timing.read_text(encoding="utf-8"))
-        output = build_ass(script, timing, font_name=args.font_name, font_size=args.font_size, margin_v=args.margin_v)
+        output = build_ass(
+            script,
+            timing,
+            font_name=args.font_name,
+            font_size=args.font_size,
+            margin_v=args.margin_v,
+            wrap_chars=args.wrap_chars,
+        )
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
         raise SystemExit(f"Unable to build emphasis subtitles: {exc}") from exc
     args.out.parent.mkdir(parents=True, exist_ok=True)

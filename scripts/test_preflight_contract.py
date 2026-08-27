@@ -47,6 +47,15 @@ class PreflightContractTests(unittest.TestCase):
         self.assertEqual(requirements["ffmpeg"], "not_required")
         self.assertEqual(requirements["asr"], "not_required")
 
+    def test_high_fidelity_replication_uses_reviewed_segment_frames_without_media_runtime(self) -> None:
+        requirements = resolve_requirements(self.policy, "storyboard_generation", mode="high_fidelity_replication")
+        self.assertEqual(requirements["ffmpeg"], "not_required")
+        self.assertEqual(requirements["asr"], "not_required")
+
+    def test_high_fidelity_replication_is_the_default_replication_mode(self) -> None:
+        storyboard_policy = self.policy["workflows"]["storyboard_generation"]
+        self.assertEqual(storyboard_policy["default_replication_mode"], "high_fidelity_replication")
+
     def test_final_video_requires_asr_only_for_spoken_audio_modes(self) -> None:
         silent = resolve_requirements(self.policy, "final_video", audio_mode="natural_sound_only", target_spoken_language="zh-CN")
         spoken = resolve_requirements(self.policy, "final_video", audio_mode="spoken", target_spoken_language="zh-CN")

@@ -51,7 +51,6 @@ def main() -> int:
         "字幕模式": {"auto_from_final_audio": "普通字幕", "emphasis_from_final_audio": "重点强调字幕", "none": "不生成"}[runtime["subtitle_mode"]],
         "创作策略": json.dumps(strategy, ensure_ascii=False),
         "脚本修订号": value["script_revision"],
-        "脚本状态": "待审核",
         "脚本检查状态": "通过",
         "结构化脚本": json.dumps(value, ensure_ascii=False),
         "脚本质检摘要": json.dumps(report, ensure_ascii=False),

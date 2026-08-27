@@ -20,7 +20,7 @@ def load() -> dict[str, Any]:
 
 def required_names(table: dict[str, Any]) -> set[str]:
     result = set(table.get("fields", {}).values())
-    for key in ("status_field", "process_field", "direction_status_field", "script_status_field", "validation_status_field", "direction_link_field", "script_link_field", "script_link_field", "archive_time_field", "archive_reason_field", "protect_field", "execution_limit_field", "accepted_film_count_field"):
+    for key in ("status_field", "process_field", "direction_status_field", "validation_status_field", "direction_link_field", "script_link_field", "script_link_field", "archive_time_field", "archive_reason_field", "protect_field", "execution_limit_field", "accepted_film_count_field"):
         if table.get(key):
             result.add(table[key])
     return result
