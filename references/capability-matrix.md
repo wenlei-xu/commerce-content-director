@@ -14,7 +14,7 @@
 
 1. Run `python scripts/preflight.py --workflow <workflow> --json`. Add `--mode full_replication` for a full-replication storyboard run. Add `--audio-mode spoken|sparse_spoken|natural_sound_only` for a final-video run.
 2. When `feishu` is required, make a read-only Feishu metadata call only for the logical tables used by that workflow.
-3. When `gpt_image` is required, verify that the approved route can execute the exact model `gpt-image-2` and accept the planned reference count, then follow [gpt-image-2-execution.md](gpt-image-2-execution.md). A direct API route must use the official OpenAI Images API and `OPENAI_API_KEY`; a configured generation tool must explicitly guarantee GPT Image 2.
+3. When `gpt_image` is required, use the configured standard ChatGPT2API MCP endpoint, verify with `chatgpt_health` and `chatgpt_list_models` that it can execute the exact model `gpt-image-2`, and confirm it accepts the planned reference count before following [gpt-image-2-execution.md](gpt-image-2-execution.md). Do not switch to a direct API, Flow2API, another image model or another provider.
 4. When `flow2api` is required, call the registered Sidecar MCP `flow_get_service_health(include_dependencies=true)` and `flow_list_models(include_unavailable=true)`. This is the final-video path only. Do not call Flow2API for a workflow where it is `not_required`.
 5. The local script checks only local requirements. Registered-tool, API-auth, MCP-health and model checks remain at their execution seams; do not emulate them with private provider endpoints.
 
