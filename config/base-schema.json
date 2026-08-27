@@ -1,5 +1,5 @@
 {
-  "schema_version": 14,
+  "schema_version": 15,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -52,6 +52,20 @@
         "default_anchor": "默认产品锚点",
         "detail_assets": "产品细节图",
         "scene_assets": "产品场景图"
+      }
+    },
+    "product_action_library": {
+      "table_id": "tblnkKeNR1GbbrvL",
+      "name": "产品动作库",
+      "product_link_field": "产品",
+      "availability_field": "是否可用",
+      "availability_active": "可用",
+      "fields": {
+        "action": "动作",
+        "product_link": "产品",
+        "how_to": "怎么玩",
+        "visual_focus": "画面重点",
+        "availability": "是否可用"
       }
     },
     "subject_assets": {

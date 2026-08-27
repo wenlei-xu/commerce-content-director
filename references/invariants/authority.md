@@ -11,6 +11,7 @@ The source precedence is:
 5. Local run package created for the current run.
 
 Do not infer a direction, script, product action, dialogue or relation from stale local material.
+The product action library owns only reusable, confirmed ways to stage a product. A selected action is scenarioized in the script Beat and does not become a storyboard record.
 Do not infer storyboard selection from local filenames or folders. The complete
 A/B version records and their ordered `最终分镜图` attachments are the
 cross-computer authority. Local request manifests and candidate artifacts are

@@ -58,7 +58,20 @@
       }
     },
     "screen_texts": {"type": "array", "items": {"type": "object", "required": ["text_id", "beat_id", "start", "end", "text", "function", "is_subtitle"]}},
-    "product_actions": {"type": "array"},
+    "product_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["action"],
+        "properties": {
+          "beat_id": {"type": "string", "minLength": 1},
+          "library_record_id": {"type": "string", "minLength": 1},
+          "action": {"type": "string", "minLength": 1},
+          "how_to": {"type": "string", "minLength": 1},
+          "visual_focus": {"type": "string", "minLength": 1}
+        }
+      }
+    },
     "segments": {"type": "array", "minItems": 1, "items": {"type": "object", "required": ["segment_id", "start", "end", "start_state", "end_state", "dialogue_ids", "product_final_state", "next_segment_inherits"]}},
     "loops": {"type": "array", "items": {"type": "object", "required": ["loop_id", "open_beat_id", "viewer_question", "close_beat_id", "payoff", "status"]}},
     "ending": {"type": "object", "required": ["primary_cta", "cta_screen_text_id", "ending_visual", "hook_closure"]}

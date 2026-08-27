@@ -45,6 +45,7 @@ Read the primary workflow first, then the active mode, nested workflow and execu
 
 - [action-direction.md](references/workflows/action-direction.md) is a planning step inside script production and runs before writing Beats. It produces one scene-description paragraph, not a new data object or approval step. Read it directly only when the user requests that paragraph as the complete deliverable.
 - [dialogue-copy-optimization.md](references/workflows/dialogue-copy-optimization.md) is the dialogue module used when drafting, reviewing, or revising spoken copy. It returns a local proposal and review report; the parent script workflow remains the only writer of `structured_script` and Feishu.
+- The **product action library** is a Feishu knowledge table, not a workflow or a second script authority. During script production, query only `是否可用=可用` actions linked to the active product with `python scripts/query_product_actions.py --product-record-id <record_id>`. Select a listed action and write its scene-specific use into `structured_script.product_actions`; never invent an unlisted product action.
 
 ### Execution contracts
 
@@ -62,6 +63,7 @@ Read the primary workflow first, then the active mode, nested workflow and execu
 Read only the invariants named by the selected workflow:
 
 - [authority.md](references/invariants/authority.md) — schema and record authority.
+- [product-action-library-contract.md](references/domain/product-action-library-contract.md) — confirmed product actions and script handoff.
 - [script-field-contract.md](references/invariants/script-field-contract.md) — object ownership and single source of truth.
 - [script-validation.md](references/invariants/script-validation.md) — blocking quality checks.
 - [product-execution-contract.md](references/invariants/product-execution-contract.md) — product action correctness.
@@ -85,6 +87,7 @@ Read only the invariants named by the selected workflow:
 6. Only validation_status=passed scripts may become locked. Only locked scripts may enter storyboard production. Only storyboard-passed scripts may enter final-video production.
 7. Keep structured_script as the only machine source of truth. Render every human-readable script field from it after validation; do not independently edit duplicate text fields.
 8. Product hard facts, product assets and selected subjects are execution authority. When the product record declares a fixed integrated visual structure, its components and their relative positions are one indivisible product fact: do not omit, substitute, reconnect or let an action obscure that relationship. Product-first reference routing and structure-preserving action/camera choices are required for every visible-product storyboard Job. Do not use publication-risk or claim-verification gates in this first version.
+   The product action library only records confirmed ways to stage the product. It cannot override product hard facts. If no usable action is listed, or an action conflicts with the fresh product record, stop and request confirmation or a library update instead of guessing.
 9. For every remote mutation, retain a run ID and fresh-read the changed record. On failure, resume the same run; never create a duplicate direction, script or film.
 10. Every storyboard-image plan must declare `executor=gpt_image_2` and `model=gpt-image-2`. Use an approved execution route that guarantees that exact model: the configured GPT Image 2 generation tool, or the official OpenAI Images API with the model explicitly set to `gpt-image-2`. Fix output to `1152x2048`, `quality=high`, and PNG. If the route cannot confirm the exact model or accept the routed references, stop. Flow2API image generation, model aliases, another image model, and provider fallback are forbidden.
 11. The only storyboard approval surface is the script table. For each source script, create exactly two complete script records, versioned A and B, each carrying its full ordered storyboard package. Use the existing `脚本状态` field as the sole version-selection state: both versions start at `待审核`; after human review the selected version becomes `已锁定` and the other becomes `未采用`. Do not create a second version-level approval field, a `分镜候选` table or a `分镜方案审核` table, and never ask the human to choose individual Segments.
