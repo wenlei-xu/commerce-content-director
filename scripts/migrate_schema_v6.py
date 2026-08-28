@@ -301,7 +301,7 @@ def apply(api: Feishu, run_id: str) -> dict[str, Any]:
         select("脚本检查状态", ["待检查", "未通过", "通过"]),
         simple("脚本锁定时间", 5, {"date_formatter": "yyyy-MM-dd HH:mm", "auto_fill": False}), simple("一句话脚本"), simple("钩子包"),
         simple("留存设计"), simple("节拍时间线"), simple("三轨脚本"), simple("台词清单"), simple("屏幕文字清单"),
-        simple("声音与表演"), simple("产品动作"), simple("分段衔接"), simple("悬念回收"), simple("结尾与CTA"), simple("脚本正文"),
+        simple("声音与表演"), simple("互动计划"), simple("分段衔接"), simple("悬念回收"), simple("结尾与CTA"), simple("脚本正文"),
         simple("结构化脚本"), simple("脚本质检摘要"), select("分镜状态", ["未开始", "生成中", "待审核", "已通过", "已驳回"]),
         simple("分镜审核意见"), simple("视频提示词"), simple("已验收成片数", 2, {"formatter": "0"}), simple("执行次数上限", 2, {"formatter": "0"}),
         simple("剩余执行次数", 20, {"formula_expression": "{执行次数上限}-{已验收成片数}", "formatter": "0"}),

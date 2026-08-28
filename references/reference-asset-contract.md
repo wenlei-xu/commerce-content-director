@@ -12,6 +12,7 @@ Use the smallest evidence set that proves the current Segment. Do not send every
 | `product_detail` | the Segment shows a structure-sensitive feature | that feature's geometry | scale, placement, or subject identity |
 | `product_scene` | scale, placement, or real-use context is visually necessary | those contextual facts | product geometry or a different subject identity |
 | `subject_anchor` | an identifiable subject recurs | that subject's identity | product structure |
+| `scene_anchor` | a reusable environment is needed for spatial continuity or natural capture treatment | room geometry, light direction, usable activity area and lived-in phone-capture texture | product geometry, subject identity, product claims or unsupported interaction |
 | `storyboard_board` | final-video generation | chronology, action, camera intent, and progression | product or subject facts that conflict with approved anchors |
 | `continuity_frame` | a later final-video Segment needs a visual handoff | the immediately preceding accepted state | product facts or subject identity |
 | `source_segment_start` | full-replication target production board | entering scene, composition and visible state selected from the first mapped source narrative segment; source-subject identity only under `preserve_source_subject` | target-product identity, exact target timing or a replacement subject |
@@ -20,6 +21,8 @@ Use the smallest evidence set that proves the current Segment. Do not send every
 For a visible product, route one clean `product_anchor` by default. Add exactly one targeted `product_detail` for a structure-sensitive beat, or one clean `product_scene` for a scale/placement-sensitive beat. Add both only when the same Segment genuinely needs both facts and the catalog input limit permits it. A later final-video Segment normally uses `continuity_frame` instead of a low-value scene reference.
 
 When the product record's `default_anchor` is an approved six-panel product board, route that board as the sole product input by default. Do not automatically add the product's detail or scene attachments; retain them as source evidence and use them only when the board is explicitly insufficient for the current shot. For the pineapple board, the bottom-hole close-up and inverted loading panel establish the loading path; the other overall panels establish identity and proportions. The board's hand demonstrates the product action only and does not replace a selected subject anchor.
+
+For original production, route one approved `scene_anchor` when the Beat depends on a stable room, activity zone or capture treatment. Use the scene anchor only for background geometry, camera direction, lighting, open floor or surface area, and ordinary lived-in smartphone texture. Do not inherit people, animals, products, text, logos, claims or unsupported actions from the scene image. If the selected scene is a casual phone photo, preserve neutral white balance and natural exposure; do not add a warm showroom grade.
 
 ## Subject strategy
 
@@ -47,6 +50,8 @@ Generation inputs must be clean derivatives of authoritative source assets when 
 ## Asset-plan record
 
 Every routed image must appear in the generation prompt plan with `position`, `role`, `asset_id`, `sha256`, and a Segment-specific `reason`. `clean_for_generation` must be `true`. Optional assets require a reason tied to a current beat; “available in the product record” is not a reason.
+
+When the image is sent to the remote Flow2API MCP gateway, persist the gateway's returned `gateway_asset_id` beside the source `asset_id`; these are different authorities. Final-video submission must pass only the gateway IDs through `input_asset_ids` (or public HTTPS `input_asset_urls` for the gateway's import path), never inline Base64 images. The source `asset_id` remains the local/Feishu evidence identity and must not be mistaken for a gateway input asset ID.
 
 Store source field, filename, remote token, local path, source hash, derivative hash when applicable, role, input position, and Segment mapping in the local package. The model input array must match this record exactly.
 

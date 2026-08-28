@@ -62,7 +62,7 @@ def main() -> int:
         "台词清单": renderer["dialogue_manifest"],
         "屏幕文字清单": renderer["screen_text_manifest"],
         "声音与表演": renderer["audio_performance_plan"],
-        "产品动作": renderer["product_action_plan"],
+        table["fields"]["interaction_plan"]: renderer["interaction_plan"],
         "分段衔接": renderer["segment_handoff_plan"],
         "悬念回收": renderer["loop_ledger"],
         "结尾与CTA": renderer["ending_and_cta"],

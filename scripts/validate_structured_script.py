@@ -16,6 +16,7 @@ REQUIRED_STRATEGY = {
 SUBTITLE_MODES = {"auto_from_final_audio", "emphasis_from_final_audio", "none"}
 EMPHASIS_STYLES = {"keyword_yellow", "number_pop", "result_pop", "product_accent", "pain_point_red"}
 TARGET_SPOKEN_LANGUAGES = {"th", "zh-CN"}
+INTERACTION_FUNCTIONS = {"interest", "interaction", "emotion", "rhythm", "proof", "transition", "cta"}
 THAI = re.compile(r"[\u0E00-\u0E7F]")
 HAN = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF]")
 
@@ -57,6 +58,7 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
     texts = script.get("screen_texts") or []
     segments = script.get("segments") or []
     loops = script.get("loops") or []
+    interaction_plans = script.get("interaction_plans") or []
     beat_ids = unique(beats, "beat_id", "beats", errors)
     line_ids = unique(dialogue, "line_id", "dialogue", errors)
     text_ids = unique(texts, "text_id", "screen_texts", errors)
@@ -124,6 +126,23 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
             errors.append(issue("UNKNOWN_BEAT_REFERENCE", f"screen_texts[{index}]", str(text.get("beat_id"))))
         if text.get("is_subtitle") is not False:
             errors.append(issue("SCREEN_TEXT_IS_SUBTITLE", f"screen_texts[{index}]", "creative screen text must not be a subtitle"))
+
+    for index, plan in enumerate(interaction_plans):
+        path = f"interaction_plans[{index}]"
+        if str(plan.get("beat_id", "")) not in beat_ids:
+            errors.append(issue("UNKNOWN_INTERACTION_BEAT", path, str(plan.get("beat_id"))))
+        for field in ("template_record_id", "template_name", "scene_execution", "visual_acceptance"):
+            if not str(plan.get(field, "")).strip():
+                errors.append(issue("INCOMPLETE_INTERACTION_PLAN", f"{path}.{field}", f"{field} is required"))
+        function = str(plan.get("content_function", ""))
+        if function not in INTERACTION_FUNCTIONS:
+            errors.append(issue("INVALID_INTERACTION_FUNCTION", f"{path}.content_function", function))
+        if function != "proof" and str(plan.get("verified_benefit", "")).strip():
+            errors.append(issue(
+                "NON_PROOF_INTERACTION_HAS_BENEFIT",
+                f"{path}.verified_benefit",
+                "only proof interaction plans may carry a verified benefit",
+            ))
 
     if runtime.get("audio_mode") == "natural_sound_only" and dialogue:
         errors.append(issue("NATURAL_SOUND_HAS_DIALOGUE", "dialogue", "natural_sound_only requires no dialogue"))
@@ -202,6 +221,7 @@ def validate(script: dict[str, Any]) -> dict[str, Any]:
             "screen_text_count": len(texts),
             "emphasis_span_count": emphasis_span_count,
             "closed_loop_count": len(loops),
+            "interaction_plan_count": len(interaction_plans),
             "dialogue_quality_gate_passed": dialogue_quality_gate_passed,
         },
     }

@@ -1,6 +1,6 @@
 # Workflow: action direction
 
-Use this workflow before writing Beats for a pet-product short video. First read the current product record and the confirmed actions from the Feishu `产品动作库` using [product-action-library-contract.md](../domain/product-action-library-contract.md). Its only output is one complete **动作导演说明** paragraph that gives the scene's action arc; it is planning text, not a new JSON file, table field, or approval object.
+Use this workflow before writing Beats for a pet-product short video. First read the current product record and eligible Feishu `内容互动模板库` entries using [content-interaction-template-library-contract.md](../domain/content-interaction-template-library-contract.md). Its only output is one complete **动作导演说明** paragraph that gives the scene's action arc; it is planning text, not a new JSON file, table field, or approval object.
 
 Write one natural paragraph that describes, in order:
 
@@ -9,7 +9,7 @@ Write one natural paragraph that describes, in order:
 3. how the pet's movement or reaction changes; and
 4. the intended rhythm and feeling of the scene.
 
-Describe only visible scene, movement, and reaction. Do not turn the paragraph into a product-feature explanation, sales claim, mechanism proof, or action inventory. Choose a main interaction from the current product's `是否可用=可用` action entries. It may be different from the batch's already-used main interaction when the library, product facts or user confirmation support it. If an action has a `关联卖点（可选）`, use it only when it naturally fits the scene; do not force an interest or reaction action to demonstrate a selling point. If the available evidence supports only a narrow set of actions, stay within that boundary rather than inventing an action. If no action entry is available, stop and request a library update or explicit user confirmation.
+Describe only visible scene, movement, and reaction. Do not turn the paragraph into a product-feature explanation, sales claim, mechanism proof, or action inventory. Choose a main interaction from the available templates, then verify its contact path against the current product's hard facts and interaction constraints. It may differ from the batch's already-used main interaction when the product record supports it. Choose the template's content function deliberately: interest, interaction, emotion, rhythm and transition do not need a benefit; proof requires a confirmed product value. If a template conflicts with the product record, stop and request a template or product-fact update instead of inventing an interaction.
 
 For a replication task, preserve the source action's narrative function and visual rhythm while writing the target product's real contact path. The resulting script and storyboard must follow this paragraph; do not silently reduce the scene to the default sniffing, pawing, and searching sequence.
 

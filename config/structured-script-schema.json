@@ -58,30 +58,19 @@
       }
     },
     "screen_texts": {"type": "array", "items": {"type": "object", "required": ["text_id", "beat_id", "start", "end", "text", "function", "is_subtitle"]}},
-    "product_actions": {
+    "interaction_plans": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["action"],
+        "required": ["beat_id", "template_record_id", "template_name", "content_function", "scene_execution"],
         "properties": {
           "beat_id": {"type": "string", "minLength": 1},
-          "library_record_id": {"type": "string", "minLength": 1},
-          "action": {"type": "string", "minLength": 1},
-          "how_to": {"type": "string", "minLength": 1},
-          "visual_focus": {"type": "string", "minLength": 1},
-          "action_reference_images": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": ["file_token"],
-              "properties": {
-                "file_token": {"type": "string", "minLength": 1},
-                "name": {"type": "string", "minLength": 1},
-                "type": {"type": "string", "minLength": 1}
-              }
-            }
-          },
-          "related_benefit": {"type": "string", "minLength": 1}
+          "template_record_id": {"type": "string", "minLength": 1},
+          "template_name": {"type": "string", "minLength": 1},
+          "content_function": {"enum": ["interest", "interaction", "emotion", "rhythm", "proof", "transition", "cta"]},
+          "scene_execution": {"type": "string", "minLength": 1},
+          "visual_acceptance": {"type": "string", "minLength": 1},
+          "verified_benefit": {"type": "string", "minLength": 1}
         }
       }
     },

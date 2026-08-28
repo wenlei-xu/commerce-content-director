@@ -59,7 +59,7 @@ def render(script: dict[str, Any]) -> dict[str, str]:
         "dialogue_manifest": "\n".join(dialogue_rows),
         "screen_text_manifest": "\n".join(text_rows),
         "audio_performance_plan": json.dumps(script.get("audio_performance", {}), ensure_ascii=False, indent=2),
-        "product_action_plan": json.dumps(script.get("product_actions", []), ensure_ascii=False, indent=2),
+        "interaction_plan": json.dumps(script.get("interaction_plans", []), ensure_ascii=False, indent=2),
         "segment_handoff_plan": json.dumps(script.get("segments", []), ensure_ascii=False, indent=2),
         "loop_ledger": loops,
         "ending_and_cta": json.dumps(script["ending"], ensure_ascii=False, indent=2),
@@ -69,6 +69,7 @@ def render(script: dict[str, Any]) -> dict[str, str]:
             "## 三轨脚本\n" + "\n".join(beat_rows),
             "## 台词\n" + "\n".join(dialogue_rows),
             "## 台词质量门禁\n" + json.dumps(script.get("dialogue_quality_gate", {}), ensure_ascii=False, indent=2),
+            "## 互动计划\n" + json.dumps(script.get("interaction_plans", []), ensure_ascii=False, indent=2),
             "## 结尾\n" + json.dumps(script["ending"], ensure_ascii=False, indent=2),
         ]),
     }

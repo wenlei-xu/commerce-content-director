@@ -1,5 +1,5 @@
 {
-  "schema_version": 16,
+  "schema_version": 19,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -55,23 +55,21 @@
         "generation_notes": "生成注意事项",
         "default_anchor": "默认产品锚点",
         "detail_assets": "产品细节图",
-        "scene_assets": "产品场景图"
+        "scene_assets": "产品场景图",
+        "interaction_constraints": "交互限制"
       }
     },
-    "product_action_library": {
+    "content_interaction_templates": {
       "table_id": "tblnkKeNR1GbbrvL",
-      "name": "产品动作库",
-      "product_link_field": "产品",
-      "availability_field": "是否可用",
+      "name": "内容互动模板库",
+      "availability_field": "模板状态",
       "availability_active": "可用",
       "fields": {
-        "action": "动作",
-        "product_link": "产品",
-        "how_to": "怎么玩",
-        "visual_focus": "画面重点",
-        "action_reference_images": "动作示意图",
-        "related_benefit": "关联卖点（可选）",
-        "availability": "是否可用"
+        "template_name": "互动模板",
+        "content_function": "内容功能",
+        "behavior_flow": "行为流程",
+        "visual_acceptance": "可视验收点",
+        "availability": "模板状态"
       }
     },
     "subject_assets": {
@@ -79,9 +77,50 @@
       "name": "主体资产库",
       "status_field": "状态",
       "status_active": "可用",
+      "status_values": {
+        "available": "可用",
+        "disabled": "禁用"
+      },
+      "selection_policy": {
+        "eligible_status": "可用",
+        "required_fields": ["主体锚点", "主体身份描述"],
+        "same_subject_cooldown_jobs": 2,
+        "same_breed_cooldown_jobs": 1,
+        "fallback_order": ["explicit_binding", "subject_pool", "least_recently_used", "breed_diversity", "record_id"]
+      },
       "fields": {
+        "asset_id": "主体资产ID",
+        "name": "主体名称",
         "anchor": "主体锚点",
-        "identity_description": "身份描述"
+        "subject_type": "主体类型",
+        "role": "物种/角色",
+        "breed": "品种",
+        "identity_description": "主体身份描述",
+        "appearance": "外观特征",
+        "default_scene": "默认场景/服装",
+        "status": "状态",
+        "notes": "备注"
+      }
+    },
+    "scene_assets": {
+      "table_id": "tbl9qloJm1V5Yooa",
+      "name": "场景资产库",
+      "status_field": "状态",
+      "status_values": {
+        "available": "可用",
+        "disabled": "禁用"
+      },
+      "fields": {
+        "asset_id": "场景资产ID",
+        "name": "场景名称",
+        "scene_type": "场景类型",
+        "region_style": "地区/风格",
+        "description": "场景描述",
+        "use_cases": "适用用途",
+        "anchor": "场景锚点",
+        "filename": "文件名",
+        "status": "状态",
+        "notes": "备注"
       }
     },
     "creative_requests": {
@@ -214,7 +253,7 @@
         "dialogue_manifest": "台词清单",
         "screen_text_manifest": "屏幕文字清单",
         "audio_performance_plan": "声音与表演",
-        "product_action_plan": "产品动作",
+        "interaction_plan": "互动计划",
         "segment_handoff_plan": "分段衔接",
         "loop_ledger": "悬念回收",
         "ending_and_cta": "结尾与CTA",

@@ -88,7 +88,26 @@
     {"text_id": "TEXT-02", "beat_id": "BEAT-02", "start": 6, "end": 10, "text": "点击查看", "function": "cta", "is_subtitle": false}
   ],
   "audio_performance": {"music": "none", "ambient_sounds": ["room"], "product_sounds": ["toy_roll"], "silence_points": []},
-  "product_actions": [{"beat_id": "BEAT-01", "action": "正确放置产品"}, {"beat_id": "BEAT-02", "action": "狗狗主动探索"}],
+  "interaction_plans": [
+    {
+      "beat_id": "BEAT-01",
+      "template_record_id": "template-tease-reach",
+      "template_name": "引逗够取",
+      "content_function": "interest",
+      "scene_execution": "主人在狗狗鼻尖上方轻晃玩具，再放到地面。",
+      "visual_acceptance": "狗狗主动抬头并跟随玩具移动。",
+      "claim_boundary": "只表现兴趣，不表达功效。"
+    },
+    {
+      "beat_id": "BEAT-02",
+      "template_record_id": "template-ground-explore",
+      "template_name": "落地探索",
+      "content_function": "interaction",
+      "scene_execution": "狗狗闻、扒并推动地面上的玩具。",
+      "visual_acceptance": "产品接触点与狗狗主动反应同框。",
+      "claim_boundary": "不把主动探索写成益智或安抚功效。"
+    }
+  ],
   "segments": [
     {"segment_id": "SEG-01", "start": 0, "end": 10, "start_state": {"room": "living_room"}, "end_state": {"room": "living_room"}, "dialogue_ids": ["LINE-01", "LINE-02"], "product_final_state": {"on_floor": true}, "next_segment_inherits": []}
   ],

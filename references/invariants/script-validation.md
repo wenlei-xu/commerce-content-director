@@ -1,6 +1,6 @@
 # 脚本校验
 
-运行 scripts/validate_structured_script.py。阻断项包括：缺少策略或 CTA、ID 重复、时间线不连续、台词跨分段、自然声模式含台词、未回收钩子、CTA 不唯一、产品动作冲突或状态衔接失败。
+运行 scripts/validate_structured_script.py。阻断项包括：缺少策略或 CTA、ID 重复、时间线不连续、台词跨分段、自然声模式含台词、未回收钩子、CTA 不唯一、互动计划与产品能力/状态冲突或状态衔接失败。
 
 `spoken` 与 `sparse_spoken` 可以填写 `dialogue_quality_gate` 作为口播复盘元数据：推荐记录 `instruction_manual_restatement_only`、痛点、利益、证明和自然 CTA 的台词 ID。缺少任一记录、仅用说明书式台词复述可见动作，或 CTA 与前文脱节，只生成审核提示，不阻断脚本锁定。
 
