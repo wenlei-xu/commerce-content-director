@@ -1,5 +1,5 @@
 {
-  "schema_version": 19,
+  "schema_version": 20,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -334,7 +334,14 @@
         "segment_rhythm_and_voiceover": "逐段节奏与口播",
         "evidence_timestamps": "分析证据时间码",
         "confidence": "整体判断置信度",
-        "quality_check": "质量检查结果"
+        "quality_check": "质量检查结果",
+        "primary_category": "主类目",
+        "content_purpose": "内容目的",
+        "primary_narrative_structure": "主叙事结构",
+        "proof_methods": "证明方式",
+        "scenario_tags": "场景标签",
+        "shooting_format": "拍摄形式",
+        "cta_classification": "CTA分类"
       }
     },
     "sentence_patterns": {

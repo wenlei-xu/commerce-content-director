@@ -79,6 +79,7 @@ Read only the invariants named by the selected workflow:
 - [product-execution-contract.md](references/invariants/product-execution-contract.md) — product action correctness.
 - [language-policy.md](references/invariants/language-policy.md) — Thai/Chinese spoken-language locking and audio behavior.
 - [knowledge-library-contract.md](references/invariants/knowledge-library-contract.md) — the two learning-library objects and their review boundaries.
+- [video-classification.md](references/invariants/video-classification.md) — the multi-dimensional retrieval taxonomy for approved short-video breakdowns.
 - [model-visual-text-recognition.md](references/invariants/model-visual-text-recognition.md) — model-vision-only screen-text evidence and the legacy OCR field contract.
 - [execution-accounting.md](references/invariants/execution-accounting.md) — accepted films and execution limits.
 - [mutation-and-recovery.md](references/invariants/mutation-and-recovery.md) — staged writes and resumable failures.
@@ -106,6 +107,12 @@ Read only the invariants named by the selected workflow:
 13. Automated storyboard validation is a preflight gate, not final visual approval. It can reject obvious structural, geometry, attachment and prompt-coverage failures, but it cannot guarantee product fidelity or cross-Segment continuity. Label machine results as `视觉预检`; only a human approval of a complete storyboard version may set the version/script storyboard state to approved.
 14. Compile the complete production stage before submitting anything. For storyboard images, persist the request-to-Segment/version mapping first, then submit all ready GPT Image 2 image-to-image requests in one concurrent request group by default; do not impose an artificial five-request cap. If the gateway returns an explicit capacity, rate-limit or timeout failure, split only the missing requests into smaller groups and retry with the same model, inputs and idempotency identity; never switch provider/model. For final video, two or more ready Flow2API Jobs still require `flow_submit_batch` plus `flow_wait_batch`; use a single-video submit only for one ready/repair Job or a recorded batch-interface failure. Storyboard and final-video stages remain separate because human storyboard-version approval is a dependency boundary.
 15. Chinese `spoken` and `sparse_spoken` final videos use one mandatory post-production route: Omni generates visuals plus environmental sound only and no BGM or speech; Doubao TTS 2.0 generates the approved Chinese voiceover; the default Chinese speaker is `zh_female_qinqienv_uranus_bigtts` and may be overridden only by an explicitly selected compatible Doubao voice; the exact approved reference video supplies a separated BGM stem that must pass ASR with no residual speech; final assembly mixes environment, ducked BGM and aligned Doubao voiceover, then derives subtitles from that final voiceover timing. A continuous Chinese voiceover is synthesized as one complete take by default at `speech_rate=15`. If it is slightly too long, shorten only inter-sentence breath gaps; do not split it into line-by-line TTS or globally speed up the voice unless the user explicitly chooses that route.
+
+## Short-video library classification
+
+Approved short-video breakdowns use the retrieval taxonomy in [video-classification.md](references/invariants/video-classification.md). Classification is a set of orthogonal dimensions, not a folder tree: select exactly one value for each single-select field, use a small number of controlled multi-select tags, and keep the detailed narrative evidence in the existing breakdown fields.
+
+When a user asks to classify approved videos, classify every record with `资产状态=可用`, preserve its existing analysis, attachments and approval state, and fresh-read each changed record. Do not infer a new claim just to fill a tag; use the closest evidence-backed option and record uncertainty in the existing quality field when needed.
 
 ## Stop condition
 
