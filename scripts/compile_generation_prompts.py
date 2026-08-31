@@ -395,19 +395,6 @@ def role_lines(inputs: list[dict[str, Any]]) -> list[str]:
     return [f"Input {item['position']} → {item['role']}: {item['reason']}" for item in inputs]
 
 
-def first_frame_lines(first_frame: dict[str, Any]) -> list[str]:
-    human_presence = FIRST_FRAME_HUMAN_PRESENCE[first_frame["human_presence"]]
-    return [
-        f"Local time: {number(first_frame.get('time', 0), 'first_frame.time'):.1f}s",
-        f"Camera: {first_frame['camera'].strip()}",
-        f"Composition: {first_frame['composition'].strip()}",
-        f"Static moment: {first_frame['static_moment'].strip()}",
-        f"Performance: {first_frame['performance'].strip()}",
-        f"Continuity: {first_frame['continuity'].strip()}",
-        f"Human presence: {human_presence}",
-    ]
-
-
 def compile_first_frame(plan: dict[str, Any], segment: dict[str, Any]) -> str:
     director_output = direct_segment(
         segment,
@@ -485,23 +472,28 @@ def compile_first_frame(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         *negative_constraints,
     ]))
     return "\n\n".join([
+        "REFERENCE IMAGE ROLE\n" + "\n".join(authority),
         "OUTPUT SPECIFICATION\n"
         f"Generate exactly one {first_frame_layout['aspect_ratio']} portrait first-frame image for the {plan['raw_segment_seconds']:g}-second target production Segment. "
         "Show one static entering state at local t=0; do not generate a grid, contact sheet, multiple panels, divider or border.",
-        "GLOBAL VISUAL CONTINUITY\n" + "\n".join([
-            *style_lines,
-            *continuity,
+        "CREATIVE INTENT\n" + f"Viewer read: {director_output['variant_delta']}",
+        "CAMERA OPERATOR VIEWPOINT\n" + "\n".join([
+            f"Camera: {first_frame['camera'].strip()}",
+            f"Composition: {first_frame['composition'].strip()}",
+            f"Human presence: {FIRST_FRAME_HUMAN_PRESENCE[first_frame['human_presence']]}",
         ]),
-        "REFERENCE AND IDENTITY AUTHORITY\n" + "\n".join(authority),
-        "PRODUCT AND ACTION CONSTRAINTS\n" + (
+        "SCENE EVENT\n" + "\n".join([
+            f"Local time: {number(first_frame.get('time', 0), 'first_frame.time'):.1f}s",
+            f"Static moment: {first_frame['static_moment'].strip()}",
+            f"Continuity: {first_frame['continuity'].strip()}",
+        ]),
+        "SUBJECT PERFORMANCE\n" + f"Performance: {first_frame['performance'].strip()}",
+        "PRODUCT LOCK\n" + (
             "\n".join([item for item in [product_visual_lock, *constraints] if item])
             if product_visual_lock or constraints
             else "Use only the approved product and action facts for this Segment."
         ),
-        "FIRST FRAME\n" + "\n".join([
-            *first_frame_lines(first_frame),
-            f"Variant direction: {director_output['variant_delta']}",
-        ]),
+        "PHONE IMAGE TEXTURE\n" + "\n".join([*style_lines, *continuity]),
         "NEGATIVE CONSTRAINTS\n" + "\n".join(negatives),
     ])
 

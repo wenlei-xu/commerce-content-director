@@ -68,7 +68,7 @@ The control prompt uses English (`en`) only. It contains no Thai or Chinese beca
 
 For `high_fidelity_replication`, every target production Segment declares the ordered `source_narrative_segment_ids` mapped into its 10-second target window. Its input plan contains exactly two routed source-reference roles: `source_segment_start` from the first mapped source narrative and `source_segment_result` from the last. The target-script timeline describes the target-product action connecting those states. Intermediate source evidence, source timestamps and per-second frames are not generation inputs.
 
-For `high_fidelity_replication` and `structure_replication`, the plan must contain `source_visual_style.style_fingerprint_en` and `source_visual_style.anti_style_constraints_en`, copied from the evidence-backed source visual-style profile. Both values must be non-empty English control text and are passed verbatim into every Segment's `GLOBAL VISUAL CONTINUITY` block. They preserve transferable capture treatment, not source-product identity: product and subject authority may replace conflicting objects/actions, but must not restyle the scene without an explicit user request. A replication plan without this source-style payload fails compilation.
+For `high_fidelity_replication` and `structure_replication`, the plan must contain `source_visual_style.style_fingerprint_en` and `source_visual_style.anti_style_constraints_en`, copied from the evidence-backed source visual-style profile. Both values must be non-empty English control text and are passed verbatim into every Segment's `PHONE IMAGE TEXTURE` block. They preserve transferable capture treatment, not source-product identity: product and subject authority may replace conflicting objects/actions, but must not restyle the scene without an explicit user request. A replication plan without this source-style payload fails compilation.
 
 Source narrative order and relative pacing are planning evidence. The locked target script owns exact Beat timing. Keep source narrative IDs, source timestamps, rhythm-authority explanations and workflow instructions in the plan and compiled bundle metadata; never send them to the image model.
 
@@ -78,7 +78,7 @@ Every replication Segment declares `subject_strategy`. `preserve_source_subject`
 
 When a product anchor is routed, let that input own visual identity. The compiler states that the model must match its exact colourway, silhouette, proportions, surface texture, feature count, openings and relative positions, and must not reinterpret appearance from the product name or category.
 
-When the product record declares a fixed integrated visual structure, every product-visible Segment must also carry `product_visual_lock`: concise English control text that names the integral components, their approved relative positions and connection path, and the forbidden omission, substitution, reconnection, concealment or ambiguous rotation. Copy it verbatim into that Segment's `PRODUCT AND ACTION CONSTRAINTS` block. The complete front product anchor that visibly includes every locked component must be Input 1; when both target subject and source scene-space assets are used, route the subject as Input 2 and the source scene-space reference as Input 3. Later references may inform subject identity or scene space, but may not dilute product identity or alter the locked topology.
+When the product record declares a fixed integrated visual structure, every product-visible Segment must also carry `product_visual_lock`: concise English control text that names the integral components, their approved relative positions and connection path, and the forbidden omission, substitution, reconnection, concealment or ambiguous rotation. Copy it verbatim into that Segment's `PRODUCT LOCK` block. The complete front product anchor that visibly includes every locked component must be Input 1; when both target subject and source scene-space assets are used, route the subject as Input 2 and the source scene-space reference as Input 3. Later references may inform subject identity or scene space, but may not dilute product identity or alter the locked topology.
 
 Do not add a colour, material, finish, feature count or shape adjective merely because it is typical of the named product category. Name such an attribute only when the current product record explicitly states it. Otherwise refer to the exact appearance shown in the routed anchor. A prompt-plan fact that conflicts with the anchor blocks submission.
 
@@ -86,12 +86,15 @@ Do not add a colour, material, finish, feature count or shape adjective merely b
 
 Compile every first-frame image prompt from the plan with these required headings, in this order. Keep the content concise and non-duplicative:
 
-1. `OUTPUT SPECIFICATION`: one 9:16 portrait first-frame image for the raw Segment, representing the entering state at local `t=0`. Do not generate multiple images, a grid, a contact sheet, a divider, a border or multiple panels.
-2. `GLOBAL VISUAL CONTINUITY`: source style when applicable, plus only the scene treatment and continuity facts needed for this frame.
-3. `REFERENCE AND IDENTITY AUTHORITY`: exact `Input N → role` mapping and concise identity ownership for the routed product and subject references.
-4. `PRODUCT AND ACTION CONSTRAINTS`: only approved product facts and the permitted action relevant to this frame. Do not repeat generic layout, workflow, timing or source metadata.
-5. `FIRST FRAME`: one entry at local `t=0`, containing the current static moment, camera, composition, performance and any A/B variant direction. Do not describe the full video or chain future actions.
-6. `NEGATIVE CONSTRAINTS`: only critical exclusions such as text, watermark, duplicates, malformed hands or fact-incompatible structure/action.
+1. `REFERENCE IMAGE ROLE`: exact `Input N → role` mapping and concise identity ownership for every routed reference. The product anchor owns product appearance and topology; it is not a layout reference.
+2. `OUTPUT SPECIFICATION`: one 9:16 portrait first-frame image for the raw Segment, representing the entering state at local `t=0`. Do not generate multiple images, a grid, a contact sheet, a divider, a border or multiple panels.
+3. `CREATIVE INTENT`: the viewer's intended first read, emotional cue or initial misunderstanding. Use the Director's variant direction as the priority signal.
+4. `CAMERA OPERATOR VIEWPOINT`: camera height, viewpoint, framing, human presence and visual focus. Make the filming person observable when the scene requires a vlog or UGC feel.
+5. `SCENE EVENT`: one directly observable frozen situation at local `t=0`, plus only the environment and continuity facts needed to understand it. Do not describe the full video or future actions.
+6. `SUBJECT PERFORMANCE`: the selected subject's visible identity, expression, pose and performance in this entering state.
+7. `PRODUCT LOCK`: only approved product placement, geometry, integrated structure and permitted action relevant to this frame. Do not repeat generic workflow or source metadata.
+8. `PHONE IMAGE TEXTURE`: concrete evidence of the intended capture treatment, including handheld imperfection, auto-exposure, focus behavior, compression, household light and lived-in texture when relevant.
+9. `NEGATIVE CONSTRAINTS`: only critical exclusions such as text, watermark, duplicates, malformed hands or fact-incompatible structure/action.
 
 Never say “use the product images” without the position-to-role map. Do not include dialogue, subtitles, translated spoken lines, source narrative IDs, source timestamps, workflow notes, local assembly instructions or a generic full-film narrative in an image prompt.
 

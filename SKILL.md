@@ -88,18 +88,19 @@ Read only the invariants named by the selected workflow:
 
 The active image deliverable is a **video first frame**, not a multi-image board. A configured 10-second production Segment produces one static 9:16 image representing only that Segment's entering state at local `t=0`. Camera language remains required because the first frame establishes the video's starting viewpoint, framing and visual focus.
 
-Every first-frame generation prompt should be concise, skimmable and ordered as follows:
+Every first-frame generation prompt should be concise, skimmable and use these blocks in this exact order:
 
-1. `Use case` and one-sentence `Creative intent` — what the viewer should notice, feel or initially misunderstand.
-2. `Scene` — the visible environment and lived-in treatment.
-3. `Subject` — identity, appearance, expression and pose, using the routed subject reference when available.
-4. `Product` — visible placement and only the product facts required by this frame, using the routed product reference when available.
-5. `Current moment` — one directly observable static state; do not describe the full video or chain actions with “then”.
-6. `Shot` — shot size, camera height, viewpoint, framing, subject placement and visual focus. Do not overload this with exact physical lens simulation.
-7. `Visual style`, `Lighting and texture`, and `Text` — only what materially improves the intended image.
-8. `Constraints` and `Avoid` — preserve identity/geometry and list only critical exclusions.
+1. `REFERENCE IMAGE ROLE` — identify each routed reference by input position and state which visual facts it owns. A product anchor owns product appearance; it must not be treated as a layout to copy.
+2. `OUTPUT SPECIFICATION` — one 9:16 portrait first-frame image for the Segment's entering state at local `t=0`.
+3. `CREATIVE INTENT` — what the viewer should notice, feel or initially misunderstand. The Director's variant direction supplies this viewer-read priority.
+4. `CAMERA OPERATOR VIEWPOINT` — make the capture position and the filming person's presence concrete: camera height, viewpoint, framing, hand or body presence and visual focus.
+5. `SCENE EVENT` — the single visible situation frozen at local `t=0`, including the relevant environment and continuity state. Do not describe the full video or chain future actions.
+6. `SUBJECT PERFORMANCE` — the selected subject's visible identity, expression, pose and performance in this frozen moment.
+7. `PRODUCT LOCK` — only the product placement, approved geometry and permitted product action relevant to this frame. Routed product anchors own exact appearance and integrated structure.
+8. `PHONE IMAGE TEXTURE` — concrete capture evidence such as handheld imperfection, auto-exposure, focus behavior, compression, household light and lived-in texture. Do not use “vlog” or “rough” as unsupported mood labels alone.
+9. `NEGATIVE CONSTRAINTS` — preserve identity and geometry, then list only critical exclusions.
 
-Use the OpenAI-recommended order `scene → subject → key details → constraints`, and label multi-image inputs by index, for example `Image 1: exact product reference` and `Image 2: exact subject reference`. Keep model, size, quality, output format, duration, voiceover, CTA, full Beat timeline and later actions in the execution plan or script, not in the image prompt. Start with a clean base prompt and make later revisions as single targeted changes. See the official [GPT Image Generation Models Prompting Guide](https://developers.openai.com/cookbook/examples/multimodal/image-gen-models-prompting-guide).
+Label multi-image inputs by index, for example `Input 1 → product_anchor` and `Input 2 → subject_anchor`. Keep model, size, quality, output format, duration, voiceover, CTA, full Beat timeline and later actions in the execution plan or script, not in the image prompt. Start with a clean base prompt and make later revisions as single targeted changes. See the official [GPT Image Generation Models Prompting Guide](https://developers.openai.com/cookbook/examples/multimodal/image-gen-models-prompting-guide).
 
 ## Gates
 

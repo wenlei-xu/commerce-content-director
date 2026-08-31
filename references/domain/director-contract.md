@@ -35,8 +35,9 @@ approval fields.
 Product facts and safety constraints win over replication evidence; replication
 evidence and the locked script's semantics win over the Director's visual
 choices; historical examples are reference only. The prompt compiler formats
-Director output and performs structural checks; it does not choose camera,
-composition, performance or continuity.
+Director output into the nine-block first-frame prompt architecture and performs
+structural checks; it does not choose camera, composition, performance or
+continuity.
 
 The only remote first-frame mutation is the complete A/B package written by
 `scripts/publish_first_frame_versions.py` to two script records linked through

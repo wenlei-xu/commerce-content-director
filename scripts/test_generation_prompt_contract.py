@@ -83,9 +83,14 @@ def main() -> None:
     assert "Local time: 0.0s" in prompt
     assert "portrait first-frame image" in prompt
     assert "OUTPUT SPECIFICATION" in prompt
-    assert "GLOBAL VISUAL CONTINUITY" in prompt
-    assert "REFERENCE AND IDENTITY AUTHORITY" in prompt
-    assert "FIRST FRAME" in prompt
+    assert "REFERENCE IMAGE ROLE" in prompt
+    assert "CREATIVE INTENT" in prompt
+    assert "CAMERA OPERATOR VIEWPOINT" in prompt
+    assert "SCENE EVENT" in prompt
+    assert "SUBJECT PERFORMANCE" in prompt
+    assert "PRODUCT LOCK" in prompt
+    assert "PHONE IMAGE TEXTURE" in prompt
+    assert prompt.index("REFERENCE IMAGE ROLE") < prompt.index("OUTPUT SPECIFICATION") < prompt.index("CREATIVE INTENT") < prompt.index("CAMERA OPERATOR VIEWPOINT") < prompt.index("SCENE EVENT") < prompt.index("SUBJECT PERFORMANCE") < prompt.index("PRODUCT LOCK") < prompt.index("PHONE IMAGE TEXTURE") < prompt.index("NEGATIVE CONSTRAINTS")
     assert "RHYTHM AUTHORITY" not in prompt
     assert "Mapped source narratives:" not in prompt
     assert "Do not locally compose" not in prompt
