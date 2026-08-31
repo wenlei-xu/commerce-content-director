@@ -4,6 +4,40 @@ Every final-generation prompt is for the fixed `omni_portrait` model. Each Job g
 
 Read this contract before writing any Omni video-generation prompt for a portrait 9:16 Segment. For routed image roles and clean-input requirements, also read [reference-asset-contract.md](reference-asset-contract.md). It is not the contract for the storyboard-image Job: read [image-prompt-contract.md](image-prompt-contract.md) instead.
 
+## Omni prompting principles and compact creative scaffold
+
+Apply the principles from the [Google DeepMind Omni prompt guide](https://deepmind.google/models/gemini-omni/prompt-guide/), [Gemini Omni documentation](https://ai.google.dev/gemini-api/docs/omni), and [Google Cloud video prompt guide](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/video/video-gen-prompt-guide):
+
+- Use reference media to establish the subject, key objects, environment and starting composition; use the prompt to describe movement or change.
+- Give each Segment one clear main action. Avoid stacking a long checklist of simultaneous actions.
+- Describe only the important camera framing, point of view and movement.
+- Keep visual style, lighting and mood concise; add detail only when it improves control.
+- Request `Single continuous shot, no scene cuts` when the Segment must remain continuous.
+- Add timing only when the action needs staging, using short natural-language windows or time ranges.
+- Describe ambient sound, action sound, dialogue and music in a separate audio instruction.
+- Keep unwanted elements concise rather than writing a long negative-prompt paragraph.
+- For an edit, state only the intended change and add `Keep everything else the same.`
+
+Use this as the compact creative scaffold before compiling the final prompt:
+
+```text
+Reference
+
+Subject & Action
+
+Camera
+
+Visual Style
+
+Continuity & Timing
+
+Audio
+
+Unwanted Elements
+```
+
+This scaffold is a planning layer, not a replacement for the five mandatory blocks below. The final prompt should normally be concise natural English, with the scaffold's creative information placed inside the required input, product, subject, audio and continuity/no-text blocks. Reference, subject/action, camera and visual style are the core; timing, audio and unwanted elements are added when applicable. The hard product, subject, language, no-text, asset-role and continuity requirements in this contract always take priority.
+
 ## Language and source-of-truth gate
 
 Read `plan/language-lock.json` before writing the prompt. `target_spoken_language` must be `th` (Thai) or `zh-CN` (Chinese); when the user did not specify it, the task-start lock is `zh-CN`. Every spoken line, voice instruction, and timed dialogue window must use that one locked language. All generation control text must be English. A script value that differs from the task lock is a planning-data conflict: stop and fix the data before generation. Do not add a translated second dialogue line. If the selected audio mode is `natural_sound_only`, include no dialogue or voiceover at all. Chinese spoken dialogue is post-produced with Doubao TTS 2.0 and therefore remains outside every Omni prompt.
