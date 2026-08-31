@@ -68,7 +68,7 @@ def main() -> int:
         "结尾与CTA": renderer["ending_and_cta"],
         "脚本正文": renderer["script_body"],
     }
-    api = load_module("migrate_schema_v6").Feishu()
+    api = load_module("feishu_api").Feishu()
     if args.record_id:
         api.update_record(schema["app_token"], table["table_id"], args.record_id, fields)
         record_id = args.record_id

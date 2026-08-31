@@ -34,27 +34,22 @@ class PreflightContractTests(unittest.TestCase):
         self.assertEqual(silent["asr"], "not_required")
         self.assertEqual(with_audio["asr"], "required")
 
-    def test_standard_storyboard_requires_gpt_image_but_not_flow_or_media_runtime(self) -> None:
-        requirements = resolve_requirements(self.policy, "storyboard_generation", mode="original")
+    def test_standard_first_frame_requires_gpt_image_but_not_flow_or_media_runtime(self) -> None:
+        requirements = resolve_requirements(self.policy, "first_frame_generation", mode="original")
         self.assertEqual(requirements["feishu"], "required")
         self.assertEqual(requirements["gpt_image"], "required")
         self.assertEqual(requirements["flow2api"], "not_required")
         self.assertEqual(requirements["ffmpeg"], "not_required")
         self.assertEqual(requirements["asr"], "not_required")
 
-    def test_full_replication_uses_reviewed_segment_frames_without_media_runtime(self) -> None:
-        requirements = resolve_requirements(self.policy, "storyboard_generation", mode="full_replication")
-        self.assertEqual(requirements["ffmpeg"], "not_required")
-        self.assertEqual(requirements["asr"], "not_required")
-
     def test_high_fidelity_replication_uses_reviewed_segment_frames_without_media_runtime(self) -> None:
-        requirements = resolve_requirements(self.policy, "storyboard_generation", mode="high_fidelity_replication")
+        requirements = resolve_requirements(self.policy, "first_frame_generation", mode="high_fidelity_replication")
         self.assertEqual(requirements["ffmpeg"], "not_required")
         self.assertEqual(requirements["asr"], "not_required")
 
     def test_high_fidelity_replication_is_the_default_replication_mode(self) -> None:
-        storyboard_policy = self.policy["workflows"]["storyboard_generation"]
-        self.assertEqual(storyboard_policy["default_replication_mode"], "high_fidelity_replication")
+        first_frame_policy = self.policy["workflows"]["first_frame_generation"]
+        self.assertEqual(first_frame_policy["default_replication_mode"], "high_fidelity_replication")
 
     def test_final_video_requires_asr_only_for_spoken_audio_modes(self) -> None:
         silent = resolve_requirements(self.policy, "final_video", audio_mode="natural_sound_only", target_spoken_language="zh-CN")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Align generated narration clips to the validated storyboard timeline."""
+"""Align generated narration clips to the validated narration timeline."""
 
 from __future__ import annotations
 
@@ -52,11 +52,7 @@ def cues_from_package(package_dir: Path) -> tuple[float, list[dict]]:
                     if text:
                         cues.append({"id": str(cue["id"]), "start": float(cue["start"]), "end": float(cue["end"])})
             else:
-                # Legacy package fallback: narration used to live on every SB.
-                for panel in manifest.get("panels", []):
-                    text = caption_text(panel.get("dialogue")) or caption_text(panel.get("subtitle"))
-                    if text:
-                        cues.append({"id": str(panel["id"]), "start": float(panel["start"]), "end": float(panel["end"])})
+                raise ValueError(f"{manifest_value} must contain narration_cues")
     return float(package["total_duration_seconds"]), sorted(cues, key=lambda item: (item["start"], item["end"]))
 
 
@@ -98,7 +94,7 @@ def main() -> None:
     clips = parse_clips(args.clip)
     expected = {cue["id"] for cue in cues}
     if not expected:
-        raise SystemExit("No non-empty narration cues or legacy Dialogue / Subtitle fields were found.")
+            raise SystemExit("No non-empty narration cues were found.")
     if set(clips) != expected:
         missing, extra = sorted(expected - set(clips)), sorted(set(clips) - expected)
         details = ([f"missing: {', '.join(missing)}"] if missing else []) + ([f"unexpected: {', '.join(extra)}"] if extra else [])
@@ -117,7 +113,7 @@ def main() -> None:
         duration = duration_seconds(ffprobe, clips[cue["id"]])
         slot = cue["end"] - cue["start"]
         if duration > slot + 0.05:
-            raise SystemExit(f"{cue['id']} narration is {duration:.2f}s but its storyboard slot is {slot:.2f}s; shorten and regenerate it.")
+            raise SystemExit(f"{cue['id']} narration is {duration:.2f}s but its Segment slot is {slot:.2f}s; shorten and regenerate it.")
         delay_ms = round(cue["start"] * 1000)
         filters.append(f"[{index}:a]adelay={delay_ms}:all=1,atrim=duration={cue['end']:.3f}[cue{index}]")
         labels.append(f"[cue{index}]")

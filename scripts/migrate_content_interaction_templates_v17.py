@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from migrate_schema_v6 import Feishu, config, write_json
+from feishu_api import Feishu, config, write_json
 
 HERE = Path(__file__).resolve().parent
 SKILL = HERE.parent

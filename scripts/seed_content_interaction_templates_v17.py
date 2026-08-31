@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-from migrate_schema_v6 import Feishu, config, text  # noqa: E402
+from feishu_api import Feishu, config, text  # noqa: E402
 
 
 PRODUCT_SEED: dict[str, dict[str, Any]] = {

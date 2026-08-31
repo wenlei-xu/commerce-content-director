@@ -8,19 +8,19 @@ Treat Feishu writes and media uploads as a resumable Saga, not an assumed transa
 4. If a write or upload fails, retain the partial record as a visible failed/submitting state, record the exact missing evidence, and resume the same `run_id`; never create a duplicate record to hide the failure.
 5. Never overwrite accepted media or delete failed artifacts. A compensating state change is preferred to destructive cleanup.
 
-For storyboard generation, keep each board and request manifest local until a
+For first-frame generation, keep each image and request manifest local until a
 complete A/B package is ready. Persist the deterministic request-to-version/
 Segment mapping, exact model/output settings, input hashes and idempotency
 identities before execution. Use the single A/B writer to create or resume two
 script-version records, each with an actual `来源脚本` relation, its `脚本版本`
 and ordered attachments. There is no remote per-Segment candidate record,
-`提交中`/`待选择` candidate state or storyboard-mapping field.
+`提交中`/`待选择` candidate state or Segment mapping field.
 
 Completion requires both local evidence and a fresh remote read of the A/B script
 version records. A plausible file, cached attachment, or successful upload
-response without matching `最终分镜图` attachments is not completion.
+response without matching `最终首帧图` attachments is not completion.
 
-For concurrent GPT Image 2 storyboard requests, persist the complete
+For concurrent GPT Image 2 first-frame requests, persist the complete
 request-to-Segment/version mapping, exact model/output settings, input hashes
 and deterministic idempotency identities before execution. Resume only missing
 requests after transport interruption. A partial request-group failure creates

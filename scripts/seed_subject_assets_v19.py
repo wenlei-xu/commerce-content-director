@@ -22,7 +22,7 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 from feishu_attachment_uploader import FeishuAttachmentUploader  # noqa: E402
-from migrate_schema_v6 import Feishu, config, write_json  # noqa: E402
+from feishu_api import Feishu, config, write_json  # noqa: E402
 
 
 AVAILABLE = "可用"

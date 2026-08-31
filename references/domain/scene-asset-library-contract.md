@@ -1,6 +1,6 @@
 # Scene asset library contract
 
-The `场景资产库` is the reusable visual-context roster for ordinary, repeatable production environments. It is not a script, storyboard approval surface or product-fact source.
+The `场景资产库` is the reusable visual-context roster for ordinary, repeatable production environments. It is not a script, first-frame approval surface or product-fact source.
 
 ## Eligibility
 

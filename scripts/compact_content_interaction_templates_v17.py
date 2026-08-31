@@ -17,7 +17,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-from migrate_schema_v6 import Feishu, config, write_json  # noqa: E402
+from feishu_api import Feishu, config, write_json  # noqa: E402
 
 CORE_FIELDS = {"互动模板", "内容功能", "行为流程", "可视验收点", "模板状态"}
 

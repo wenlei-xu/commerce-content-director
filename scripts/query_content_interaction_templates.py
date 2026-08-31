@@ -21,7 +21,7 @@ if str(HERE) not in sys.path:
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-from migrate_schema_v6 import Feishu, config, text  # noqa: E402
+from feishu_api import Feishu, config, text  # noqa: E402
 
 
 def values(value: Any) -> list[str]:

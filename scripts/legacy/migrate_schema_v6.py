@@ -302,8 +302,8 @@ def apply(api: Feishu, run_id: str) -> dict[str, Any]:
         simple("脚本锁定时间", 5, {"date_formatter": "yyyy-MM-dd HH:mm", "auto_fill": False}), simple("一句话脚本"), simple("钩子包"),
         simple("留存设计"), simple("节拍时间线"), simple("三轨脚本"), simple("台词清单"), simple("屏幕文字清单"),
         simple("声音与表演"), simple("互动计划"), simple("分段衔接"), simple("悬念回收"), simple("结尾与CTA"), simple("脚本正文"),
-        simple("结构化脚本"), simple("脚本质检摘要"), select("分镜状态", ["未开始", "生成中", "待审核", "已通过", "已驳回"]),
-        simple("分镜审核意见"), simple("视频提示词"), simple("已验收成片数", 2, {"formatter": "0"}), simple("执行次数上限", 2, {"formatter": "0"}),
+        simple("结构化脚本"), simple("脚本质检摘要"), select("首帧状态", ["未开始", "生成中", "待审核", "已通过", "已驳回"]),
+        simple("首帧审核意见"), simple("视频提示词"), simple("已验收成片数", 2, {"formatter": "0"}), simple("执行次数上限", 2, {"formatter": "0"}),
         simple("剩余执行次数", 20, {"formula_expression": "{执行次数上限}-{已验收成片数}", "formatter": "0"}),
         select("记录状态", ["活跃", "已归档"]), simple("归档保护", 7), simple("归档时间", 5, {"date_formatter": "yyyy-MM-dd HH:mm", "auto_fill": False}), simple("归档原因"),
     ]
@@ -321,7 +321,7 @@ def apply(api: Feishu, run_id: str) -> dict[str, Any]:
 
     keep_request = {"创作需求名称", "创作需求ID", "产品", "平台 / 账号", "主体资产池", "创作需求描述", "商业目标", "特殊要求", "目标时长（秒）", "期望方向数", "收敛方式", "自动入选数", "流程状态", "记录状态", "归档时间", "归档原因", "归档保护"}
     keep_direction = {spec["field_name"] for spec in direction_specs} | {"创意方向名称"}
-    keep_script = {spec["field_name"] for spec in script_specs} | {"脚本名称", "最终分镜图", "脚本审核意见"}
+    keep_script = {spec["field_name"] for spec in script_specs} | {"脚本名称", "最终首帧图", "脚本审核意见"}
     keep_film = {spec["field_name"] for spec in film_specs} | {"成片名称", "成片ID", "最终视频", "视频时长（秒）", "生成时间", "是否发布", "成片路径或预览链接"}
     delete_named(api, app, request, keep_request)
     delete_named(api, app, direction, keep_direction)
@@ -392,7 +392,7 @@ def apply(api: Feishu, run_id: str) -> dict[str, Any]:
             "视频提示词": text(fields.get("视频生成 Prompt")), "目标时长（秒）": float(text(fields.get("时长（秒）")) or 0),
             "目标口播语言": "th", "音频模式": "完整口播", "字幕模式": "最终音频自动生成",
             "已验收成片数": films_by_script.get(item["record_id"], 0), "执行次数上限": float(text(fields.get("执行次数上限")) or 1),
-            "分镜状态": "已通过" if fields.get("最终分镜图") else "未开始",
+            "首帧状态": "已通过" if fields.get("最终首帧图") else "未开始",
             "结构化脚本": json.dumps({"schema_version": "1.0", "migration_status": "historical_incomplete", "source_record_id": item["record_id"]}, ensure_ascii=False),
         }
         if direction_id:
@@ -412,7 +412,7 @@ def apply(api: Feishu, run_id: str) -> dict[str, Any]:
     # 6. Remove all former schema fields and then the former task table.
     keep_request = {"创作需求名称", "创作需求ID", "产品", "平台 / 账号", "主体资产池", "创作需求描述", "商业目标", "特殊要求", "目标时长（秒）", "期望方向数", "收敛方式", "自动入选数", "流程状态", "记录状态", "归档时间", "归档原因", "归档保护", "创意方向列表"}
     keep_direction = {spec["field_name"] for spec in direction_specs} | {"创意方向名称", "创作需求", "创意方向列表"}
-    keep_script = {spec["field_name"] for spec in script_specs} | {"脚本名称", "最终分镜图", "脚本审核意见"}
+    keep_script = {spec["field_name"] for spec in script_specs} | {"脚本名称", "最终首帧图", "脚本审核意见"}
     keep_film = {spec["field_name"] for spec in film_specs} | {"成片名称", "成片ID", "最终视频", "视频时长（秒）", "生成时间", "是否发布", "成片路径或预览链接"}
     delete_named(api, app, request, keep_request)
     delete_named(api, app, direction, keep_direction)

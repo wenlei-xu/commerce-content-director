@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate a structured short-video script before it reaches Feishu or storyboard."""
+"""Validate a structured short-video script before it reaches Feishu or first-frame production."""
 
 from __future__ import annotations
 

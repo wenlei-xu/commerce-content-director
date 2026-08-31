@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compile validated storyboard-image or final-video prompts from a timing plan."""
+"""Compile validated first-frame image or final-video prompts from a timing plan."""
 
 from __future__ import annotations
 
@@ -18,31 +18,21 @@ NON_ENGLISH_CONTROL = re.compile(r"[\u0E00-\u0E7F\u3400-\u4DBF\u4E00-\u9FFF]")
 SOURCE_FRAME_ROLES = {"source_segment_start", "source_segment_result"}
 SOURCE_SCENE_REFERENCE_ROLE = "source_scene_reference"
 SUBJECT_STRATEGIES = {"preserve_source_subject", "replace_subject", "structure_only"}
-HIGH_FIDELITY_REPLICATION_MODES = {"high_fidelity_replication", "full_replication"}
+HIGH_FIDELITY_REPLICATION_MODES = {"high_fidelity_replication"}
 REPLICATION_MODES = HIGH_FIDELITY_REPLICATION_MODES | {"structure_replication"}
 SOURCE_VISUAL_STYLE_FIELDS = ("style_fingerprint_en", "anti_style_constraints_en")
 TARGET_PRODUCTION_UNIT = "target_production_segment"
 FIXED_RAW_SEGMENT_SECONDS = 10
-FIXED_STORYBOARD_COLUMNS = 2
-FIXED_STORYBOARD_ROWS = 2
-FIXED_PANEL_RATIO = "9:16"
-FIXED_STORYBOARD_EXECUTOR = "gpt_image_2"
-FIXED_STORYBOARD_MODEL = "gpt-image-2"
-FIXED_STORYBOARD_SIZE = "1152x2048"
-FIXED_STORYBOARD_QUALITY = "high"
-FIXED_STORYBOARD_FORMAT = "png"
-DEFAULT_STORYBOARD_CONCURRENCY = 5
-# ``candidates_per_segment`` is retained as a plan compatibility key for
-# local retry slots only.  It never creates a Feishu record; remote authority
-# is the complete A/B script-version package.
-STORYBOARD_PANEL_ORDER = ("top_left", "top_right", "bottom_left", "bottom_right")
-STORYBOARD_PANEL_LABELS = {
-    "top_left": "Top-left",
-    "top_right": "Top-right",
-    "bottom_left": "Bottom-left",
-    "bottom_right": "Bottom-right",
-}
-STORYBOARD_HUMAN_PRESENCE = {
+FIXED_FIRST_FRAME_RATIO = "9:16"
+FIXED_FIRST_FRAME_EXECUTOR = "gpt_image_2"
+FIXED_FIRST_FRAME_MODEL = "gpt-image-2"
+FIXED_FIRST_FRAME_SIZE = "1152x2048"
+FIXED_FIRST_FRAME_QUALITY = "high"
+FIXED_FIRST_FRAME_FORMAT = "png"
+DEFAULT_FIRST_FRAME_CONCURRENCY = 5
+# ``candidates_per_segment`` controls local retry slots only. It never creates
+# a Feishu record; remote authority is the complete A/B script-version package.
+FIRST_FRAME_HUMAN_PRESENCE = {
     "none": "No person or human body part visible.",
     "one_hand": "Exactly one natural human hand is visible; no extra hand, arm, person, or fingers.",
     "partial_person": "Only the explicitly described part of one person is visible.",
@@ -50,9 +40,9 @@ STORYBOARD_HUMAN_PRESENCE = {
 }
 IMAGE_ROLES = {
     "product_anchor", "product_detail", "product_scene", "subject_anchor",
-    "source_contact_sheet", SOURCE_SCENE_REFERENCE_ROLE, *SOURCE_FRAME_ROLES,
+    SOURCE_SCENE_REFERENCE_ROLE, *SOURCE_FRAME_ROLES,
 }
-VIDEO_ROLES = IMAGE_ROLES | {"storyboard_board", "continuity_frame"}
+VIDEO_ROLES = IMAGE_ROLES | {"first_frame_asset", "continuity_frame"}
 AUDIO_MODES = {"spoken", "sparse_spoken", "natural_sound_only"}
 CHINESE_VOICEOVER_PROVIDER = "doubao_tts_2_0"
 THAI_VOICEOVER_PROVIDER = "omni_native"
@@ -124,7 +114,7 @@ def validate_product_visual_lock(segment: dict[str, Any]) -> str | None:
 
 def validate_source_visual_style(plan: dict[str, Any]) -> dict[str, str] | None:
     if (
-        plan.get("job_kind") != "storyboard_image"
+        plan.get("job_kind") != "first_frame_image"
         or plan.get("replication_mode") not in REPLICATION_MODES
     ):
         return None
@@ -140,38 +130,32 @@ def validate_source_visual_style(plan: dict[str, Any]) -> dict[str, str] | None:
     return normalized
 
 
-def validate_storyboard_keyframes(
+def validate_first_frame(
     segment: dict[str, Any], raw_seconds: float
-) -> list[dict[str, Any]]:
-    keyframes = validate_beats(segment, raw_seconds)
-    if len(keyframes) != len(STORYBOARD_PANEL_ORDER):
+) -> dict[str, Any]:
+    """Validate the single entering-state image decision for one 10s Segment."""
+    validate_beats(segment, raw_seconds)
+    first_frame = segment.get("first_frame")
+    if not isinstance(first_frame, dict):
+        raise fail(f"{segment.get('segment_id', '<unknown>')}: first_frame must be an object")
+    for field in ("camera", "composition", "static_moment", "performance", "continuity"):
+        if not isinstance(first_frame.get(field), str) or not first_frame[field].strip():
+            raise fail(f"first_frame.{field} must be a non-empty string")
+    if first_frame.get("human_presence") not in FIRST_FRAME_HUMAN_PRESENCE:
         raise fail(
-            f"{segment.get('segment_id', '<unknown>')}: storyboard beats must contain "
-            "exactly four static panel keyframes"
+            "first_frame.human_presence must be one of "
+            f"{', '.join(sorted(FIRST_FRAME_HUMAN_PRESENCE))}"
         )
-    observed_panels = tuple(keyframe.get("panel") for keyframe in keyframes)
-    if observed_panels != STORYBOARD_PANEL_ORDER:
-        raise fail(
-            f"{segment.get('segment_id', '<unknown>')}: storyboard panels must be "
-            "top_left, top_right, bottom_left, bottom_right in reading order"
-        )
-    for index, keyframe in enumerate(keyframes):
-        for field in ("camera", "continuity"):
-            if not isinstance(keyframe.get(field), str) or not keyframe[field].strip():
-                raise fail(f"storyboard keyframe {index}.{field} must be a non-empty string")
-        if keyframe.get("human_presence") not in STORYBOARD_HUMAN_PRESENCE:
-            raise fail(
-                f"storyboard keyframe {index}.human_presence must be one of "
-                f"{', '.join(sorted(STORYBOARD_HUMAN_PRESENCE))}"
-            )
-    return keyframes
+    if "time" in first_frame and number(first_frame["time"], "first_frame.time") != 0:
+        raise fail("first_frame.time must be 0")
+    return first_frame
 
 
 def validate_inputs(segment: dict[str, Any], job_kind: str) -> list[dict[str, Any]]:
     inputs = segment.get("inputs")
     if not isinstance(inputs, list) or not inputs:
         raise fail(f"{segment.get('segment_id', '<unknown>')}: inputs must be a non-empty list")
-    allowed_roles = IMAGE_ROLES if job_kind == "storyboard_image" else VIDEO_ROLES
+    allowed_roles = IMAGE_ROLES if job_kind == "first_frame_image" else VIDEO_ROLES
     positions: set[int] = set()
     for index, item in enumerate(inputs):
         if not isinstance(item, dict):
@@ -191,10 +175,10 @@ def validate_inputs(segment: dict[str, Any], job_kind: str) -> list[dict[str, An
         raise fail("input positions must be contiguous from 1")
     if segment.get("product_visible") and "product_anchor" not in {item["role"] for item in inputs}:
         raise fail("a visible product requires product_anchor")
-    if job_kind == "storyboard_image" and segment.get("product_visible"):
+    if job_kind == "first_frame_image" and segment.get("product_visible"):
         product_anchors = [item for item in inputs if item["role"] == "product_anchor"]
         if len(product_anchors) != 1 or product_anchors[0]["position"] != 1:
-            raise fail("a visible storyboard product requires exactly one product_anchor at input position 1")
+            raise fail("a visible first-frame product requires exactly one product_anchor at input position 1")
         subject_anchor = next((item for item in inputs if item["role"] == "subject_anchor"), None)
         scene_reference = next(
             (item for item in inputs if item["role"] == SOURCE_SCENE_REFERENCE_ROLE),
@@ -241,8 +225,8 @@ def validate_subject_strategy(
     else:
         if replication_mode != "structure_replication":
             raise fail("structure_only requires structure_replication")
-        if any(role in roles for role in SOURCE_FRAME_ROLES | {"source_contact_sheet"}):
-            raise fail("structure_only forbids source frames and source_contact_sheet as generation inputs")
+        if any(role in roles for role in SOURCE_FRAME_ROLES):
+            raise fail("structure_only forbids source frames as generation inputs")
         if roles.count(SOURCE_SCENE_REFERENCE_ROLE) > 1:
             raise fail("structure_only permits at most one source_scene_reference")
         if roles.count("subject_anchor") != 1:
@@ -283,8 +267,8 @@ def validate_plan(plan: dict[str, Any]) -> None:
     if plan.get("schema") != "commerce-generation-prompt-plan-v1":
         raise fail("unsupported prompt-plan schema")
     job_kind = plan.get("job_kind")
-    if job_kind not in {"storyboard_image", "final_video"}:
-        raise fail("job_kind must be storyboard_image or final_video")
+    if job_kind not in {"first_frame_image", "final_video"}:
+        raise fail("job_kind must be first_frame_image or final_video")
     if plan.get("prompt_language") != "en":
         raise fail("prompt_language must be en")
     if plan.get("target_spoken_language") not in {"th", "zh-CN"}:
@@ -292,64 +276,56 @@ def validate_plan(plan: dict[str, Any]) -> None:
     raw_seconds = number(plan.get("raw_segment_seconds"), "raw_segment_seconds")
     if raw_seconds <= 0:
         raise fail("raw_segment_seconds must be positive")
-    if job_kind == "storyboard_image":
+    if job_kind == "first_frame_image":
         versions = plan.get("versions")
         if versions is not None and versions != ["A", "B"]:
-            raise fail("storyboard_image versions must be exactly ['A', 'B']")
+            raise fail("first_frame_image versions must be exactly ['A', 'B']")
         if versions == ["A", "B"]:
             specs = plan.get("version_specs")
             if isinstance(specs, dict):
                 deltas = [specs.get(version, {}).get("variant_delta") if isinstance(specs.get(version), dict) else None for version in versions]
                 if all(isinstance(delta, str) and delta.strip() for delta in deltas) and deltas[0].strip() == deltas[1].strip():
                     raise fail("A/B version_specs must declare different variant_delta values")
-        if plan.get("executor") != FIXED_STORYBOARD_EXECUTOR:
-            raise fail(f"storyboard_image executor must be {FIXED_STORYBOARD_EXECUTOR}; Flow2API image generation is forbidden")
-        if plan.get("model") != FIXED_STORYBOARD_MODEL:
-            raise fail(f"storyboard_image model must be exactly {FIXED_STORYBOARD_MODEL}")
+        if plan.get("executor") != FIXED_FIRST_FRAME_EXECUTOR:
+            raise fail(f"first_frame_image executor must be {FIXED_FIRST_FRAME_EXECUTOR}; Flow2API image generation is forbidden")
+        if plan.get("model") != FIXED_FIRST_FRAME_MODEL:
+            raise fail(f"first_frame_image model must be exactly {FIXED_FIRST_FRAME_MODEL}")
         if plan.get("generation_unit") != TARGET_PRODUCTION_UNIT:
-            raise fail(f"storyboard_image generation_unit must be {TARGET_PRODUCTION_UNIT}")
+            raise fail(f"first_frame_image generation_unit must be {TARGET_PRODUCTION_UNIT}")
         if abs(raw_seconds - FIXED_RAW_SEGMENT_SECONDS) > 1e-6:
-            raise fail(f"storyboard_image raw_segment_seconds must be {FIXED_RAW_SEGMENT_SECONDS}")
+            raise fail(f"first_frame_image raw_segment_seconds must be {FIXED_RAW_SEGMENT_SECONDS}")
         target_seconds = number(plan.get("target_duration_seconds"), "target_duration_seconds")
         if target_seconds <= 0 or abs(target_seconds % raw_seconds) > 1e-6:
-            raise fail("storyboard_image target_duration_seconds must be positive and divisible by raw_segment_seconds")
-        storyboard = plan.get("storyboard")
-        if not isinstance(storyboard, dict) or not all(isinstance(storyboard.get(key), int) and storyboard[key] > 0 for key in ("columns", "rows")):
-            raise fail("storyboard image plans require positive storyboard columns and rows")
-        if not isinstance(storyboard.get("panel_ratio"), str):
-            raise fail("storyboard.panel_ratio must be a string")
-        if (
-            storyboard["columns"] != FIXED_STORYBOARD_COLUMNS
-            or storyboard["rows"] != FIXED_STORYBOARD_ROWS
-            or storyboard["panel_ratio"] != FIXED_PANEL_RATIO
-        ):
-            raise fail("storyboard_image output must be one 2x2 board with four 9:16 panels")
+            raise fail("first_frame_image target_duration_seconds must be positive and divisible by raw_segment_seconds")
+        first_frame_layout = plan.get("first_frame_layout")
+        if not isinstance(first_frame_layout, dict) or first_frame_layout.get("aspect_ratio") != FIXED_FIRST_FRAME_RATIO:
+            raise fail("first_frame_image output must declare aspect_ratio=9:16")
         expected_output = {
-            "size": FIXED_STORYBOARD_SIZE,
-            "quality": FIXED_STORYBOARD_QUALITY,
-            "format": FIXED_STORYBOARD_FORMAT,
+            "size": FIXED_FIRST_FRAME_SIZE,
+            "quality": FIXED_FIRST_FRAME_QUALITY,
+            "format": FIXED_FIRST_FRAME_FORMAT,
         }
         if plan.get("image_output") != expected_output:
             raise fail(
-                "storyboard_image image_output must be "
-                f"{FIXED_STORYBOARD_SIZE}/high/png"
+                "first_frame_image image_output must be "
+                f"{FIXED_FIRST_FRAME_SIZE}/high/png"
             )
         positive_integer(
             plan.get("candidates_per_segment"), "candidates_per_segment"
         )
         if plan.get("common_constraints"):
             raise fail(
-                "storyboard_image plans must use visual_continuity instead of common_constraints"
+                "first_frame_image plans must use visual_continuity instead of common_constraints"
             )
         validate_source_visual_style(plan)
     segments = plan.get("segments")
     if not isinstance(segments, list) or not segments:
         raise fail("segments must be a non-empty list")
-    if job_kind == "storyboard_image":
+    if job_kind == "first_frame_image":
         expected_count = int(float(plan["target_duration_seconds"]) / raw_seconds)
         if len(segments) != expected_count:
             raise fail(
-                f"storyboard_image requires {expected_count} target production Segment(s) for "
+                f"first_frame_image requires {expected_count} target production Segment(s) for "
                 f"{plan['target_duration_seconds']:g}s"
             )
     if job_kind == "final_video":
@@ -381,9 +357,9 @@ def validate_plan(plan: dict[str, Any]) -> None:
         seen.add(segment_id)
         validate_beats(segment, raw_seconds)
         inputs = validate_inputs(segment, job_kind)
-        if job_kind == "storyboard_image":
+        if job_kind == "first_frame_image":
             validate_product_visual_lock(segment)
-            validate_storyboard_keyframes(segment, raw_seconds)
+            validate_first_frame(segment, raw_seconds)
             validate_string_list(
                 segment.get("visual_continuity"),
                 f"{segment_id}.visual_continuity",
@@ -400,17 +376,15 @@ def validate_plan(plan: dict[str, Any]) -> None:
             )
             validate_target_time_range(segment, segment_index, raw_seconds)
             validate_source_narrative_mapping(segment, plan.get("replication_mode"))
-        if job_kind == "storyboard_image" and plan.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
+        if job_kind == "first_frame_image" and plan.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
             roles = [item["role"] for item in inputs]
             for role in SOURCE_FRAME_ROLES:
                 if roles.count(role) != 1:
                     raise fail(f"{segment_id}: high-fidelity replication requires exactly one {role}")
-            if "source_contact_sheet" in roles:
-                raise fail(f"{segment_id}: high-fidelity replication cannot use source_contact_sheet")
-        if job_kind == "storyboard_image":
+        if job_kind == "first_frame_image":
             validate_subject_strategy(segment, plan.get("replication_mode"), inputs)
-        if job_kind == "storyboard_image" and segment.get("dialogue"):
-            raise fail("storyboard-image plans must not contain dialogue")
+        if job_kind == "first_frame_image" and segment.get("dialogue"):
+            raise fail("first-frame image plans must not contain dialogue")
 
 
 def timing_lines(beats: list[dict[str, Any]]) -> list[str]:
@@ -421,34 +395,27 @@ def role_lines(inputs: list[dict[str, Any]]) -> list[str]:
     return [f"Input {item['position']} → {item['role']}: {item['reason']}" for item in inputs]
 
 
-def storyboard_keyframe_lines(keyframes: list[dict[str, Any]]) -> list[str]:
-    lines = [
-        "Each panel must depict one frozen, directly observable instant. "
-        "Do not describe or blend a multi-step process inside one panel."
+def first_frame_lines(first_frame: dict[str, Any]) -> list[str]:
+    human_presence = FIRST_FRAME_HUMAN_PRESENCE[first_frame["human_presence"]]
+    return [
+        f"Local time: {number(first_frame.get('time', 0), 'first_frame.time'):.1f}s",
+        f"Camera: {first_frame['camera'].strip()}",
+        f"Composition: {first_frame['composition'].strip()}",
+        f"Static moment: {first_frame['static_moment'].strip()}",
+        f"Performance: {first_frame['performance'].strip()}",
+        f"Continuity: {first_frame['continuity'].strip()}",
+        f"Human presence: {human_presence}",
     ]
-    for keyframe in keyframes:
-        label = STORYBOARD_PANEL_LABELS[keyframe["panel"]]
-        human_presence = STORYBOARD_HUMAN_PRESENCE[keyframe["human_presence"]]
-        lines.append(
-            f"{label} ({keyframe['start']:.1f}–{keyframe['end']:.1f}s): "
-            f"Camera: {keyframe['camera'].strip()} "
-            f"Composition: {keyframe['composition'].strip()} "
-            f"Static moment: {keyframe['static_moment'].strip()} "
-            f"Performance: {keyframe['performance'].strip()} "
-            f"Continuity: {keyframe['continuity'].strip()} "
-            f"Human presence: {human_presence}"
-        )
-    return lines
 
 
-def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
+def compile_first_frame(plan: dict[str, Any], segment: dict[str, Any]) -> str:
     director_output = direct_segment(
         segment,
         variant=str(segment.get("_director_variant", "A")),
         variant_delta=segment.get("_director_variant_delta"),
     )
-    storyboard = plan["storyboard"]
-    inputs = validate_inputs(segment, "storyboard_image")
+    first_frame_layout = plan["first_frame_layout"]
+    inputs = validate_inputs(segment, "first_frame_image")
     continuity = validate_string_list(
         segment.get("visual_continuity"),
         f"{segment.get('segment_id', '<unknown>')}.visual_continuity",
@@ -484,7 +451,7 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         authority.append(
             f"Input {subject_anchor['position']} is the subject identity authority. "
             "Keep the same identity, markings, proportions, age, accessories, and body features "
-            "across all four panels."
+            "at the Segment boundary and across Segment transitions."
         )
     subject = segment.get("subject_identity")
     if isinstance(subject, str) and subject.strip():
@@ -505,30 +472,25 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         else:
             authority.append("The source scene-space reference controls environment and spatial composition only. Target product and subject anchors own identity; do not copy the source subject, product, text or hardware mechanism.")
     validate_source_narrative_mapping(segment, plan.get("replication_mode"))
-    keyframes = director_output["panels"]
+    first_frame = director_output["first_frame"]
     source_visual_style = validate_source_visual_style(plan)
     style_lines = (
         [source_visual_style[field] for field in SOURCE_VISUAL_STYLE_FIELDS]
         if source_visual_style is not None
         else []
     )
-    negatives = [
-        "No readable text, captions, subtitles, labels, logos, watermarks, UI, timecodes, or panel numbers.",
-        "No visible divider lines, blank gutters, decorative borders, grooves, panel fusion, or content crossing between panels.",
-        "No duplicate product or subject, extra people or body parts, malformed hands, extra fingers, or fact-incompatible product structure or action.",
+    negatives = list(dict.fromkeys([
+        "No readable text, captions, logos, watermarks, UI, grids, contact sheets, dividers, or borders.",
+        "No duplicate product or subject, extra people or body parts, malformed hands, or fact-incompatible product structure or action.",
         *negative_constraints,
-    ]
+    ]))
     return "\n\n".join([
         "OUTPUT SPECIFICATION\n"
-        f"Generate one complete {plan['raw_segment_seconds']:g}-second target production storyboard board: "
-        f"exactly {storyboard['columns']} columns × {storyboard['rows']} rows, exactly four {storyboard['panel_ratio']} target panels, "
-        "left-to-right then top-to-bottom reading order. The four panels touch edge-to-edge and remain visually independent with hard boundaries. "
-        "There is no blank gutter, gap, groove, visible divider line, decorative border, panel label, or content crossing between panels.",
+        f"Generate exactly one {first_frame_layout['aspect_ratio']} portrait first-frame image for the {plan['raw_segment_seconds']:g}-second target production Segment. "
+        "Show one static entering state at local t=0; do not generate a grid, contact sheet, multiple panels, divider or border.",
         "GLOBAL VISUAL CONTINUITY\n" + "\n".join([
             *style_lines,
             *continuity,
-            f"Director variant {director_output['variant']}: {director_output['variant_delta']}",
-            "Keep the same scene, surface, lighting, product identity, subject identity, and spatial relationship across all four panels unless a keyframe explicitly changes one of them.",
         ]),
         "REFERENCE AND IDENTITY AUTHORITY\n" + "\n".join(authority),
         "PRODUCT AND ACTION CONSTRAINTS\n" + (
@@ -536,7 +498,10 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
             if product_visual_lock or constraints
             else "Use only the approved product and action facts for this Segment."
         ),
-        "FOUR STATIC KEYFRAMES\n" + "\n".join(storyboard_keyframe_lines(keyframes)),
+        "FIRST FRAME\n" + "\n".join([
+            *first_frame_lines(first_frame),
+            f"Variant direction: {director_output['variant_delta']}",
+        ]),
         "NEGATIVE CONSTRAINTS\n" + "\n".join(negatives),
     ])
 
@@ -630,14 +595,14 @@ def build_execution_jobs(
 ) -> list[dict[str, Any]]:
     jobs: list[dict[str, Any]] = []
     idempotency_kind = (
-        "storyboard" if job_kind == "storyboard_image" else "video"
+        "first_frame" if job_kind == "first_frame_image" else "video"
     )
     for prompt_index, prompt in enumerate(prompts):
         segment_id = prompt["segment_id"]
         version = prompt.get("version")
         version_prefix = f"{version}:" if version else ""
         version_suffix = f":{version}" if version else ""
-        if job_kind == "storyboard_image":
+        if job_kind == "first_frame_image":
             candidate_count = positive_integer(
                 candidates_per_segment, "candidates_per_segment"
             )
@@ -663,14 +628,14 @@ def build_execution_jobs(
 
 def build_submission_policy(job_kind: str, job_count: int) -> dict[str, Any]:
     is_batch = job_count >= BATCH_SUBMISSION_THRESHOLD
-    stage_name = "storyboard" if job_kind == "storyboard_image" else "video"
-    if job_kind == "storyboard_image":
+    stage_name = "first_frame" if job_kind == "first_frame_image" else "video"
+    if job_kind == "first_frame_image":
         return {
             "scope": BATCH_SCOPE,
             "ready_job_count": job_count,
             "batch_threshold": BATCH_SUBMISSION_THRESHOLD,
             "method": "gpt_image_2_concurrent" if is_batch else "gpt_image_2_single",
-            "max_concurrency": DEFAULT_STORYBOARD_CONCURRENCY if is_batch else 1,
+            "max_concurrency": DEFAULT_FIRST_FRAME_CONCURRENCY if is_batch else 1,
             "request_group_id_template": f"{{run_id}}:{stage_name}:initial",
             "single_submit_allowed_only_when": [
                 "one_ready_job",
@@ -682,7 +647,7 @@ def build_submission_policy(job_kind: str, job_count: int) -> dict[str, Any]:
         "ready_job_count": job_count,
         "batch_threshold": BATCH_SUBMISSION_THRESHOLD,
         "method": "flow_submit_batch" if is_batch else "flow_submit_video",
-        "batch_kind": "image" if job_kind == "storyboard_image" else "video",
+        "batch_kind": "image" if job_kind == "first_frame_image" else "video",
         "batch_id_template": f"{{run_id}}:{stage_name}:initial",
         "single_submit_allowed_only_when": [
             "one_ready_job",
@@ -694,18 +659,18 @@ def build_submission_policy(job_kind: str, job_count: int) -> dict[str, Any]:
 
 def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
     validate_plan(plan)
-    compiler = compile_storyboard if plan["job_kind"] == "storyboard_image" else compile_video
+    compiler = compile_first_frame if plan["job_kind"] == "first_frame_image" else compile_video
     candidates_per_segment = (
         positive_integer(
             plan.get("candidates_per_segment"), "candidates_per_segment"
         )
-        if plan["job_kind"] == "storyboard_image"
+        if plan["job_kind"] == "first_frame_image"
         else None
     )
     explicit_versions = plan.get("versions")
     versions = explicit_versions if isinstance(explicit_versions, list) and explicit_versions else [None]
-    if plan["job_kind"] == "storyboard_image" and any(version not in {"A", "B"} for version in versions if version is not None):
-        raise fail("storyboard versions must be A or B")
+    if plan["job_kind"] == "first_frame_image" and any(version not in {"A", "B"} for version in versions if version is not None):
+        raise fail("first-frame versions must be A or B")
     prompts = []
     for version in versions:
         for source_segment in plan["segments"]:
@@ -724,7 +689,7 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
                     variant=version or "A",
                     variant_delta=segment.get("_director_variant_delta"),
                 )
-                if plan["job_kind"] == "storyboard_image"
+                if plan["job_kind"] == "first_frame_image"
                 else None
             )
             prompts.append({
@@ -735,6 +700,7 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
                 "subject_strategy": segment.get("subject_strategy"),
                 "product_visual_lock": validate_product_visual_lock(segment),
                 "visual_continuity": segment.get("visual_continuity"),
+                "first_frame": segment.get("first_frame"),
                 "director": director_output,
                 "prompt": compiled_prompt,
                 "inputs": validate_inputs(segment, plan["job_kind"]),
@@ -767,7 +733,7 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "omni_audio_policy": plan.get("omni_audio_policy"),
         "target_duration_seconds": plan.get("target_duration_seconds"),
         "raw_segment_seconds": plan["raw_segment_seconds"],
-        "storyboard": plan.get("storyboard"),
+        "first_frame_layout": plan.get("first_frame_layout"),
         "image_output": plan.get("image_output"),
         "versions": [version for version in versions if version is not None],
         "candidates_per_segment": candidates_per_segment,
@@ -797,7 +763,7 @@ def main() -> int:
         parser.error(str(error))
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    if bundle["job_kind"] == "storyboard_image":
+    if bundle["job_kind"] == "first_frame_image":
         print(
             f"Wrote {len(bundle['prompts'])} logical Segment prompt(s) and "
             f"{bundle['expected_candidate_job_count']} candidate Job(s): {args.out}"

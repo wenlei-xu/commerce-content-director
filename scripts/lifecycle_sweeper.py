@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from migrate_schema_v6 import Feishu, linked_ids, text
+from feishu_api import Feishu, linked_ids, text
 
 HERE = Path(__file__).resolve().parent
 SKILL = HERE.parent

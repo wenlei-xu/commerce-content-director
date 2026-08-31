@@ -12,15 +12,13 @@ from typing import Any
 from compile_generation_prompts import (
     CHINESE_VOICEOVER_PROVIDER,
     ENVIRONMENT_ONLY,
-    FIXED_PANEL_RATIO,
+    FIXED_FIRST_FRAME_RATIO,
     FIXED_RAW_SEGMENT_SECONDS,
-    FIXED_STORYBOARD_EXECUTOR,
-    FIXED_STORYBOARD_FORMAT,
-    FIXED_STORYBOARD_MODEL,
-    FIXED_STORYBOARD_QUALITY,
-    FIXED_STORYBOARD_SIZE,
-    FIXED_STORYBOARD_COLUMNS,
-    FIXED_STORYBOARD_ROWS,
+    FIXED_FIRST_FRAME_EXECUTOR,
+    FIXED_FIRST_FRAME_FORMAT,
+    FIXED_FIRST_FRAME_MODEL,
+    FIXED_FIRST_FRAME_QUALITY,
+    FIXED_FIRST_FRAME_SIZE,
     HIGH_FIDELITY_REPLICATION_MODES,
     REPLICATION_MODES,
     SOURCE_FRAME_ROLES,
@@ -35,7 +33,7 @@ from compile_generation_prompts import (
     validate_source_visual_style,
     validate_string_list,
     validate_product_visual_lock,
-    validate_storyboard_keyframes,
+    validate_first_frame,
     validate_subject_strategy,
     validate_target_time_range,
 )
@@ -48,7 +46,7 @@ IMAGE_HEADINGS = (
     "GLOBAL VISUAL CONTINUITY",
     "REFERENCE AND IDENTITY AUTHORITY",
     "PRODUCT AND ACTION CONSTRAINTS",
-    "FOUR STATIC KEYFRAMES",
+    "FIRST FRAME",
     "NEGATIVE CONSTRAINTS",
 )
 IMAGE_WORKFLOW_METADATA_MARKERS = (
@@ -86,31 +84,27 @@ def validate_bundle(
     if bundle.get("schema") != "commerce-generation-prompt-bundle-v1":
         return ["unsupported prompt-bundle schema"]
     kind = bundle.get("job_kind")
-    if kind not in {"storyboard_image", "final_video"}:
-        return ["job_kind must be storyboard_image or final_video"]
-    if kind == "storyboard_image":
-        if bundle.get("executor") != FIXED_STORYBOARD_EXECUTOR:
-            errors.append(f"storyboard_image executor must be {FIXED_STORYBOARD_EXECUTOR}; Flow2API image generation is forbidden")
-        if bundle.get("model") != FIXED_STORYBOARD_MODEL:
-            errors.append(f"storyboard_image model must be exactly {FIXED_STORYBOARD_MODEL}")
+    if kind not in {"first_frame_image", "final_video"}:
+        return ["job_kind must be first_frame_image or final_video"]
+    if kind == "first_frame_image":
+        if bundle.get("executor") != FIXED_FIRST_FRAME_EXECUTOR:
+            errors.append(f"first_frame_image executor must be {FIXED_FIRST_FRAME_EXECUTOR}; Flow2API image generation is forbidden")
+        if bundle.get("model") != FIXED_FIRST_FRAME_MODEL:
+            errors.append(f"first_frame_image model must be exactly {FIXED_FIRST_FRAME_MODEL}")
         if bundle.get("generation_unit") != TARGET_PRODUCTION_UNIT:
-            errors.append(f"storyboard_image generation_unit must be {TARGET_PRODUCTION_UNIT}")
-        storyboard = bundle.get("storyboard")
-        if not isinstance(storyboard, dict) or (
-            storyboard.get("columns") != FIXED_STORYBOARD_COLUMNS
-            or storyboard.get("rows") != FIXED_STORYBOARD_ROWS
-            or storyboard.get("panel_ratio") != FIXED_PANEL_RATIO
-        ):
-            errors.append("storyboard_image output must be one 2x2 board with four 9:16 panels")
+            errors.append(f"first_frame_image generation_unit must be {TARGET_PRODUCTION_UNIT}")
+        first_frame_layout = bundle.get("first_frame_layout")
+        if not isinstance(first_frame_layout, dict) or first_frame_layout.get("aspect_ratio") != FIXED_FIRST_FRAME_RATIO:
+            errors.append("first_frame_image output must declare aspect_ratio=9:16")
         expected_output = {
-            "size": FIXED_STORYBOARD_SIZE,
-            "quality": FIXED_STORYBOARD_QUALITY,
-            "format": FIXED_STORYBOARD_FORMAT,
+            "size": FIXED_FIRST_FRAME_SIZE,
+            "quality": FIXED_FIRST_FRAME_QUALITY,
+            "format": FIXED_FIRST_FRAME_FORMAT,
         }
         if bundle.get("image_output") != expected_output:
             errors.append(
-                "storyboard_image image_output must be "
-                f"{FIXED_STORYBOARD_SIZE}/high/png"
+                "first_frame_image image_output must be "
+                f"{FIXED_FIRST_FRAME_SIZE}/high/png"
             )
         candidates_per_segment = bundle.get("candidates_per_segment")
         if (
@@ -133,14 +127,14 @@ def validate_bundle(
     if not isinstance(raw_seconds, (int, float)) or isinstance(raw_seconds, bool) or raw_seconds <= 0:
         errors.append("raw_segment_seconds must be positive")
         return errors
-    if kind == "storyboard_image" and abs(float(raw_seconds) - FIXED_RAW_SEGMENT_SECONDS) > 1e-6:
-        errors.append(f"storyboard_image raw_segment_seconds must be {FIXED_RAW_SEGMENT_SECONDS}")
+    if kind == "first_frame_image" and abs(float(raw_seconds) - FIXED_RAW_SEGMENT_SECONDS) > 1e-6:
+        errors.append(f"first_frame_image raw_segment_seconds must be {FIXED_RAW_SEGMENT_SECONDS}")
     target_seconds = bundle.get("target_duration_seconds")
-    if kind == "storyboard_image":
+    if kind == "first_frame_image":
         if not isinstance(target_seconds, (int, float)) or isinstance(target_seconds, bool) or target_seconds <= 0:
-            errors.append("storyboard_image target_duration_seconds must be positive")
+            errors.append("first_frame_image target_duration_seconds must be positive")
         elif abs(float(target_seconds) % float(raw_seconds)) > 1e-6:
-            errors.append("storyboard_image target_duration_seconds must be divisible by raw_segment_seconds")
+            errors.append("first_frame_image target_duration_seconds must be divisible by raw_segment_seconds")
     prompts = bundle.get("prompts")
     if not isinstance(prompts, list) or not prompts:
         return errors + ["prompts must be a non-empty list"]
@@ -159,14 +153,14 @@ def validate_bundle(
             errors.append(f"voiceover_provider must be {expected_provider} for this final-video bundle")
         if bundle.get("omni_audio_policy") != expected_policy:
             errors.append(f"omni_audio_policy must be {expected_policy} for this final-video bundle")
-    if kind == "storyboard_image" and isinstance(target_seconds, (int, float)) and not isinstance(target_seconds, bool):
+    if kind == "first_frame_image" and isinstance(target_seconds, (int, float)) and not isinstance(target_seconds, bool):
         expected_count = int(float(target_seconds) / float(raw_seconds))
         versions = bundle.get("versions")
         version_count = len(versions) if isinstance(versions, list) and versions else 1
         if len(prompts) != expected_count * version_count:
-            errors.append(f"storyboard_image requires {expected_count * version_count} Segment/version prompt(s)")
+            errors.append(f"first_frame_image requires {expected_count * version_count} Segment/version prompt(s)")
         if isinstance(versions, list) and versions and set(versions) != {"A", "B"}:
-            errors.append("storyboard versions must contain exactly A and B")
+            errors.append("first-frame versions must contain exactly A and B")
         if isinstance(versions, list) and set(versions) == {"A", "B"}:
             expected_per_version = expected_count
             observed = {version: 0 for version in versions}
@@ -175,9 +169,9 @@ def validate_bundle(
                 if version in observed:
                     observed[version] += 1
                 else:
-                    errors.append("every versioned storyboard prompt must declare version A or B")
+                    errors.append("every versioned first-frame prompt must declare version A or B")
             if any(count != expected_per_version for count in observed.values()):
-                errors.append(f"each storyboard version requires {expected_per_version} prompt(s)")
+                errors.append(f"each first-frame version requires {expected_per_version} prompt(s)")
         candidates_per_segment = bundle.get("candidates_per_segment")
         if isinstance(candidates_per_segment, int) and not isinstance(candidates_per_segment, bool):
             expected_jobs = expected_count * version_count * candidates_per_segment
@@ -189,7 +183,7 @@ def validate_bundle(
     # labels are organizational guidance, not a hard validation gate. Keep
     # hard checks on the underlying input, timing, language, audio and execution
     # metadata below instead of accepting/rejecting prompts by heading count.
-    headings = IMAGE_HEADINGS if kind == "storyboard_image" else ()
+    headings = IMAGE_HEADINGS if kind == "first_frame_image" else ()
     dialogue_ids: dict[str, str] = {}
     for index, entry in enumerate(prompts):
         prefix = f"prompt {index}"
@@ -206,7 +200,7 @@ def validate_bundle(
         for heading in headings:
             if heading not in prompt:
                 errors.append(f"{prefix} is missing heading {heading!r}")
-        if kind == "storyboard_image":
+        if kind == "first_frame_image":
             for marker in IMAGE_WORKFLOW_METADATA_MARKERS:
                 if marker in prompt:
                     errors.append(
@@ -237,16 +231,17 @@ def validate_bundle(
                 "product_visible": entry.get("product_visible"),
                 "product_visual_lock": entry.get("product_visual_lock"),
                 "subject_strategy": entry.get("subject_strategy"),
+                "first_frame": entry.get("first_frame"),
             }
             inputs = validate_inputs(segment, kind)
             validate_beats(segment, float(raw_seconds))
-            if kind == "storyboard_image":
+            if kind == "first_frame_image":
                 product_visual_lock = validate_product_visual_lock(segment)
                 if product_visual_lock and product_visual_lock not in prompt:
                     errors.append(
                         f"{prefix}: product_visual_lock must be copied verbatim into the prompt"
                     )
-                validate_storyboard_keyframes(segment, float(raw_seconds))
+                validate_first_frame(segment, float(raw_seconds))
                 validate_string_list(
                     entry.get("visual_continuity"),
                     f"{prefix}.visual_continuity",
@@ -256,33 +251,31 @@ def validate_bundle(
                     segment_position = index % expected_count
                 validate_target_time_range(segment, segment_position, float(raw_seconds))
                 validate_source_narrative_mapping(segment, bundle.get("replication_mode"))
-            if kind == "storyboard_image" and bundle.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
+            if kind == "first_frame_image" and bundle.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
                 roles = [item.get("role") for item in entry.get("inputs") or []]
                 for role in SOURCE_FRAME_ROLES:
                     if roles.count(role) != 1:
                         errors.append(f"{prefix}: high-fidelity replication requires exactly one {role}")
-                if "source_contact_sheet" in roles:
-                    errors.append(f"{prefix}: high-fidelity replication cannot use source_contact_sheet")
-            if kind == "storyboard_image":
+            if kind == "first_frame_image":
                 validate_subject_strategy(segment, bundle.get("replication_mode"), inputs)
                 director = entry.get("director")
                 if not isinstance(director, dict) or director.get("module") != "Director":
-                    errors.append(f"{prefix}: storyboard prompt must include Director output")
+                    errors.append(f"{prefix}: first-frame prompt must include Director output")
                 elif director.get("script_mutation") != "forbidden":
                     errors.append(f"{prefix}: Director must declare script_mutation=forbidden")
-                elif not isinstance(director.get("panels"), list) or len(director["panels"]) != 4:
-                    errors.append(f"{prefix}: Director output must contain four panels")
+                elif not isinstance(director.get("first_frame"), dict):
+                    errors.append(f"{prefix}: Director output must contain one first_frame")
                 else:
-                    required_panel_fields = ("static_moment", "camera", "composition", "performance", "continuity")
-                    for panel_index, panel in enumerate(director["panels"]):
-                        if not isinstance(panel, dict) or any(not isinstance(panel.get(field), str) or not panel[field].strip() for field in required_panel_fields):
-                            errors.append(f"{prefix}: Director panel {panel_index} is missing a visual decision")
+                    required_first_frame_fields = ("static_moment", "camera", "composition", "performance", "continuity")
+                    first_frame = director["first_frame"]
+                    if any(not isinstance(first_frame.get(field), str) or not first_frame[field].strip() for field in required_first_frame_fields):
+                        errors.append(f"{prefix}: Director first_frame is missing a visual decision")
         except ValueError as error:
             errors.append(f"{prefix}: {error}")
         dialogue = entry.get("dialogue") or []
-        if kind == "storyboard_image" and dialogue:
-            errors.append(f"{prefix}: storyboard-image prompt cannot contain dialogue")
-        if kind == "storyboard_image" and isinstance(
+        if kind == "first_frame_image" and dialogue:
+            errors.append(f"{prefix}: first-frame image prompt cannot contain dialogue")
+        if kind == "first_frame_image" and isinstance(
             bundle.get("candidates_per_segment"), int
         ):
             expected_attempts = list(
@@ -340,10 +333,10 @@ def validate_bundle(
                     errors.append(f"{prefix}.dialogue[{line_index}] must have valid start/end times")
     candidates_per_segment = (
         bundle.get("candidates_per_segment")
-        if kind == "storyboard_image"
+        if kind == "first_frame_image"
         else None
     )
-    if kind == "storyboard_image" and not (
+    if kind == "first_frame_image" and not (
         isinstance(candidates_per_segment, int)
         and not isinstance(candidates_per_segment, bool)
         and candidates_per_segment > 0
@@ -369,7 +362,7 @@ def validate_bundle(
     if bundle.get("submission_policy") != expected_policy:
         errors.append(
             "submission_policy must match concurrent GPT Image 2 execution for "
-            "storyboards or Flow2API batch execution for final video"
+            "first-frame images or Flow2API batch execution for final video"
         )
     return errors
 

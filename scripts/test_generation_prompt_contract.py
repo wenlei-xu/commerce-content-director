@@ -11,7 +11,7 @@ from validate_prompt_bundle import validate_bundle
 
 IMAGE_PLAN = {
     "schema": "commerce-generation-prompt-plan-v1",
-    "job_kind": "storyboard_image",
+    "job_kind": "first_frame_image",
     "executor": "gpt_image_2",
     "model": "gpt-image-2",
     "generation_unit": "target_production_segment",
@@ -20,7 +20,7 @@ IMAGE_PLAN = {
     "target_duration_seconds": 10,
     "raw_segment_seconds": 10,
     "candidates_per_segment": 2,
-    "storyboard": {"columns": 2, "rows": 2, "panel_ratio": "9:16"},
+    "first_frame_layout": {"aspect_ratio": "9:16"},
     "image_output": {"size": "1152x2048", "quality": "high", "format": "png"},
     "segments": [{
         "segment_id": "Segment-01",
@@ -29,42 +29,21 @@ IMAGE_PLAN = {
         "product_visual_lock": "Treat all approved integrated product components as one inseparable structure. Preserve their approved positions and connection path in every panel; do not omit, replace, reconnect, hide, or rotate them into an ambiguous orientation.",
         "visual_continuity": [
             "Natural handheld phone-video texture.",
-            "Use the same room, floor surface and natural light across all four panels.",
+            "Use the same room, floor surface and natural light at the Segment boundary.",
         ],
         "inputs": [
             {"position": 1, "role": "product_anchor", "asset_id": "product", "sha256": "a" * 64, "clean_for_generation": True, "reason": "Product appears in the proof beat."},
             {"position": 2, "role": "subject_anchor", "asset_id": "subject", "sha256": "b" * 64, "clean_for_generation": True, "reason": "The dog recurs across the Segment."},
         ],
-        "beats": [
-            {
-                "panel": "top_left", "start": 0, "end": 1.5,
-                "camera": "Tight handheld close-up.",
-                "description": "A frozen hook moment.",
-                "continuity": "Opening state in the same room and light.",
-                "human_presence": "none",
-            },
-            {
-                "panel": "top_right", "start": 1.5, "end": 4,
-                "camera": "Product-forward medium close-up.",
-                "description": "A frozen product introduction moment.",
-                "continuity": "Carry forward the same room, dog and product scale.",
-                "human_presence": "one_hand",
-            },
-            {
-                "panel": "bottom_left", "start": 4, "end": 7,
-                "camera": "Unobstructed proof close-up.",
-                "description": "One directly observable proof instant.",
-                "continuity": "Carry forward the exact product orientation.",
-                "human_presence": "one_hand",
-            },
-            {
-                "panel": "bottom_right", "start": 7, "end": 10,
-                "camera": "Natural reaction medium shot.",
-                "description": "A frozen reaction and closing state.",
-                "continuity": "Same scene, light, product and subject.",
-                "human_presence": "none",
-            },
-        ],
+        "beats": [{"start": 0, "end": 10, "description": "The locked Beat timeline for this 10-second Segment."}],
+        "first_frame": {
+            "camera": "Tight handheld close-up.",
+            "composition": "Keep the entering product state and relevant subject context unobstructed.",
+            "static_moment": "One frozen entering-state moment at local t=0.",
+            "performance": "No visible human performance.",
+            "continuity": "Opening state in the same room and light.",
+            "human_presence": "none",
+        },
         "hard_constraints": ["Use only the approved product interaction path."],
         "negative_constraints": ["No readable text."],
         "subject_identity": "Use the selected dog only.",
@@ -72,22 +51,18 @@ IMAGE_PLAN = {
 }
 
 
-FULL_REPLICATION_PLAN = copy.deepcopy(IMAGE_PLAN)
-FULL_REPLICATION_PLAN["replication_mode"] = "full_replication"
-FULL_REPLICATION_PLAN["source_visual_style"] = {
+HIGH_FIDELITY_PLAN = copy.deepcopy(IMAGE_PLAN)
+HIGH_FIDELITY_PLAN["replication_mode"] = "high_fidelity_replication"
+HIGH_FIDELITY_PLAN["source_visual_style"] = {
     "style_fingerprint_en": "Match the source's casual low-angle handheld phone capture, natural indoor exposure, moderate softness and social-platform compression.",
     "anti_style_constraints_en": "Do not turn the source treatment into studio lighting, cinematic depth of field, commercial sharpness or overly polished composition.",
 }
-FULL_REPLICATION_PLAN["segments"][0]["subject_strategy"] = "replace_subject"
-FULL_REPLICATION_PLAN["segments"][0]["source_narrative_segment_ids"] = ["SourceNarrative-01", "SourceNarrative-02"]
-FULL_REPLICATION_PLAN["segments"][0]["inputs"].extend([
+HIGH_FIDELITY_PLAN["segments"][0]["subject_strategy"] = "replace_subject"
+HIGH_FIDELITY_PLAN["segments"][0]["source_narrative_segment_ids"] = ["SourceNarrative-01", "SourceNarrative-02"]
+HIGH_FIDELITY_PLAN["segments"][0]["inputs"].extend([
     {"position": 3, "role": "source_segment_start", "asset_id": "source-start", "sha256": "c" * 64, "clean_for_generation": True, "reason": "Entering composition and state."},
     {"position": 4, "role": "source_segment_result", "asset_id": "source-result", "sha256": "d" * 64, "clean_for_generation": True, "reason": "Visible payoff and handoff state."},
 ])
-
-HIGH_FIDELITY_REPLICATION_PLAN = copy.deepcopy(FULL_REPLICATION_PLAN)
-HIGH_FIDELITY_REPLICATION_PLAN["replication_mode"] = "high_fidelity_replication"
-
 
 def main() -> None:
     bundle = compile_plan(IMAGE_PLAN)
@@ -100,25 +75,24 @@ def main() -> None:
     assert bundle["submission_policy"]["scope"] == "single_script_single_stage"
     assert len(bundle["execution_jobs"]) == 2
     assert bundle["execution_jobs"][0]["idempotency_key_template"] == (
-        "{run_id}:Segment-01:storyboard:1"
+        "{run_id}:Segment-01:first_frame:1"
     )
     assert bundle["prompts"][0]["candidate_attempts"] == [1, 2]
     assert bundle["prompts"][0]["visual_continuity"] == IMAGE_PLAN["segments"][0]["visual_continuity"]
     prompt = bundle["prompts"][0]["prompt"]
-    assert "0.0–1.5s" in prompt
-    assert "1.5–4.0s" in prompt
-    assert "target production storyboard board" in prompt
+    assert "Local time: 0.0s" in prompt
+    assert "portrait first-frame image" in prompt
     assert "OUTPUT SPECIFICATION" in prompt
     assert "GLOBAL VISUAL CONTINUITY" in prompt
     assert "REFERENCE AND IDENTITY AUTHORITY" in prompt
-    assert "FOUR STATIC KEYFRAMES" in prompt
+    assert "FIRST FRAME" in prompt
     assert "RHYTHM AUTHORITY" not in prompt
     assert "Mapped source narratives:" not in prompt
     assert "Do not locally compose" not in prompt
     assert "Do not infer or reinterpret appearance from the product name or category" in prompt
     assert IMAGE_PLAN["segments"][0]["product_visual_lock"] in prompt
-    assert "Top-left (0.0–1.5s)" in prompt
-    assert "Human presence: Exactly one natural human hand" in prompt
+    assert "Static moment: One frozen entering-state moment at local t=0." in prompt
+    assert "Human presence: No person or human body part visible." in prompt
 
     missing_visual_continuity = copy.deepcopy(IMAGE_PLAN)
     missing_visual_continuity["segments"][0].pop("visual_continuity")
@@ -127,7 +101,7 @@ def main() -> None:
     except ValueError as error:
         assert "visual_continuity" in str(error)
     else:
-        raise AssertionError("storyboard plans must declare global visual continuity")
+        raise AssertionError("first-frame plans must declare global visual continuity")
 
     legacy_common_constraints = copy.deepcopy(IMAGE_PLAN)
     legacy_common_constraints["common_constraints"] = ["Legacy mixed constraint."]
@@ -136,17 +110,16 @@ def main() -> None:
     except ValueError as error:
         assert "visual_continuity instead of common_constraints" in str(error)
     else:
-        raise AssertionError("storyboard plans must separate visual continuity from other facts")
+        raise AssertionError("first-frame plans must separate visual continuity from other facts")
 
-    missing_panel_keyframe = copy.deepcopy(IMAGE_PLAN)
-    missing_panel_keyframe["segments"][0]["beats"].pop()
-    missing_panel_keyframe["segments"][0]["beats"][-1]["end"] = 10
+    missing_first_frame = copy.deepcopy(IMAGE_PLAN)
+    missing_first_frame["segments"][0].pop("first_frame")
     try:
-        compile_plan(missing_panel_keyframe)
+        compile_plan(missing_first_frame)
     except ValueError as error:
-        assert "exactly four static panel keyframes" in str(error)
+        assert "first_frame" in str(error)
     else:
-        raise AssertionError("storyboard plans must define exactly four static panel keyframes")
+        raise AssertionError("first-frame plans must define one first-frame decision")
 
     product_not_first = copy.deepcopy(IMAGE_PLAN)
     product_not_first["segments"][0]["inputs"][0]["position"] = 2
@@ -156,7 +129,7 @@ def main() -> None:
     except ValueError as error:
         assert "product_anchor at input position 1" in str(error)
     else:
-        raise AssertionError("visible storyboard products must route the product anchor first")
+        raise AssertionError("visible first-frame products must route the product anchor first")
 
     scene_before_subject = copy.deepcopy(IMAGE_PLAN)
     scene_before_subject["replication_mode"] = "structure_replication"
@@ -179,13 +152,13 @@ def main() -> None:
         raise AssertionError("subject identity must precede source scene space")
 
     missing_continuity = copy.deepcopy(IMAGE_PLAN)
-    missing_continuity["segments"][0]["beats"][1].pop("continuity")
+    missing_continuity["segments"][0]["first_frame"].pop("continuity")
     try:
         compile_plan(missing_continuity)
     except ValueError as error:
         assert "continuity" in str(error)
     else:
-        raise AssertionError("every storyboard keyframe must declare inherited continuity")
+        raise AssertionError("every first frame must declare inherited continuity")
 
     leaked_workflow_metadata = copy.deepcopy(bundle)
     leaked_workflow_metadata["prompts"][0]["prompt"] += "\nMapped source narratives: SourceNarrative-01."
@@ -231,7 +204,7 @@ def main() -> None:
     except ValueError as error:
         assert "candidates_per_segment" in str(error)
     else:
-        raise AssertionError("storyboard plans must declare the candidate count")
+        raise AssertionError("first-frame plans must declare the candidate count")
 
     flow_image_plan = copy.deepcopy(IMAGE_PLAN)
     flow_image_plan["executor"] = "flow2api_mcp"
@@ -240,7 +213,7 @@ def main() -> None:
     except ValueError as error:
         assert "gpt_image_2" in str(error)
     else:
-        raise AssertionError("Flow2API must be rejected for storyboard generation")
+        raise AssertionError("Flow2API must be rejected for first-frame generation")
 
     flow_image_bundle = copy.deepcopy(bundle)
     flow_image_bundle["executor"] = "flow2api_mcp"
@@ -253,7 +226,7 @@ def main() -> None:
     except ValueError as error:
         assert "gpt-image-2" in str(error)
     else:
-        raise AssertionError("storyboard generation without GPT Image 2 must fail")
+        raise AssertionError("first-frame generation without GPT Image 2 must fail")
 
     wrong_image_model = copy.deepcopy(IMAGE_PLAN)
     wrong_image_model["model"] = "chatgpt-image-latest"
@@ -262,7 +235,7 @@ def main() -> None:
     except ValueError as error:
         assert "gpt-image-2" in str(error)
     else:
-        raise AssertionError("storyboard generation with another image model must fail")
+        raise AssertionError("first-frame generation with another image model must fail")
 
     wrong_image_output = copy.deepcopy(IMAGE_PLAN)
     wrong_image_output["image_output"]["size"] = "1024x1536"
@@ -271,15 +244,15 @@ def main() -> None:
     except ValueError as error:
         assert "1152x2048" in str(error)
     else:
-        raise AssertionError("storyboard generation with the wrong output geometry must fail")
+        raise AssertionError("first-frame generation with the wrong output geometry must fail")
 
-    full_bundle = compile_plan(FULL_REPLICATION_PLAN)
+    full_bundle = compile_plan(HIGH_FIDELITY_PLAN)
     assert not validate_bundle(full_bundle, {"en", "zh-CN"})
-    assert full_bundle["source_visual_style"] == FULL_REPLICATION_PLAN["source_visual_style"]
-    for style_value in FULL_REPLICATION_PLAN["source_visual_style"].values():
+    assert full_bundle["source_visual_style"] == HIGH_FIDELITY_PLAN["source_visual_style"]
+    for style_value in HIGH_FIDELITY_PLAN["source_visual_style"].values():
         assert style_value in full_bundle["prompts"][0]["prompt"]
 
-    missing_source_style = copy.deepcopy(FULL_REPLICATION_PLAN)
+    missing_source_style = copy.deepcopy(HIGH_FIDELITY_PLAN)
     missing_source_style.pop("source_visual_style")
     try:
         compile_plan(missing_source_style)
@@ -296,11 +269,11 @@ def main() -> None:
         for error in validate_bundle(style_drift_bundle, {"en", "zh-CN"})
     )
 
-    high_fidelity_bundle = compile_plan(HIGH_FIDELITY_REPLICATION_PLAN)
+    high_fidelity_bundle = compile_plan(HIGH_FIDELITY_PLAN)
     assert high_fidelity_bundle["replication_mode"] == "high_fidelity_replication"
     assert not validate_bundle(high_fidelity_bundle, {"en", "zh-CN"})
 
-    preserve_plan = copy.deepcopy(FULL_REPLICATION_PLAN)
+    preserve_plan = copy.deepcopy(HIGH_FIDELITY_PLAN)
     preserve_plan["segments"][0]["subject_strategy"] = "preserve_source_subject"
     preserve_plan["segments"][0]["inputs"].pop(1)
     for position, item in enumerate(preserve_plan["segments"][0]["inputs"], start=1):
@@ -308,7 +281,7 @@ def main() -> None:
     preserve_bundle = compile_plan(preserve_plan)
     assert not validate_bundle(preserve_bundle, {"en", "zh-CN"})
 
-    preserve_with_subject = copy.deepcopy(FULL_REPLICATION_PLAN)
+    preserve_with_subject = copy.deepcopy(HIGH_FIDELITY_PLAN)
     preserve_with_subject["segments"][0]["subject_strategy"] = "preserve_source_subject"
     try:
         compile_plan(preserve_with_subject)
@@ -319,7 +292,7 @@ def main() -> None:
 
     structure_plan = copy.deepcopy(IMAGE_PLAN)
     structure_plan["replication_mode"] = "structure_replication"
-    structure_plan["source_visual_style"] = copy.deepcopy(FULL_REPLICATION_PLAN["source_visual_style"])
+    structure_plan["source_visual_style"] = copy.deepcopy(HIGH_FIDELITY_PLAN["source_visual_style"])
     structure_plan["segments"][0]["subject_strategy"] = "structure_only"
     structure_plan["segments"][0]["source_narrative_segment_ids"] = ["SourceNarrative-01"]
     structure_bundle = compile_plan(structure_plan)
@@ -349,7 +322,7 @@ def main() -> None:
     else:
         raise AssertionError("structure_only with source frames should fail")
 
-    missing_result = copy.deepcopy(FULL_REPLICATION_PLAN)
+    missing_result = copy.deepcopy(HIGH_FIDELITY_PLAN)
     missing_result["segments"][0]["inputs"] = missing_result["segments"][0]["inputs"][:-1]
     try:
         compile_plan(missing_result)
@@ -358,19 +331,19 @@ def main() -> None:
     else:
         raise AssertionError("full replication without result frame should fail")
 
-    contact_sheet = copy.deepcopy(FULL_REPLICATION_PLAN)
-    contact_sheet["segments"][0]["inputs"].append({
-        "position": 5, "role": "source_contact_sheet", "asset_id": "source-grid",
-        "sha256": "e" * 64, "clean_for_generation": True, "reason": "Legacy grid.",
+    unsupported_asset = copy.deepcopy(HIGH_FIDELITY_PLAN)
+    unsupported_asset["segments"][0]["inputs"].append({
+        "position": 5, "role": "multi_image_layout", "asset_id": "source-grid",
+        "sha256": "e" * 64, "clean_for_generation": True, "reason": "Unsupported multi-image layout.",
     })
     try:
-        compile_plan(contact_sheet)
+        compile_plan(unsupported_asset)
     except ValueError as error:
-        assert "source_contact_sheet" in str(error)
+        assert "not valid" in str(error)
     else:
-        raise AssertionError("full replication with a contact sheet should fail")
+        raise AssertionError("first-frame generation with a multi-image layout should fail")
 
-    source_timed_plan = copy.deepcopy(FULL_REPLICATION_PLAN)
+    source_timed_plan = copy.deepcopy(HIGH_FIDELITY_PLAN)
     source_timed_plan["raw_segment_seconds"] = 7
     source_timed_plan["target_duration_seconds"] = 7
     source_timed_plan["segments"][0]["target_time_range"] = {"start": 0, "end": 7}
@@ -382,13 +355,13 @@ def main() -> None:
         raise AssertionError("replication must use the same 10-second production unit as original")
 
     wrong_layout = copy.deepcopy(IMAGE_PLAN)
-    wrong_layout["storyboard"] = {"columns": 1, "rows": 2, "panel_ratio": "9:16"}
+    wrong_layout["first_frame_layout"] = {"aspect_ratio": "1:1"}
     try:
         compile_plan(wrong_layout)
     except ValueError as error:
-        assert "2x2 board" in str(error)
+        assert "aspect_ratio=9:16" in str(error)
     else:
-        raise AssertionError("storyboard generation must produce one 2x2 board per target Segment")
+        raise AssertionError("first-frame generation must produce one first frame per target Segment")
 
     wrong_job_count = copy.deepcopy(IMAGE_PLAN)
     wrong_job_count["target_duration_seconds"] = 20
@@ -399,7 +372,7 @@ def main() -> None:
     else:
         raise AssertionError("Job count must equal target duration divided by 10 seconds")
 
-    missing_source_mapping = copy.deepcopy(FULL_REPLICATION_PLAN)
+    missing_source_mapping = copy.deepcopy(HIGH_FIDELITY_PLAN)
     missing_source_mapping["segments"][0].pop("source_narrative_segment_ids")
     try:
         compile_plan(missing_source_mapping)
@@ -409,13 +382,13 @@ def main() -> None:
         raise AssertionError("replication target Segments must map source narrative evidence")
 
     thai_plan = copy.deepcopy(IMAGE_PLAN)
-    thai_plan["segments"][0]["beats"][0]["description"] = "ภาษาไทย"
+    thai_plan["segments"][0]["first_frame"]["static_moment"] = "ภาษาไทย"
     try:
         compile_plan(thai_plan)
     except ValueError as error:
         assert "control prompt must be English" in str(error)
     else:
-        raise AssertionError("Thai storyboard control text must fail during compilation")
+        raise AssertionError("Thai first-frame control text must fail during compilation")
 
     missing_anchor = copy.deepcopy(IMAGE_PLAN)
     missing_anchor["segments"][0]["inputs"] = [missing_anchor["segments"][0]["inputs"][1]]
@@ -428,7 +401,7 @@ def main() -> None:
         raise AssertionError("visible product without product_anchor should fail")
 
     video_plan = copy.deepcopy(IMAGE_PLAN)
-    video_plan.pop("storyboard")
+    video_plan.pop("first_frame_layout")
     video_plan["common_constraints"] = ["Natural handheld phone-video texture."]
     video_plan["job_kind"] = "final_video"
     video_plan["target_spoken_language"] = "th"
@@ -436,7 +409,7 @@ def main() -> None:
     video_plan["omni_audio_policy"] = "native_dialogue"
     video_segment = video_plan["segments"][0]
     video_segment["inputs"] = [
-        {"position": 1, "role": "storyboard_board", "asset_id": "board", "sha256": "c" * 64, "clean_for_generation": True, "reason": "Chronology and camera intent."},
+        {"position": 1, "role": "first_frame_asset", "asset_id": "first-frame", "sha256": "c" * 64, "clean_for_generation": True, "reason": "Approved Segment entering state and continuity handoff."},
         *video_segment["inputs"],
     ]
     for position, item in enumerate(video_segment["inputs"], start=1):

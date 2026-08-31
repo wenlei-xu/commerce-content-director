@@ -23,7 +23,7 @@ CAPABILITY_CONFIG = SKILL_DIR / "config" / "workflow-capabilities.json"
 BASE_SCHEMA = SKILL_DIR / "config" / "base-schema.json"
 ASR_BACKENDS = ("faster_whisper", "whisper", "mlx_whisper")
 REMOTE_CAPABILITIES = {"feishu", "gpt_image", "flow2api"}
-LANGUAGE_LOCK_WORKFLOWS = {"creative_direction", "script_production", "storyboard_generation", "final_video"}
+LANGUAGE_LOCK_WORKFLOWS = {"creative_direction", "script_production", "first_frame_generation", "final_video"}
 
 
 def load_policy(path: Path = CAPABILITY_CONFIG) -> dict[str, Any]:

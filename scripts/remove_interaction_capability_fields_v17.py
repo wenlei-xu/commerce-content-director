@@ -13,7 +13,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-from migrate_schema_v6 import Feishu, config, write_json  # noqa: E402
+from feishu_api import Feishu, config, write_json  # noqa: E402
 
 
 def main() -> int:

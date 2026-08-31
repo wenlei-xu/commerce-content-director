@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write exactly two complete A/B storyboard packages to the script table.
+"""Write exactly two complete A/B first-frame packages to the script table.
 
 The source script is the only parent.  This writer never creates a
 per-Segment candidate record and never exposes a Segment-level approval state.
@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from feishu_attachment_uploader import FeishuAttachmentUploader
-from migrate_schema_v6 import Feishu
+from feishu_api import Feishu
 
 
 VERSIONS = ("A", "B")
@@ -75,58 +75,49 @@ def sha256(path: Path) -> str:
 def load_manifest(path: Path) -> dict[str, Any]:
     value = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(value, dict):
-        raise ValueError("storyboard writeback manifest must be an object")
+        raise ValueError("first-frame writeback manifest must be an object")
     versions = value.get("versions")
     if not isinstance(versions, dict) or set(versions) != set(VERSIONS):
         raise ValueError("manifest.versions must contain exactly A and B")
     for version in VERSIONS:
         package = versions[version]
-        if not isinstance(package, dict) or not isinstance(package.get("boards"), list):
-            raise ValueError(f"manifest.versions.{version}.boards must be a list")
-        if not package["boards"]:
-            raise ValueError(f"manifest.versions.{version}.boards must not be empty")
-        for board in package["boards"]:
-            if not isinstance(board, dict) or not isinstance(board.get("segment_id"), str) or not isinstance(board.get("path"), str):
-                raise ValueError(f"manifest.versions.{version}.boards entries require segment_id and path")
+        if not isinstance(package, dict) or not isinstance(package.get("first_frames"), list):
+            raise ValueError(f"manifest.versions.{version}.first_frames must be a list")
+        if not package["first_frames"]:
+            raise ValueError(f"manifest.versions.{version}.first_frames must not be empty")
+        for first_frame in package["first_frames"]:
+            if not isinstance(first_frame, dict) or not isinstance(first_frame.get("segment_id"), str) or not isinstance(first_frame.get("path"), str):
+                raise ValueError(f"manifest.versions.{version}.first_frames entries require segment_id and path")
     return value
 
 
 def validate_package(package: dict[str, Any], target_duration: int) -> list[tuple[str, Path, str]]:
     expected = target_duration // RAW_SEGMENT_SECONDS
-    boards = package["boards"]
-    if len(boards) != expected:
-        raise ValueError(f"storyboard version requires {expected} boards, got {len(boards)}")
+    first_frames = package["first_frames"]
+    if len(first_frames) != expected:
+        raise ValueError(f"first-frame version requires {expected} first frames, got {len(first_frames)}")
     result: list[tuple[str, Path, str]] = []
-    for index, board in enumerate(boards, start=1):
+    for index, first_frame in enumerate(first_frames, start=1):
         expected_segment = f"Segment-{index:02d}"
-        if board["segment_id"] != expected_segment:
-            raise ValueError(f"boards must be ordered and named {expected_segment}")
-        path = Path(board["path"]).expanduser().resolve()
+        if first_frame["segment_id"] != expected_segment:
+            raise ValueError(f"first_frames must be ordered and named {expected_segment}")
+        path = Path(first_frame["path"]).expanduser().resolve()
         if not path.is_file():
             raise FileNotFoundError(path)
         digest = sha256(path)
-        declared = board.get("sha256")
+        declared = first_frame.get("sha256")
         if declared is not None and declared != digest:
             raise ValueError(f"{expected_segment} sha256 does not match {path}")
         result.append((expected_segment, path, digest))
     return result
 
 
-def find_version_record(api: Feishu, app: str, table: str, fields: dict[str, str], source_id: str, version: str, source_script_id: str) -> dict[str, Any] | None:
+def find_version_record(api: Feishu, app: str, table: str, fields: dict[str, str], source_id: str, version: str) -> dict[str, Any] | None:
     matches = []
     for record in api.records(app, table):
         values = record.get("fields", {})
         if source_id in linked_ids(values.get(fields["parent_script_link"])) and text(values.get(fields["script_version"])) == version:
             matches.append(record)
-    # Repair the records produced by the old writer, which set A/B but left
-    # 来源脚本 empty.  The deterministic script ID is only a recovery key;
-    # the relation is always written and verified below.
-    if not matches:
-        legacy_id = f"{source_script_id}:{version}"
-        for record in api.records(app, table):
-            values = record.get("fields", {})
-            if text(values.get(fields["script_id"])) == legacy_id and text(values.get(fields["script_version"])) == version:
-                matches.append(record)
     if len(matches) > 1:
         raise RuntimeError(f"multiple script records found for source {source_id} version {version}")
     return matches[0] if matches else None
@@ -142,8 +133,8 @@ def build_version_fields(
     review_notes: str = "",
 ) -> dict[str, Any]:
     source_fields = copy.deepcopy(source.get("fields", {}))
-    attachment_field = fields["storyboard_attachments"]
-    for key in (attachment_field, fields["storyboard_status"], fields.get("storyboard_review_notes", "")):
+    attachment_field = fields["first_frame_attachments"]
+    for key in (attachment_field, fields["first_frame_status"], fields.get("first_frame_review_notes", "")):
         if key:
             source_fields.pop(key, None)
     source_name = text(source_fields.get(fields["name"])) or source_id
@@ -154,9 +145,9 @@ def build_version_fields(
     if fields.get("parent_script_record_id"):
         source_fields[fields["parent_script_record_id"]] = source_id
     source_fields[fields["script_version"]] = version
-    source_fields[fields["storyboard_status"]] = status
-    if fields.get("storyboard_review_notes"):
-        source_fields[fields["storyboard_review_notes"]] = review_notes
+    source_fields[fields["first_frame_status"]] = status
+    if fields.get("first_frame_review_notes"):
+        source_fields[fields["first_frame_review_notes"]] = review_notes
     source_fields[attachment_field] = []
     return source_fields
 
@@ -194,31 +185,30 @@ def write_versions(
     results: dict[str, Any] = {"source_script_record_id": source_script_record_id, "run_id": run_id, "versions": {}}
     for version in VERSIONS:
         package = manifest["versions"][version]
-        boards = validate_package(package, target_duration)
+        first_frames = validate_package(package, target_duration)
         delta = text(package.get("variant_delta"))
         if not delta:
             raise ValueError(f"manifest.versions.{version}.variant_delta is required")
-        notes = "run_id=" + run_id + "; variant_delta=" + delta + "; " + "; ".join(f"{segment}={digest}" for segment, _path, digest in boards)
-        source_script_id = text(source_values.get(fields["script_id"])) or source_script_record_id
-        existing = find_version_record(api, app, table["table_id"], fields, source_script_record_id, version, source_script_id)
+        notes = "run_id=" + run_id + "; variant_delta=" + delta + "; " + "; ".join(f"{segment}={digest}" for segment, _path, digest in first_frames)
+        existing = find_version_record(api, app, table["table_id"], fields, source_script_record_id, version)
         if existing:
             version_id = str(existing["record_id"])
-            existing_status = text(existing.get("fields", {}).get(fields["storyboard_status"]))
+            existing_status = text(existing.get("fields", {}).get(fields["first_frame_status"]))
             if existing_status == "已通过":
-                raise RuntimeError(f"refusing to overwrite approved storyboard version {version_id}")
+                raise RuntimeError(f"refusing to overwrite approved first-frame version {version_id}")
             api.update_record(app, table["table_id"], version_id, build_version_fields(source, fields, source_script_record_id, version, review_notes=notes))
         else:
             created = api.create_record(app, table["table_id"], build_version_fields(source, fields, source_script_record_id, version, review_notes=notes))
             version_id = record_id(created)
-        tokens = uploader.upload_and_attach(app_token=app, table_id=table["table_id"], record_id=version_id, field=fields["storyboard_attachments"], files=[path for _segment, path, _digest in boards])
-        api.update_record(app, table["table_id"], version_id, {fields["storyboard_status"]: "待审核", fields["storyboard_review_notes"]: notes})
+        tokens = uploader.upload_and_attach(app_token=app, table_id=table["table_id"], record_id=version_id, field=fields["first_frame_attachments"], files=[path for _segment, path, _digest in first_frames])
+        api.update_record(app, table["table_id"], version_id, {fields["first_frame_status"]: "待审核", fields["first_frame_review_notes"]: notes})
         fresh = get_record(api, app, table["table_id"], version_id)
         fresh_values = fresh.get("fields", {})
         observed_parent = linked_ids(fresh_values.get(fields["parent_script_link"]))
-        observed_tokens = attachment_tokens(fresh_values.get(fields["storyboard_attachments"]))
-        if observed_parent != [source_script_record_id] or text(fresh_values.get(fields["script_version"])) != version or observed_tokens != tokens or text(fresh_values.get(fields["storyboard_status"])) != "待审核":
+        observed_tokens = attachment_tokens(fresh_values.get(fields["first_frame_attachments"]))
+        if observed_parent != [source_script_record_id] or text(fresh_values.get(fields["script_version"])) != version or observed_tokens != tokens or text(fresh_values.get(fields["first_frame_status"])) != "待审核":
             raise RuntimeError(f"A/B version fresh-read verification failed for {version}")
-        results["versions"][version] = {"record_id": version_id, "source_script_record_id": source_script_record_id, "attachment_tokens": observed_tokens, "board_hashes": [digest for _segment, _path, digest in boards], "status": "待审核"}
+        results["versions"][version] = {"record_id": version_id, "source_script_record_id": source_script_record_id, "attachment_tokens": observed_tokens, "first_frame_hashes": [digest for _segment, _path, digest in first_frames], "status": "待审核"}
     return results
 
 

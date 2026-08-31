@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Require English-only control text in storyboard/image-generation prompts."""
+"""Require English-only control text in first-frame/image-generation prompts."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Iterator
 
 THAI = re.compile(r"[\u0E00-\u0E7F]")
 HAN = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF]")
-PROMPT_KEYS = {"prompt", "image_prompt", "storyboard_prompt"}
+PROMPT_KEYS = {"prompt", "image_prompt", "first_frame_prompt"}
 
 
 def prompt_values(value: object, location: str = "root") -> Iterator[tuple[str, str]]:
@@ -35,7 +35,7 @@ def prompts_in(path: Path) -> list[tuple[str, str]]:
         payload = json.loads(path.read_text(encoding="utf-8"))
         prompts = list(prompt_values(payload))
         if not prompts:
-            raise ValueError("JSON contains no prompt, image_prompt, or storyboard_prompt field")
+            raise ValueError("JSON contains no prompt, image_prompt, or first_frame_prompt field")
         return prompts
     if path.suffix.lower() in {".md", ".txt"}:
         return [("document", path.read_text(encoding="utf-8"))]
@@ -72,7 +72,7 @@ def main() -> int:
         parser.error(str(error))
 
     errors = [
-        f"{args.prompt_file}:{location}: storyboard control prompts must be English; Thai or Chinese text is not allowed"
+        f"{args.prompt_file}:{location}: first-frame control prompts must be English; Thai or Chinese text is not allowed"
         for location, prompt in prompts
         if THAI.search(prompt) or HAN.search(prompt)
     ]

@@ -2,7 +2,7 @@
 
 Every final-generation prompt is for the fixed `omni_portrait` model. Each Job generates exactly one 10-second raw portrait 9:16 segment. The complete 20/30/40-second film is assembled from exactly 2/3/4 chronological Omni segments. Do not write a prompt for, or submit, another video model.
 
-Read this contract before writing any Omni video-generation prompt for a portrait 9:16 Segment. For routed image roles and clean-input requirements, also read [reference-asset-contract.md](reference-asset-contract.md). It is not the contract for the storyboard-image Job: read [image-prompt-contract.md](image-prompt-contract.md) instead.
+Read this contract before writing any Omni video-generation prompt for a portrait 9:16 Segment. For routed image roles and clean-input requirements, also read [reference-asset-contract.md](reference-asset-contract.md). It is not the contract for the first-frame image Job: read [first-frame-image-contract.md](first-frame-image-contract.md) instead.
 
 ## Omni prompting principles and compact creative scaffold
 

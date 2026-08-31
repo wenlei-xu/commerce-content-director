@@ -1,6 +1,6 @@
-# Workflow: structure replication storyboard
+# Workflow: structure replication first frames
 
-Read [storyboard-generation.md](storyboard-generation.md), [gpt-image-2-execution.md](../gpt-image-2-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [interaction-substitution-protocol.md](../interaction-substitution-protocol.md), [image-prompt-contract.md](../image-prompt-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
+Read [first-frame-generation.md](first-frame-generation.md), [first-frame-execution.md](../first-frame-execution.md), [authority.md](../invariants/authority.md), [knowledge-library-contract.md](../invariants/knowledge-library-contract.md), [product-contract.md](../domain/product-contract.md), [product-execution-contract.md](../invariants/product-execution-contract.md), [interaction-substitution-protocol.md](../interaction-substitution-protocol.md), [first-frame-image-contract.md](../first-frame-image-contract.md), and [mutation-and-recovery.md](../invariants/mutation-and-recovery.md).
 
 Use this workflow only when the user explicitly requests `structure_replication` / “结构复刻”. A generic request to “复刻” defaults to `high_fidelity_replication`; do not choose this mode merely because it is easier to adapt to another product.
 
@@ -32,7 +32,7 @@ When the target product has a fixed integrated visual structure, preserve every 
 
 ## Visual-style contract
 
-Create `plan/source-visual-style-profile.json` from the accepted breakdown and available source evidence. Record the dimensions above, cite the evidence and separate stable global treatment from segment-specific variation. The profile must include `style_fingerprint_en` and `anti_style_constraints_en` as concise English control text. Copy both values verbatim into `source_visual_style` in `plan/generation-prompt-plan.json`; the compiler must pass them into every target storyboard Segment. If scene reuse is selected, route at most one cleaned `source_scene_reference` per Segment. It controls only scene space, camera, light and spatial staging; it must never control target subject, target product, text, logo or source-specific hardware identity. Source action frames and contact sheets remain planning evidence only.
+Create `plan/source-visual-style-profile.json` from the accepted breakdown and available source evidence. Record the dimensions above, cite the evidence and separate stable global treatment from segment-specific variation. The profile must include `style_fingerprint_en` and `anti_style_constraints_en` as concise English control text. Copy both values verbatim into `source_visual_style` in `plan/generation-prompt-plan.json`; the compiler must pass them into every target first-frame Segment. If scene reuse is selected, route at most one cleaned `source_scene_reference` per Segment. It controls only scene space, camera, light and spatial staging; it must never control target subject, target product, text, logo or source-specific hardware identity. Source action frames remain planning evidence only.
 
 ## Source-to-target contract
 
@@ -40,7 +40,7 @@ Before writing the target script, create `plan/source-structure-map.json`. For e
 
 Create `plan/source-target-structure-correspondence.json`. Map each source narrative segment to ordered target Beat IDs and explain how the target beat preserves the source story role, proof purpose, pacing relationship and emotional function. For every changed interaction, record the source hardware mechanism, transferable behavior, target contact path, and whether the behavior is `preserved`, `adapted_with_product_reason`, or `not_supported_with_evidence`. A target product may require different scenes and actions, but it must not remove a required proof step or replace the source's selling logic with a generic product introduction.
 
-Use `subject_strategy=structure_only`. Route approved target product and subject anchors when they are visible. Do not route `source_segment_start`, `source_segment_result` or `source_contact_sheet` into storyboard generation. When the source scene is intentionally reused, `source_scene_reference` is the only permitted source-frame role: it is a scene-space reference, not a subject/product/action-frame reference. The source visual-style profile and optional scene reference are the permitted source handoff.
+Use `subject_strategy=structure_only`. Route approved target product and subject anchors when they are visible. Do not route `source_segment_start` or `source_segment_result` into first-frame generation. When the source scene is intentionally reused, `source_scene_reference` is the only permitted source-frame role: it is a scene-space reference, not a subject/product/action-frame reference. The source visual-style profile and optional scene reference are the permitted source handoff.
 
 ## Review gate
 

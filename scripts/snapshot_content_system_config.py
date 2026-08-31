@@ -9,7 +9,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from migrate_schema_v6 import Feishu, text
+from feishu_api import Feishu, text
 
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
@@ -61,13 +61,11 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
         raise ValueError("三项候选评分权重必须为非负且总和为 100")
     allowed = choices(fields.get(mapping["allowed_durations_seconds"]))
     raw = number(fields.get(mapping["raw_segment_seconds"]), -1)
-    columns = number(fields.get(mapping["storyboard_columns"]), -1)
-    rows = number(fields.get(mapping["storyboard_rows"]), -1)
-    ratio = text(fields.get(mapping["panel_ratio"]))
-    if raw != FIXED_RAW_SEGMENT_SECONDS or columns <= 0 or not columns.is_integer() or rows <= 0 or not rows.is_integer():
-        raise ValueError("Omni 原始分段时长必须固定为 10 秒，且分镜行列数必须为正整数")
+    ratio = text(fields.get(mapping["first_frame_ratio"]))
+    if raw != FIXED_RAW_SEGMENT_SECONDS:
+        raise ValueError("Omni 原始分段时长必须固定为 10 秒")
     if not re.fullmatch(r"[1-9]\d*:[1-9]\d*", ratio):
-        raise ValueError("单格画幅比例必须采用正整数比，例如 9:16")
+        raise ValueError("首帧画幅比例必须采用正整数比，例如 9:16")
     if ratio != FIXED_VIDEO_RATIO:
         raise ValueError("Omni 最终视频必须采用 9:16 竖屏配置")
     raw_int = int(raw)
@@ -80,7 +78,7 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
     if image_max_inputs < 1 or video_max_inputs < 1:
         raise ValueError("模型输入上限必须为正整数")
     if image_model != FIXED_IMAGE_MODEL:
-        raise ValueError(f"分镜生图模型必须固定为 {FIXED_IMAGE_MODEL}")
+        raise ValueError(f"首帧生图模型必须固定为 {FIXED_IMAGE_MODEL}")
     if video_model != FIXED_VIDEO_MODEL:
         raise ValueError(f"最终视频模型必须固定为 {FIXED_VIDEO_MODEL}")
     return {
@@ -90,7 +88,7 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
         "allowed_durations_seconds": allowed,
         "raw_segment_seconds": raw_int,
         "weights": {"retention": weights[0], "conversion": weights[1], "execution": weights[2]},
-        "storyboard": {"columns": int(columns), "rows": int(rows), "panel_ratio": ratio},
+        "first_frame_layout": {"aspect_ratio": ratio},
         "model_catalog": {
             "image_executor": FIXED_IMAGE_EXECUTOR,
             "image_model": FIXED_IMAGE_MODEL,

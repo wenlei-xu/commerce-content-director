@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a global SRT subtitle file from validated storyboard manifests."""
+"""Build a global SRT subtitle file from validated narration manifests."""
 
 from __future__ import annotations
 
@@ -61,11 +61,7 @@ def build(package_dir: Path) -> list[tuple[float, float, str]]:
                     if text:
                         captions.append((float(cue["start"]), float(cue["end"]), text))
             else:
-                # Legacy package fallback: narration used to live on every SB.
-                for panel in manifest.get("panels", []):
-                    text = caption_text(panel.get("dialogue")) or caption_text(panel.get("subtitle"))
-                    if text:
-                        captions.append((float(panel["start"]), float(panel["end"]), text))
+                raise ValueError(f"{manifest_value} must contain narration_cues")
     return sorted(captions, key=lambda item: (item[0], item[1]))
 
 

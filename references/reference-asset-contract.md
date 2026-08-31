@@ -1,6 +1,6 @@
 # Generation reference-asset contract
 
-Read this contract whenever a storyboard-image or final-video Job routes product, subject, board, or continuity images. It defines generation inputs, not source-record retention.
+Read this contract whenever a first-frame image or final-video Job routes product, subject, first-frame, or continuity images. It defines generation inputs, not source-record retention.
 
 ## One image, one authority
 
@@ -13,14 +13,14 @@ Use the smallest evidence set that proves the current Segment. Do not send every
 | `product_scene` | scale, placement, or real-use context is visually necessary | those contextual facts | product geometry or a different subject identity |
 | `subject_anchor` | an identifiable subject recurs | that subject's identity | product structure |
 | `scene_anchor` | a reusable environment is needed for spatial continuity or natural capture treatment | room geometry, light direction, usable activity area and lived-in phone-capture texture | product geometry, subject identity, product claims or unsupported interaction |
-| `storyboard_board` | final-video generation | chronology, action, camera intent, and progression | product or subject facts that conflict with approved anchors |
+| `first_frame_asset` | final-video generation | approved Segment entering state, initial composition and continuity handoff | product or subject facts that conflict with approved anchors |
 | `continuity_frame` | a later final-video Segment needs a visual handoff | the immediately preceding accepted state | product facts or subject identity |
-| `source_segment_start` | full-replication target production board | entering scene, composition and visible state selected from the first mapped source narrative segment; source-subject identity only under `preserve_source_subject` | target-product identity, exact target timing or a replacement subject |
-| `source_segment_result` | full-replication target production board | visible payoff and handoff state selected from the last mapped source narrative segment; source-subject identity only under `preserve_source_subject` | target-product identity, exact target timing or a replacement subject |
+| `source_segment_start` | full-replication target production first frame | entering scene, composition and visible state selected from the first mapped source narrative segment; source-subject identity only under `preserve_source_subject` | target-product identity, exact target timing or a replacement subject |
+| `source_segment_result` | full-replication target production first frame | visible payoff and handoff state selected from the last mapped source narrative segment; source-subject identity only under `preserve_source_subject` | target-product identity, exact target timing or a replacement subject |
 
 For a visible product, route one clean `product_anchor` by default. Add exactly one targeted `product_detail` for a structure-sensitive beat, or one clean `product_scene` for a scale/placement-sensitive beat. Add both only when the same Segment genuinely needs both facts and the catalog input limit permits it. A later final-video Segment normally uses `continuity_frame` instead of a low-value scene reference.
 
-When the product record's `default_anchor` is an approved six-panel product board, route that board as the sole product input by default. Do not automatically add the product's detail or scene attachments; retain them as source evidence and use them only when the board is explicitly insufficient for the current shot. For the pineapple board, the bottom-hole close-up and inverted loading panel establish the loading path; the other overall panels establish identity and proportions. The board's hand demonstrates the product action only and does not replace a selected subject anchor.
+When the product record's `default_anchor` is an approved multi-view product reference, route that reference as the sole product input by default. Do not automatically add the product's detail or scene attachments; retain them as source evidence and use them only when the reference is explicitly insufficient for the current shot. For the pineapple reference, the bottom-hole close-up and inverted loading view establish the loading path; the other overall views establish identity and proportions. A hand shown in the reference demonstrates the product action only and does not replace a selected subject anchor.
 
 For original production, route one approved `scene_anchor` when the Beat depends on a stable room, activity zone or capture treatment. Use the scene anchor only for background geometry, camera direction, lighting, open floor or surface area, and ordinary lived-in smartphone texture. Do not inherit people, animals, products, text, logos, claims or unsupported actions from the scene image. If the selected scene is a casual phone photo, preserve neutral white balance and natural exposure; do not add a warm showroom grade.
 
@@ -43,7 +43,7 @@ Generation inputs must be clean derivatives of authoritative source assets when 
 - No readable text, labels, logos, watermarks, UI, panel numbers, or decorative borders in an input intended for generation.
 - A generic `product_scene` reference must not contain a person or animal that conflicts with a selected subject. This restriction does not require removing the narratively active source person, animal or product from `source_segment_start` or `source_segment_result`; their authority is controlled by `subject_strategy`.
 - Cleaning source-segment frames removes text, watermark, UI, borders and unrelated overlays. It must not erase the source subject or source product merely to avoid identity competition. If `replace_subject` remains visually unstable, use a targeted mask as a fallback instead of synthesizing a blank scene.
-- A multi-view anchor may contain only enough views to establish identity. Keep important features large enough to survive the configured input resize; use a targeted detail image rather than a crowded contact sheet.
+- A multi-view anchor may contain only enough views to establish identity. Keep important features large enough to survive the configured input resize; use a targeted detail image rather than a crowded multi-image layout.
 - Never infer a structure or interaction from a reference image name. Facts remain in the current product record.
 - If two assets disagree on product geometry, colourway, packaging, subject identity, or permitted interaction, stop and resolve the source conflict before generation.
 
@@ -55,4 +55,4 @@ When the image is sent to the remote Flow2API MCP gateway, persist the gateway's
 
 Store source field, filename, remote token, local path, source hash, derivative hash when applicable, role, input position, and Segment mapping in the local package. The model input array must match this record exactly.
 
-For full replication, retain two local evidence frames per source narrative segment, but route exactly one `source_segment_start` and one `source_segment_result` for the current target 10-second production Segment. Select them from the first and last mapped source narrative segments in `plan/replication-rhythm-map.json`. Intermediate evidence frames remain planning evidence captured by target Beats; do not add them or a chronological contact sheet by default. Add the current product anchor. Add a selected subject anchor only for `replace_subject`; `preserve_source_subject` must not route one. `structure_only` routes no source-segment frames.
+For high-fidelity replication, retain two local evidence frames per source narrative segment, but route exactly one `source_segment_start` and one `source_segment_result` for the current target 10-second production Segment. Select them from the first and last mapped source narrative segments in `plan/replication-rhythm-map.json`. Intermediate evidence frames remain planning evidence captured by target Beats; do not add them by default. Add the current product anchor. Add a selected subject anchor only for `replace_subject`; `preserve_source_subject` must not route one. `structure_only` routes no source-segment frames.

@@ -1,5 +1,5 @@
 {
-  "schema_version": 20,
+  "schema_version": 21,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -14,12 +14,12 @@
     "generation_prompt_language_default": "en",
     "generation_prompt_language_fixed": true
   },
-  "storyboard_version_policy": {
+  "first_frame_version_policy": {
     "versions_per_script": 2,
     "versions": ["A", "B"],
     "source_link_field": "来源脚本",
-    "approval_field": "分镜状态",
-    "writeback_script": "scripts/publish_storyboard_versions.py",
+    "approval_field": "首帧状态",
+    "writeback_script": "scripts/publish_first_frame_versions.py",
     "batch_submission_threshold": 2,
     "batch_scope": "single_script_single_stage"
   },
@@ -38,9 +38,7 @@
         "execution_weight": "平台感与执行权重",
         "allowed_durations_seconds": "允许视频时长（秒）",
         "raw_segment_seconds": "原始分段时长（秒）",
-        "storyboard_columns": "每段分镜列数",
-        "storyboard_rows": "每段分镜行数",
-        "panel_ratio": "单格画幅比例"
+        "first_frame_ratio": "首帧画幅比例"
       }
     },
     "products": {
@@ -261,9 +259,9 @@
         "structured_script": "结构化脚本",
         "quality_summary": "脚本质检摘要",
         "script_review_notes": "脚本审核意见",
-        "storyboard_attachments": "最终分镜图",
-        "storyboard_status": "分镜状态",
-        "storyboard_review_notes": "分镜审核意见",
+        "first_frame_attachments": "最终首帧图",
+        "first_frame_status": "首帧状态",
+        "first_frame_review_notes": "首帧审核意见",
         "parent_script_record_id": "父脚本记录ID",
         "script_version": "脚本版本",
         "video_prompt": "视频提示词",
@@ -272,7 +270,7 @@
         "remaining_executions": "剩余执行次数"
       },
       "validation_status_values": {"pending": "待检查", "failed": "未通过", "passed": "通过"},
-      "storyboard_status_values": {"not_started": "未开始", "generating": "生成中", "pending_review": "待审核", "passed": "已通过", "rejected": "已驳回"},
+      "first_frame_status_values": {"not_started": "未开始", "generating": "生成中", "pending_review": "待审核", "passed": "已通过", "rejected": "已驳回"},
       "subtitle_mode_values": {"plain": "普通字幕", "emphasis": "重点强调字幕", "none": "不生成"}
     },
     "final_films": {

@@ -26,8 +26,8 @@
 3. 仅替换冲突所必需的机制、受力或接触路径。目标产品若有经证实的接触点或连接方式，应保留该行为的叙事功能，并改为真实的目标接触方式；不得因硬件不同而把可支持的玩法一律改成闻、扒或找食。
 4. 只有当目标产品确无证据支持该行为时，才可标为 `not_supported_with_evidence`；必须写明缺失的事实，并设计保留同一叙事位置、节奏和情绪功能的替代行为。不得以类别常识或模型猜测补足缺失机制。
 5. 除冲突的产品机制与接触路径外，原片的构图、手位、环境、人物/宠物位置、光线和节奏应保留。
-6. Review the conflicting panels before accepting their replacement contact sheet. If a viewer can still read the image as a cap opening, disassembly, wrong-hole filling, or wrong orientation, the batch fails.
-7. The contact-sheet image prompt must state the substitution action and prohibited imagery literally; never replace this with a vague instruction such as "use correctly".
+6. Review every affected first-frame output before accepting the package. If a viewer can still read the image as a cap opening, disassembly, wrong-hole filling, or wrong orientation, the package fails.
+7. The first-frame prompt must state the substitution action and prohibited imagery literally; never replace this with a vague instruction such as "use correctly".
 8. 当目标产品存在固定一体外观结构时，替代动作的接触位置、受力方向和机位必须让该结构保持可读。不得用遮挡、翻转、省略连接部件或改接开口来保留动作表面形式。
 
 不要在本协议中保存任何产品示例。替代动作、禁止画面和可视验收点只能从本次的 `product-interaction-facts.md` 引用；换产品时不得继承此前产品的部件、开口、朝向、装粮路径或出粮/漏食规则。

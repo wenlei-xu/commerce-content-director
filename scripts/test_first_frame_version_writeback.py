@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression tests for the single A/B storyboard writeback seam."""
+"""Regression tests for the single A/B first-frame writeback seam."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ from typing import Any
 
 from PIL import Image
 
-from publish_storyboard_versions import build_version_fields, write_versions
+from publish_first_frame_versions import build_version_fields, write_versions
 
 
 def schema() -> dict[str, Any]:
@@ -25,8 +25,8 @@ def schema() -> dict[str, Any]:
                 "duration_field": "目标时长（秒）",
                 "fields": {
                     "name": "脚本名称", "script_id": "脚本ID", "parent_script_link": "来源脚本",
-                    "parent_script_record_id": "父脚本记录ID", "storyboard_attachments": "最终分镜图",
-                    "storyboard_status": "分镜状态", "storyboard_review_notes": "分镜审核意见",
+                    "parent_script_record_id": "父脚本记录ID", "first_frame_attachments": "最终首帧图",
+                    "first_frame_status": "首帧状态", "first_frame_review_notes": "首帧审核意见",
                     "script_version": "脚本版本",
                 },
             }
@@ -88,7 +88,7 @@ class StoryboardVersionWritebackTests(unittest.TestCase):
                 path = root / f"Segment-{index:02d}.png"
                 Image.new("RGB", (18, 32), "white").save(path)
                 paths.append(path)
-            manifest = {"run_id": "run-1", "source_script_record_id": "rec-source", "versions": {version: {"variant_delta": f"{version} delta", "boards": [{"segment_id": f"Segment-{index:02d}", "path": str(paths[index - 1])} for index in range(1, 3)]} for version in ("A", "B")}}
+            manifest = {"run_id": "run-1", "source_script_record_id": "rec-source", "versions": {version: {"variant_delta": f"{version} delta", "first_frames": [{"segment_id": f"Segment-{index:02d}", "path": str(paths[index - 1])} for index in range(1, 3)]} for version in ("A", "B")}}
             result = write_versions(api=api, uploader=FakeUploader(api), schema=schema(), source_script_record_id="rec-source", manifest=manifest)
         self.assertEqual(set(result["versions"]), {"A", "B"})
         self.assertEqual(len(api.records_by_table["scripts"]), 3)
@@ -97,8 +97,8 @@ class StoryboardVersionWritebackTests(unittest.TestCase):
                 continue
             self.assertEqual(record["fields"]["来源脚本"], ["rec-source"])
             self.assertIn(record["fields"]["脚本版本"], ("A", "B"))
-            self.assertEqual(record["fields"]["分镜状态"], "待审核")
-            self.assertEqual(len(record["fields"]["最终分镜图"]), 2)
+            self.assertEqual(record["fields"]["首帧状态"], "待审核")
+            self.assertEqual(len(record["fields"]["最终首帧图"]), 2)
 
 
 if __name__ == "__main__":

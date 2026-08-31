@@ -1,4 +1,4 @@
-"""Cross-platform runtime discovery for the storyboard scripts."""
+"""Cross-platform runtime discovery for the production scripts."""
 
 from __future__ import annotations
 

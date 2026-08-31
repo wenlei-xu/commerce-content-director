@@ -9,12 +9,12 @@ The source precedence is:
 3. Approved `场景资产库` entries for spatial context, lighting and capture treatment; they may not override product or subject facts;
 4. Product `交互限制` and confirmed `内容互动模板库` entries for reusable interaction patterns; templates may not override product facts;
 5. Locked creative direction and locked structured script;
-6. For storyboard generation and review, the two script-version records linked through their actual `来源脚本` relation, plus each record's ordered `最终分镜图`, `脚本版本` and `分镜状态`. There is no separate storyboard-mapping, storyboard-candidate or storyboard-review table;
+6. For first-frame generation and review, the two script-version records linked through their actual `来源脚本` relation, plus each record's ordered `最终首帧图`, `脚本版本` and `首帧状态`. There is no separate Segment mapping, candidate or review table;
 7. Local run package created for the current run.
 
 Do not infer a direction, script, product action, dialogue or relation from stale local material.
-The product action library owns only reusable, confirmed ways to stage a product. A selected action is scenarioized in the script Beat and does not become a storyboard record.
-Do not infer storyboard selection from local filenames or folders. The complete
-A/B version records and their ordered `最终分镜图` attachments are the
+The product action library owns only reusable, confirmed ways to stage a product. A selected action is scenarioized in the script Beat and does not become a first-frame record.
+Do not infer first-frame selection from local filenames or folders. The complete
+A/B version records and their ordered `最终首帧图` attachments are the
 cross-computer authority. Local request manifests and candidate artifacts are
 traceability evidence only and are not final approval records.
