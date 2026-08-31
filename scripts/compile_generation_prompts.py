@@ -543,7 +543,18 @@ def compile_storyboard(plan: dict[str, Any], segment: dict[str, Any]) -> str:
 
 def compile_video(plan: dict[str, Any], segment: dict[str, Any]) -> str:
     inputs = validate_inputs(segment, "final_video")
-    constraints = [item for item in [*plan.get("common_constraints", []), *segment.get("hard_constraints", [])] if isinstance(item, str) and item.strip()]
+    common_constraints = [
+        item for item in plan.get("common_constraints", [])
+        if isinstance(item, str) and item.strip()
+    ]
+    hard_constraints = [
+        item for item in segment.get("hard_constraints", [])
+        if isinstance(item, str) and item.strip()
+    ]
+    negative_constraints = [
+        item for item in segment.get("negative_constraints", [])
+        if isinstance(item, str) and item.strip()
+    ]
     dialogue = segment.get("dialogue") or []
     if not isinstance(dialogue, list):
         raise fail("dialogue must be a list when present")
@@ -573,14 +584,32 @@ def compile_video(plan: dict[str, Any], segment: dict[str, Any]) -> str:
             f"voiceover_provider={plan['voiceover_provider']}. omni_audio_policy={plan['omni_audio_policy']}.\n"
             + ("\n".join(dialogue_lines) if dialogue_lines else "Natural sound only; do not speak any line.")
         )
+    camera = segment.get("camera")
+    if not isinstance(camera, str) or not camera.strip():
+        camera = "Use the approved camera direction and point of view for this Segment."
+    visual_style = segment.get("visual_style")
+    if not isinstance(visual_style, str) or not visual_style.strip():
+        visual_style = "Use the visual style established by the reference and approved constraints."
+    if common_constraints:
+        visual_style = "\n".join([visual_style.strip(), *common_constraints])
+    action_lines = [subject]
+    if hard_constraints:
+        action_lines.extend(hard_constraints)
+    else:
+        action_lines.append("Use only the approved action and product facts for this Segment.")
     return "\n\n".join([
-        "INPUT IMAGE ROLES AND AUTHORITY\n" + "\n".join(role_lines(inputs)),
-        "PRODUCT STRUCTURE AND INTERACTION HARD CONSTRAINTS\n" + ("\n".join(constraints) if constraints else "Use only approved product facts."),
-        "SUBJECT IDENTITY LOCK\n" + subject,
-        "LANGUAGE, AUDIO AND TIMED DIALOGUE\n" + audio_payload,
-        "NO TEXT AND CROSS-SEGMENT CONTINUITY\n"
+        "Reference:\n" + "\n".join(role_lines(inputs)),
+        "Subject & Action:\n" + "\n".join(action_lines),
+        "Camera:\n" + camera.strip(),
+        "Visual Style:\n" + visual_style,
+        "Continuity & Timing:\n"
+        + continuity
+        + "\nTimeline:\n"
+        + "\n".join(timing_lines(validate_beats(segment, float(plan["raw_segment_seconds"])))),
+        "Audio:\n" + audio_payload,
+        "Unwanted Elements:\n"
         "No captions, subtitles, burned-in text, dialogue transcription, labels, lower thirds, logos, watermarks, UI, or readable text in any language.\n"
-        + continuity + "\nTimeline:\n" + "\n".join(timing_lines(validate_beats(segment, float(plan['raw_segment_seconds'])))),
+        + ("\n".join(negative_constraints) if negative_constraints else "No unapproved visual elements."),
     ])
 
 

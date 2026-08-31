@@ -18,25 +18,38 @@ Apply the principles from the [Google DeepMind Omni prompt guide](https://deepmi
 - Keep unwanted elements concise rather than writing a long negative-prompt paragraph.
 - For an edit, state only the intended change and add `Keep everything else the same.`
 
-Use this as the compact creative scaffold before compiling the final prompt:
+Use this as the standard final prompt framework before compiling each Segment prompt:
 
 ```text
-Reference
+Reference:
+Use the provided [reference image/video] as the starting image and visual reference.
+Keep the same [subject], [key objects], and [environment].
 
-Subject & Action
+[Subject & Core Action]
+A [subject] [performs one clear main action] in [location].
+Describe the key movement and the interaction with important objects.
 
-Camera
+[Camera]
+[shot size] from [POV].
+The camera [camera movement].
+Use [handheld / static / tracking] footage.
 
-Visual Style
+[Visual Style]
+[realistic / cinematic / natural smartphone footage].
+[lighting], [color], and [mood].
 
-Continuity & Timing
+[Continuity & Timing]
+Single continuous shot, no scene cuts.
+[Optional timing: 0–2s..., 2–4s...]
 
-Audio
+[Audio]
+Sound design: [ambient sound], [action sound], [dialogue or music if needed].
 
-Unwanted Elements
+[Unwanted Elements]
+[unwanted elements in short terms]
 ```
 
-This scaffold is a planning layer, not a replacement for the five mandatory blocks below. The final prompt should normally be concise natural English, with the scaffold's creative information placed inside the required input, product, subject, audio and continuity/no-text blocks. Reference, subject/action, camera and visual style are the core; timing, audio and unwanted elements are added when applicable. The hard product, subject, language, no-text, asset-role and continuity requirements in this contract always take priority.
+Replace the bracketed content with Segment-specific facts and keep the final prompt concise natural English. This framework is the final prompt structure and does not override the selected provider, model, asset-routing, language-lock or final-video execution contracts.
 
 ## Language and source-of-truth gate
 
@@ -68,59 +81,19 @@ python scripts/validate_prompt_bundle.py plan/compiled-prompts.json
 
 Keep `package.json`, `generation-jobs.json`, `dialogue-allocation.json`, `quality-report.md`, the source plan, compiled prompts, validator output, asset role/hash mappings, and temporary outputs. This evidence supports a resumable run; it never replaces the approved Feishu records.
 
-## The five mandatory blocks
+## Final prompt checks
 
-### 1. INPUT IMAGE ROLES AND AUTHORITY
+The final-generation prompt uses the exact framework above. The compiler should produce concise natural English that prioritizes the reference, one clear main action, camera treatment and visual style. Add timing, audio or unwanted elements when they matter. The framework is the prompt structure, but its headings are not a hard validation gate.
 
-Name every routed Omni input by its actual position and role in every Segment prompt. The following is the default authority order, not a promise that every optional input exists:
+Keep the following checks because they protect execution integrity rather than prompt style:
 
-- `storyboard_board`: authoritative only for chronology, timing, actions, camera intent and scene progression. Its product pixels and subject pixels never override approved product facts or the subject anchor.
-- `product_anchor`: authoritative for overall product identity and proportions.
-- `subject_anchor`: authoritative for recurring subject identity when a recurring subject exists.
-- `product_detail`: authoritative for openings, lattice, holes, connections, and other structure-sensitive geometry.
-- `product_scene`: authoritative for real-use context, scale, and placement, not for inventing product geometry.
-- `continuity_frame`: authoritative for the handoff from the previous accepted Segment when routed; it cannot override product facts or subject identity.
+1. Input assets exist, are clean, and their position/role mapping matches the Job payload.
+2. The Segment has a valid continuous Beat timeline covering the configured raw duration.
+3. Product-visible Segments have the required product reference and use only confirmed product facts; semantic product correctness is reviewed against the product record and generated frames.
+4. The selected language, voiceover provider and Omni audio policy agree. Chinese dialogue stays outside Omni prompts and is assigned exactly once in bundle metadata.
+5. Dialogue IDs and local timings are valid, and no Segment receives another Segment's dialogue.
+6. The prompt is English control text, and the final Job/model/submission plan is valid.
 
-The prompt must include the exact `position → role` mapping generated for that Job. Do not write `Input 3` as the subject if the subject was not routed, and do not silently omit a required detail or scene asset.
-
-Product detail assets and confirmed product hard facts override conflicting product pixels in the storyboard or scene reference. The subject anchor and its identity description override a different animal or person shown in a storyboard or scene reference. If the inputs conflict in a way that cannot be resolved, stop before submission and record the conflict. Pass the same required inputs in the same role mapping to every applicable Segment; never rely on cross-Job memory.
-
-### 2. PRODUCT STRUCTURE AND INTERACTION HARD CONSTRAINTS
-
-Copy only the current `product-visual-facts.md` and confirmed product hard facts into this block. State the exact body, openings, proportions, connected parts, orientation, `loading_path`, `dispensing_path`, and permitted use action as separate facts. Never collapse them into one vague “loading/dispensing path”: the two paths may be identical or different only when the product record confirms it. If the confirmed product facts say both loading and dispensing use the single bottom circular hole, write that exact rule twice and state that the side lattice is neither an inlet nor an outlet. State prohibited alternatives literally: no invented openings, no top or side loading when prohibited, no side dispensing when prohibited, no detached crown/cap/lid, no separated parts, no alternate lattice, no altered scale. Do not use a product name or generic visual language to infer missing geometry.
-
-### 3. SUBJECT IDENTITY LOCK
-
-State that the routed `subject_anchor` and selected subject record are the only identity authority. Repeat the stable identity description in every Segment prompt: species/breed or person type, coat/skin or hair colors, markings, face, body size, age impression, ears/hair, and distinctive accessories where applicable. Require the exact same individual across all panels and Segment boundaries. Explicitly prohibit substitutions, including a different breed/type, different markings, different body size, or a generic replacement subject. A phrase such as “same dog” without the stable identity description is insufficient. If there is intentionally no recurring subject, state `主体身份不锁定` and do not imply continuity.
-
-### 4. LANGUAGE, AUDIO AND TIMED DIALOGUE
-
-State the locked `target_spoken_language`, selected provider and raw-Omni audio policy. Block headings and all visual/product control instructions must be English.
-
-- Chinese `spoken` and `sparse_spoken`: state `voiceover_provider=doubao_tts_2_0` and `omni_audio_policy=environment_only`, then require `Generate synchronized environmental sounds only. No spoken voice, narration, dialogue, singing, humming, or background music.` Keep the exact dialogue and local timing only in bundle metadata; do not place Chinese text, phonetic spelling, translated dialogue, lip-sync instructions, or a request for native speech in the Omni prompt.
-- Thai native-Omni speech: include only this Segment's approved literal dialogue with Segment-local `0.0–10.0s` start/end times and state `Do not speak any other line`.
-- `natural_sound_only`: request synchronized environmental sounds only and include no dialogue or voiceover.
-
-Spoken dialogue is audio only and must never be visualized as text.
-
-### 5. NO TEXT AND CROSS-SEGMENT CONTINUITY
-
-State: `No captions, subtitles, burned-in text, dialogue transcription, labels, lower thirds, logos, watermarks, UI, or readable text in any language.` The no-text rule applies even when the prompt contains dialogue lines. State the exact continuity handoff: Segment 02 starts from the last approved state of Segment 01, with the same subject, product, room, lighting, camera texture, scale, orientation and audio environment. Do not introduce a new room, animal/person, product design, visual style, or unexplained time jump at the boundary.
-
-## Required assembly and validation
-
-Use the five block headings verbatim or an unambiguous equivalent in every final-generation prompt. Before submission, validate that:
-
-1. all five blocks are present;
-2. the position → role map matches `product_asset_plan` and the model input array;
-3. only the approved target language appears in spoken lines;
-4. the prompt contains no conflicting product geometry or subject description;
-5. every Segment repeats the subject identity lock and continuity handoff;
-6. the no-text rule is explicit and does not conflict with the dialogue block;
-7. every Thai native-Omni line appears in exactly its assigned Segment prompt, while every Chinese external-TTS line appears in no Omni prompt and remains assigned exactly once in bundle metadata;
-8. every dialogue window uses Segment-local `0.0–10.0s` timing; and
-9. no prompt quotes dialogue from an earlier or later Segment anywhere in its text.
-
-If the prompt fails any check, do not submit the Job. Fix the task/script/data conflict first or stop and report it.
+The validator must not use the presence of the seven framework headings, or the old five-block headings, as a final-video acceptance criterion. Product identity, subject consistency, action completion, unwanted text/logo, and cross-Segment visual continuity are post-generation visual-review items.
 
 After generation, ASR-check every Chinese raw Segment and reject any clip containing speech because Chinese Omni output must be environment-only. For Thai native speech, reject and regenerate only the affected Segment when ASR shows an omitted assigned line, an unapproved added line, or dialogue belonging to another Segment. Assembly does not waive these gates; run full-film ASR again after assembly to verify the final approved dialogue and boundaries.

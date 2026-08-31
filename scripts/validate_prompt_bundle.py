@@ -56,13 +56,6 @@ IMAGE_WORKFLOW_METADATA_MARKERS = (
     "Mapped source narratives:",
     "Do not locally compose",
 )
-VIDEO_HEADINGS = (
-    "INPUT IMAGE ROLES AND AUTHORITY",
-    "PRODUCT STRUCTURE AND INTERACTION HARD CONSTRAINTS",
-    "SUBJECT IDENTITY LOCK",
-    "LANGUAGE, AUDIO AND TIMED DIALOGUE",
-    "NO TEXT AND CROSS-SEGMENT CONTINUITY",
-)
 
 
 def load_allowed_languages(schema_path: Path) -> set[str]:
@@ -192,7 +185,11 @@ def validate_bundle(
                 errors.append(
                     f"expected_candidate_job_count must be {expected_jobs}"
                 )
-    headings = IMAGE_HEADINGS if kind == "storyboard_image" else VIDEO_HEADINGS
+    # Final-video prompts follow the compact creative scaffold. Their section
+    # labels are organizational guidance, not a hard validation gate. Keep
+    # hard checks on the underlying input, timing, language, audio and execution
+    # metadata below instead of accepting/rejecting prompts by heading count.
+    headings = IMAGE_HEADINGS if kind == "storyboard_image" else ()
     dialogue_ids: dict[str, str] = {}
     for index, entry in enumerate(prompts):
         prefix = f"prompt {index}"
