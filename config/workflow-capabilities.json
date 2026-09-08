@@ -31,6 +31,9 @@
         "audio_separator": "target_spoken_language=zh-CN&audio_mode=spoken|sparse_spoken"
       }
     },
+    "clip_production": {
+      "capabilities": {"feishu": "required", "gpt_image": "required", "flow2api": "required", "ffmpeg": "required", "asr": "not_required", "image_tools": "required"}
+    },
     "lifecycle": {
       "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
     }

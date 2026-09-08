@@ -1,5 +1,5 @@
 {
-  "schema_version": 21,
+  "schema_version": 22,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -283,6 +283,73 @@
         "duration_seconds": "视频时长（秒）",
         "generated_at": "生成时间",
         "actual_submitted_prompt": "实际提交 Prompt"
+      }
+    },
+    "draft_clips": {
+      "table_id": "tbllspg8kC4nLNYw",
+      "name": "草稿库",
+      "purpose": "10秒母片暂存与筛选，不是沉淀结果",
+      "binding_required": true,
+      "status_field": "当前状态",
+      "status_values": {
+        "pending_review": "待筛选",
+        "selected": "入选",
+        "rejected": "淘汰"
+      },
+      "fields": {
+        "video_attachment": "原始10秒视频",
+        "product_link": "产品 / SKU",
+        "generation_prompt": "生成 Prompt",
+        "generated_at": "生成日期",
+        "status": "当前状态"
+      }
+    },
+    "selected_clips": {
+      "table_id": "tbl9OxtBpk6zTniz",
+      "name": "精选片段库",
+      "purpose": "可复用片段的正式沉淀库",
+      "binding_required": true,
+      "status_field": "当前状态",
+      "status_values": {
+        "pending_review": "待筛选",
+        "available": "可用",
+        "rejected": "淘汰"
+      },
+      "fields": {
+        "video_attachment": "片段视频",
+        "product_link": "产品 / SKU",
+        "tags": "片段标签",
+        "visual_description": "画面描述",
+        "voiceover_direction": "适合的口播方向",
+        "status": "当前状态"
+      },
+      "tag_convention": {
+        "prefixes": {
+          "role": "用途｜",
+          "action": "动作｜",
+          "benefit": "卖点｜",
+          "reuse_scope": "复用｜"
+        },
+        "reuse_scope_values": [
+          "通用",
+          "品类可复用",
+          "单SKU"
+        ],
+        "recommended_tag_count": "3-5"
+      },
+      "admission_gate": {
+        "required_checks": [
+          "动作完整",
+          "画面稳定",
+          "视频干净可播放"
+        ],
+        "selected_status_requires_explicit_selection": true,
+        "writeback_fields_required": [
+          "产品 / SKU",
+          "片段标签",
+          "画面描述",
+          "适合的口播方向"
+        ]
       }
     },
     "short_video_breakdowns": {
