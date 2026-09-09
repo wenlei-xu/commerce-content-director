@@ -23,6 +23,13 @@ REPLICATION_MODES = HIGH_FIDELITY_REPLICATION_MODES | {"structure_replication"}
 SOURCE_VISUAL_STYLE_FIELDS = ("style_fingerprint_en", "anti_style_constraints_en")
 TARGET_PRODUCTION_UNIT = "target_production_segment"
 FIXED_RAW_SEGMENT_SECONDS = 10
+SUPPORTED_FINAL_SEGMENT_SECONDS = {4, 6, 8, 10}
+FINAL_VIDEO_MODELS = {
+    4: "gemini_omni_r2v_portrait_4s",
+    10: "omni_portrait",
+    8: "gemini_omni_r2v_portrait_8s",
+    6: "gemini_omni_r2v_portrait_6s",
+}
 FIXED_FIRST_FRAME_RATIO = "9:16"
 FIXED_FIRST_FRAME_EXECUTOR = "gpt_image_2"
 FIXED_FIRST_FRAME_MODEL = "gpt-image-2"
@@ -67,6 +74,38 @@ def positive_integer(value: object, field: str) -> int:
     if not isinstance(value, int) or isinstance(value, bool) or value < 1:
         raise fail(f"{field} must be a positive integer")
     return value
+
+
+def segment_seconds_for(
+    plan: dict[str, Any], segment: dict[str, Any]
+) -> float:
+    """Return the exact local runtime for one final-video Segment."""
+    raw_seconds = number(
+        segment.get("segment_seconds", plan.get("raw_segment_seconds")),
+        f"{segment.get('segment_id', '<unknown>')}.segment_seconds",
+    )
+    if plan.get("job_kind") == "final_video":
+        if raw_seconds not in SUPPORTED_FINAL_SEGMENT_SECONDS:
+            raise fail(
+                f"{segment.get('segment_id', '<unknown>')}: final-video segment_seconds "
+                "must be one of 10, 8, 6, or 4"
+            )
+    return raw_seconds
+
+
+def segment_model_for(plan: dict[str, Any], segment: dict[str, Any]) -> str | None:
+    """Resolve the direct model required by a final-video Segment."""
+    if plan.get("job_kind") != "final_video":
+        return None
+    seconds = int(segment_seconds_for(plan, segment))
+    expected_model = FINAL_VIDEO_MODELS[seconds]
+    requested_model = segment.get("model")
+    if requested_model is not None and requested_model != expected_model:
+        raise fail(
+            f"{segment.get('segment_id', '<unknown>')}: video model is fixed to "
+            f"{expected_model} for {seconds:g}s; arbitrary model overrides are forbidden"
+        )
+    return expected_model
 
 
 def validate_beats(segment: dict[str, Any], raw_seconds: float) -> list[dict[str, Any]]:
@@ -234,18 +273,26 @@ def validate_subject_strategy(
     return str(strategy)
 
 
-def validate_target_time_range(segment: dict[str, Any], index: int, raw_seconds: float) -> None:
+def validate_target_time_range(
+    segment: dict[str, Any],
+    index: int,
+    raw_seconds: float,
+    *,
+    expected_start: float | None = None,
+    expected_duration: float | None = None,
+) -> None:
     value = segment.get("target_time_range")
     if not isinstance(value, dict):
         raise fail(f"{segment.get('segment_id', '<unknown>')}: target_time_range must be an object")
     start = number(value.get("start"), "target_time_range.start")
     end = number(value.get("end"), "target_time_range.end")
-    expected_start = index * raw_seconds
-    expected_end = expected_start + raw_seconds
-    if abs(start - expected_start) > 1e-6 or abs(end - expected_end) > 1e-6:
+    start_expected = index * raw_seconds if expected_start is None else expected_start
+    duration_expected = raw_seconds if expected_duration is None else expected_duration
+    expected_end = start_expected + duration_expected
+    if abs(start - start_expected) > 1e-6 or abs(end - expected_end) > 1e-6:
         raise fail(
             f"{segment.get('segment_id', '<unknown>')}: target_time_range must be "
-            f"{expected_start:g}–{expected_end:g}s"
+            f"{start_expected:g}–{expected_end:g}s"
         )
 
 
@@ -329,6 +376,23 @@ def validate_plan(plan: dict[str, Any]) -> None:
                 f"{plan['target_duration_seconds']:g}s"
             )
     if job_kind == "final_video":
+        target_seconds = number(plan.get("target_duration_seconds"), "target_duration_seconds")
+        if target_seconds <= 0:
+            raise fail("final_video target_duration_seconds must be positive")
+        planned_seconds = 0.0
+        for index, planned_segment in enumerate(segments):
+            if not isinstance(planned_segment, dict):
+                raise fail("segment must be an object")
+            local_seconds = segment_seconds_for(plan, planned_segment)
+            if index < len(segments) - 1 and local_seconds != FIXED_RAW_SEGMENT_SECONDS:
+                raise fail("only the final-video Segment may use a 4-second, 6-second, or 8-second tail")
+            segment_model_for(plan, planned_segment)
+            planned_seconds += local_seconds
+        if abs(planned_seconds - target_seconds) > 1e-6:
+            raise fail(
+                f"final_video duration plan totals {planned_seconds:g}s, "
+                f"expected target_duration_seconds {target_seconds:g}s"
+            )
         audio_modes = {segment.get("audio_mode", "spoken") for segment in segments if isinstance(segment, dict)}
         invalid_modes = audio_modes - AUDIO_MODES
         if invalid_modes:
@@ -348,6 +412,7 @@ def validate_plan(plan: dict[str, Any]) -> None:
         if plan.get("omni_audio_policy") != expected_policy:
             raise fail(f"final_video omni_audio_policy must be {expected_policy} for this language/audio mode")
     seen: set[str] = set()
+    timeline_cursor = 0.0
     for segment_index, segment in enumerate(segments):
         if not isinstance(segment, dict):
             raise fail("segment must be an object")
@@ -355,7 +420,9 @@ def validate_plan(plan: dict[str, Any]) -> None:
         if not isinstance(segment_id, str) or not segment_id or segment_id in seen:
             raise fail("each segment_id must be unique and non-empty")
         seen.add(segment_id)
-        validate_beats(segment, raw_seconds)
+        local_seconds = segment_seconds_for(plan, segment)
+        segment_model_for(plan, segment)
+        validate_beats(segment, local_seconds)
         inputs = validate_inputs(segment, job_kind)
         if job_kind == "first_frame_image":
             validate_product_visual_lock(segment)
@@ -376,6 +443,15 @@ def validate_plan(plan: dict[str, Any]) -> None:
             )
             validate_target_time_range(segment, segment_index, raw_seconds)
             validate_source_narrative_mapping(segment, plan.get("replication_mode"))
+        if job_kind == "final_video":
+            validate_target_time_range(
+                segment,
+                segment_index,
+                raw_seconds,
+                expected_start=timeline_cursor,
+                expected_duration=local_seconds,
+            )
+            timeline_cursor += local_seconds
         if job_kind == "first_frame_image" and plan.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
             roles = [item["role"] for item in inputs]
             for role in SOURCE_FRAME_ROLES:
@@ -499,6 +575,8 @@ def compile_first_frame(plan: dict[str, Any], segment: dict[str, Any]) -> str:
 
 
 def compile_video(plan: dict[str, Any], segment: dict[str, Any]) -> str:
+    local_seconds = segment_seconds_for(plan, segment)
+    video_model = segment_model_for(plan, segment)
     inputs = validate_inputs(segment, "final_video")
     common_constraints = [
         item for item in plan.get("common_constraints", [])
@@ -560,9 +638,10 @@ def compile_video(plan: dict[str, Any], segment: dict[str, Any]) -> str:
         "Camera:\n" + camera.strip(),
         "Visual Style:\n" + visual_style,
         "Continuity & Timing:\n"
+        + f"Segment duration: {local_seconds:g}s. Direct model: {video_model}.\n"
         + continuity
         + "\nTimeline:\n"
-        + "\n".join(timing_lines(validate_beats(segment, float(plan["raw_segment_seconds"])))),
+        + "\n".join(timing_lines(validate_beats(segment, local_seconds))),
         "Audio:\n" + audio_payload,
         "Unwanted Elements:\n"
         "No captions, subtitles, burned-in text, dialogue transcription, labels, lower thirds, logos, watermarks, UI, or readable text in any language.\n"
@@ -688,6 +767,8 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
                 "segment_id": segment["segment_id"],
                 **({"version": version} if version else {}),
                 "target_time_range": segment.get("target_time_range"),
+                "segment_seconds": segment_seconds_for(plan, segment),
+                "video_model": segment_model_for(plan, segment),
                 "source_narrative_segment_ids": segment.get("source_narrative_segment_ids", []),
                 "subject_strategy": segment.get("subject_strategy"),
                 "product_visual_lock": validate_product_visual_lock(segment),
@@ -696,7 +777,7 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
                 "director": director_output,
                 "prompt": compiled_prompt,
                 "inputs": validate_inputs(segment, plan["job_kind"]),
-                "beats": validate_beats(segment, float(plan["raw_segment_seconds"])),
+                "beats": validate_beats(segment, segment_seconds_for(plan, segment)),
                 "dialogue": segment.get("dialogue", []),
                 "audio_mode": segment.get("audio_mode"),
                 "voiceover_provider": plan.get("voiceover_provider"),
@@ -725,6 +806,14 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "omni_audio_policy": plan.get("omni_audio_policy"),
         "target_duration_seconds": plan.get("target_duration_seconds"),
         "raw_segment_seconds": plan["raw_segment_seconds"],
+        "duration_plan": [
+            {
+                "segment_id": segment["segment_id"],
+                "segment_seconds": segment_seconds_for(plan, segment),
+                "video_model": segment_model_for(plan, segment),
+            }
+            for segment in plan["segments"]
+        ] if plan["job_kind"] == "final_video" else None,
         "first_frame_layout": plan.get("first_frame_layout"),
         "image_output": plan.get("image_output"),
         "versions": [version for version in versions if version is not None],

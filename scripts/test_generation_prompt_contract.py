@@ -445,6 +445,73 @@ def main() -> None:
     )
     assert not validate_bundle(thirty_second_video_bundle, {"en", "zh-CN"})
 
+    twenty_eight_second_video_plan = copy.deepcopy(video_plan)
+    twenty_eight_second_video_plan["target_duration_seconds"] = 28
+    twenty_eight_second_video_plan["segments"] = []
+    for index, seconds in enumerate((10, 10, 8)):
+        segment = copy.deepcopy(video_plan["segments"][0])
+        segment["segment_id"] = f"Segment-{index + 1:02d}"
+        segment["segment_seconds"] = seconds
+        segment["target_time_range"] = {
+            "start": sum((10, 10, 8)[:index]),
+            "end": sum((10, 10, 8)[: index + 1]),
+        }
+        segment["beats"] = [{
+            "start": 0,
+            "end": seconds,
+            "description": f"The locked Beat timeline for this {seconds}-second Segment.",
+        }]
+        segment["dialogue"][0]["line_id"] = f"line-{index + 1:02d}"
+        segment["dialogue"][0]["end"] = seconds
+        twenty_eight_second_video_plan["segments"].append(segment)
+    twenty_eight_second_video_bundle = compile_plan(twenty_eight_second_video_plan)
+    assert not validate_bundle(twenty_eight_second_video_bundle, {"en", "zh-CN"})
+    assert [entry["segment_seconds"] for entry in twenty_eight_second_video_bundle["prompts"]] == [10, 10, 8]
+    assert twenty_eight_second_video_bundle["prompts"][-1]["video_model"] == "gemini_omni_r2v_portrait_8s"
+    assert twenty_eight_second_video_bundle["duration_plan"][-1]["segment_seconds"] == 8
+
+    twenty_four_second_video_plan = copy.deepcopy(video_plan)
+    twenty_four_second_video_plan["target_duration_seconds"] = 24
+    twenty_four_second_video_plan["segments"] = []
+    for index, seconds in enumerate((10, 10, 4)):
+        segment = copy.deepcopy(video_plan["segments"][0])
+        segment["segment_id"] = f"Segment-24-{index + 1:02d}"
+        segment["segment_seconds"] = seconds
+        segment["target_time_range"] = {
+            "start": sum((10, 10, 4)[:index]),
+            "end": sum((10, 10, 4)[: index + 1]),
+        }
+        segment["beats"] = [{
+            "start": 0,
+            "end": seconds,
+            "description": f"The locked Beat timeline for this {seconds}-second Segment.",
+        }]
+        segment["dialogue"][0]["line_id"] = f"line-24-{index + 1:02d}"
+        segment["dialogue"][0]["start"] = 0
+        segment["dialogue"][0]["end"] = seconds
+        twenty_four_second_video_plan["segments"].append(segment)
+    twenty_four_second_video_bundle = compile_plan(twenty_four_second_video_plan)
+    assert [entry["segment_seconds"] for entry in twenty_four_second_video_bundle["prompts"]] == [10, 10, 4]
+    assert twenty_four_second_video_bundle["prompts"][-1]["video_model"] == "gemini_omni_r2v_portrait_4s"
+
+    twenty_six_second_tail_plan = copy.deepcopy(twenty_four_second_video_plan)
+    twenty_six_second_tail_plan["target_duration_seconds"] = 26
+    twenty_six_second_tail_plan["segments"][-1]["segment_seconds"] = 6
+    twenty_six_second_tail_plan["segments"][-1]["target_time_range"] = {"start": 20, "end": 26}
+    twenty_six_second_tail_plan["segments"][-1]["beats"][0]["end"] = 6
+    twenty_six_second_tail_plan["segments"][-1]["dialogue"][0]["end"] = 6
+    twenty_six_second_tail_bundle = compile_plan(twenty_six_second_tail_plan)
+    assert twenty_six_second_tail_bundle["prompts"][-1]["video_model"] == "gemini_omni_r2v_portrait_6s"
+
+    arbitrary_video_model = copy.deepcopy(video_plan)
+    arbitrary_video_model["segments"][0]["model"] = "some_other_video_model"
+    try:
+        compile_plan(arbitrary_video_model)
+    except ValueError as error:
+        assert "arbitrary model overrides are forbidden" in str(error)
+    else:
+        raise AssertionError("final-video segments must reject arbitrary model overrides")
+
     chinese_video_plan = copy.deepcopy(video_plan)
     chinese_video_plan["target_spoken_language"] = "zh-CN"
     chinese_video_plan["voiceover_provider"] = "doubao_tts_2_0"

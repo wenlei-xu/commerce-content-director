@@ -68,13 +68,8 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
         raise ValueError("首帧画幅比例必须采用正整数比，例如 9:16")
     if ratio != FIXED_VIDEO_RATIO:
         raise ValueError("Omni 最终视频必须采用 9:16 竖屏配置")
-    raw_int = int(raw)
-    if any(duration % raw_int for duration in allowed):
-        raise ValueError("每个允许视频时长必须能被原始分段时长整除")
     if target not in allowed:
         raise ValueError("目标时长不在活动内容系统配置的允许列表中")
-    if target % FIXED_RAW_SEGMENT_SECONDS:
-        raise ValueError("目标时长必须能被 Omni 的 10 秒原始分段整除")
     if image_max_inputs < 1 or video_max_inputs < 1:
         raise ValueError("模型输入上限必须为正整数")
     if image_model != FIXED_IMAGE_MODEL:
@@ -86,7 +81,7 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
         "config_id": text(fields.get(mapping["config_id"])),
         "target_duration_seconds": target,
         "allowed_durations_seconds": allowed,
-        "raw_segment_seconds": raw_int,
+        "raw_segment_seconds": int(raw),
         "weights": {"retention": weights[0], "conversion": weights[1], "execution": weights[2]},
         "first_frame_layout": {"aspect_ratio": ratio},
         "model_catalog": {
@@ -99,6 +94,7 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
             "image_max_inputs": image_max_inputs,
             "video_max_inputs": video_max_inputs,
             "raw_segment_seconds": FIXED_RAW_SEGMENT_SECONDS,
+            "supported_tail_seconds": [8, 6, 4],
             "video_ratio": FIXED_VIDEO_RATIO,
         },
     }

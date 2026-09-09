@@ -121,6 +121,33 @@
         "notes": "备注"
       }
     },
+    "prop_assets": {
+      "table_id": "tblJQhe660tfCUL5",
+      "name": "道具资产库",
+      "purpose": "可复用非产品、非主体、非场景道具资产；远端表已配置",
+      "status_field": "资产状态",
+      "status_values": {
+        "draft": "草稿",
+        "pending_review": "待审核",
+        "available": "可用",
+        "disabled": "停用"
+      },
+      "fields": {
+        "asset_id": "道具资产ID",
+        "name": "道具名称",
+        "category": "道具类别",
+        "role": "道具角色",
+        "reuse_tags": "复用标签",
+        "state": "道具状态",
+        "anchor": "道具锚点",
+        "appearance": "外观描述",
+        "size_reference": "尺寸参考",
+        "applicable_categories": "适用品类",
+        "reuse_scope": "复用范围",
+        "status": "资产状态",
+        "source_notes": "来源与备注"
+      }
+    },
     "creative_requests": {
       "table_id": "tblostUgRA3B19CY",
       "name": "创作需求",
@@ -272,6 +299,50 @@
       "validation_status_values": {"pending": "待检查", "failed": "未通过", "passed": "通过"},
       "first_frame_status_values": {"not_started": "未开始", "generating": "生成中", "pending_review": "待审核", "passed": "已通过", "rejected": "已驳回"},
       "subtitle_mode_values": {"plain": "普通字幕", "emphasis": "重点强调字幕", "none": "不生成"}
+    },
+    "script_library": {
+      "table_id": "tbloIuhP0YGYvUTe",
+      "name": "脚本沉淀库",
+      "purpose": "轻量脚本模板参考库；一条记录对应一条完整可复用脚本",
+      "status_field": "沉淀状态",
+      "status_values": {
+        "draft": "草稿",
+        "pending_review": "待审核",
+        "available": "可复用",
+        "disabled": "停用"
+      },
+      "script_type_values": {
+        "commerce": "带货转化",
+        "brand_awareness": "品牌种草",
+        "product_review": "产品测评",
+        "story": "剧情内容",
+        "mystery_twist": "悬疑反转",
+        "emotional": "情绪共鸣",
+        "knowledge": "知识科普",
+        "lifestyle": "生活记录",
+        "interactive": "互动挑战",
+        "campaign": "活动宣传",
+        "other": "其他"
+      },
+      "fields": {
+        "template_name": "脚本模板名称",
+        "template_id": "脚本模板 ID",
+        "script_type": "脚本类型",
+        "reference_video": "参考视频",
+        "applicable_category": "适用品类",
+        "product_scope": "适用产品范围",
+        "target_audience": "目标人群",
+        "core_problem": "核心问题",
+        "content_structure": "内容结构",
+        "segment_count": "必需段落数",
+        "duration_range": "时长范围",
+        "segment_script": "分段脚本",
+        "full_voiceover": "完整口播",
+        "voiceover_style": "口播风格",
+        "screen_text": "屏幕文字",
+        "cta": "CTA",
+        "status": "沉淀状态"
+      }
     },
     "final_films": {
       "table_id": "tblZZDu01Ib4OuHT",

@@ -1,6 +1,8 @@
 # Final-generation video prompt contract
 
-Every final-generation prompt is for the fixed `omni_portrait` model. Each Job generates exactly one 10-second raw portrait 9:16 segment. The complete 20/30/40-second film is assembled from exactly 2/3/4 chronological Omni segments. Do not write a prompt for, or submit, another video model.
+The video model is fixed by Segment duration: 10-second Segments use `omni_portrait`; 8-second, 6-second and 4-second tails use only the exact confirmed Omni portrait tail models. Arbitrary per-Segment model overrides and non-Omni video models are forbidden.
+
+Every final-generation prompt uses a supported portrait reference-to-video model and an explicit segment duration from the duration plan. A normal Segment is one 10-second raw portrait 9:16 Job using `omni_portrait`; when the duration plan selects a final 8-second, 6-second or 4-second tail, that Segment is one direct Job using the configured exact Omni portrait tail model (for example, `gemini_omni_r2v_portrait_8s`, `gemini_omni_r2v_portrait_6s` or `gemini_omni_r2v_portrait_4s`, only when confirmed by the live model catalog). The model is determined by the Segment duration; arbitrary per-Segment model overrides and non-Omni video models are forbidden. Never submit a 10-second Job and crop it to 8, 6 or 4 seconds. The complete film is assembled from the exact chronological Segment durations in the duration plan. A 26.2-second TTS therefore uses `10s + 10s + 8s` and produces a 28-second visual runtime.
 
 Read this contract before writing any Omni video-generation prompt for a portrait 9:16 Segment. For routed image roles and clean-input requirements, also read [reference-asset-contract.md](reference-asset-contract.md). It is not the contract for the first-frame image Job: read [first-frame-image-contract.md](first-frame-image-contract.md) instead.
 
@@ -59,8 +61,8 @@ Read `plan/language-lock.json` before writing the prompt. `target_spoken_languag
 
 The approved full-film script and video prompt are planning sources, not payloads that may be copied unchanged into every Omni Job. Before writing prompts, create a dialogue allocation manifest that records each approved line's identity, exact text, absolute film timing, assigned Segment, and Segment-local timing.
 
-- Assign each approved spoken line to exactly one 10-second Segment unless the approved script explicitly marks an intentional repeat.
-- Rebase the assigned line's timing to the current Job's local `0.0–10.0s` window.
+- Assign each approved spoken line to exactly one duration-plan Segment unless the approved script explicitly marks an intentional repeat. A final 8-second, 6-second or 4-second tail is still one complete Segment with its own local timeline.
+- Rebase the assigned line's timing to the current Job's local `0.0–segment_seconds` window.
 - For Thai native-Omni speech, include only the current Segment's literal spoken lines in its prompt. Do not quote earlier or later Segment dialogue anywhere.
 - For Chinese, keep exact lines and local timing in the allocation manifest and compiled bundle metadata for Doubao TTS and subtitle production, but include no literal Chinese dialogue in any Omni prompt. The prompt must contain no Chinese characters.
 - A `natural_sound_only` Segment contains no spoken line.
@@ -70,7 +72,7 @@ Validate the complete prompt set as one unit before submitting any Job: Thai nat
 
 ## Compiler input and evidence
 
-Create `plan/generation-prompt-plan.json` with schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, `prompt_language: "en"`, the locked `target_spoken_language`, `raw_segment_seconds: 10`, common approved constraints, and one entry per Segment. Chinese spoken plans must declare `voiceover_provider: "doubao_tts_2_0"` and `omni_audio_policy: "environment_only"`; Thai spoken plans declare `voiceover_provider: "omni_native"` and `omni_audio_policy: "native_dialogue"`. Each entry provides its input role map, continuous `beats` from `0.0` to `10.0`, hard constraints, subject identity, local dialogue allocation, audio mode, and continuity handoff.
+Create `plan/generation-prompt-plan.json` with schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, `prompt_language: "en"`, the locked `target_spoken_language`, the duration plan, common approved constraints, and one entry per Segment. Each entry declares its exact `segment_seconds` and uses a continuous `beats` timeline from `0.0` to that Segment's local duration. Chinese spoken plans must declare `voiceover_provider: "doubao_tts_2_0"` and `omni_audio_policy: "environment_only"`; Thai spoken plans declare `voiceover_provider: "omni_native"` and `omni_audio_policy: "native_dialogue"`. Each entry provides its input role map, hard constraints, subject identity, local dialogue allocation, audio mode, and continuity handoff.
 
 Compile and validate before submitting any Job:
 
@@ -88,7 +90,7 @@ The final-generation prompt uses the exact framework above. The compiler should 
 Keep the following checks because they protect execution integrity rather than prompt style:
 
 1. Input assets exist, are clean, and their position/role mapping matches the Job payload.
-2. The Segment has a valid continuous Beat timeline covering the configured raw duration.
+2. The Segment has a valid continuous Beat timeline covering its declared `segment_seconds` duration.
 3. Product-visible Segments have the required product reference and use only confirmed product facts; semantic product correctness is reviewed against the product record and generated frames.
 4. The selected language, voiceover provider and Omni audio policy agree. Chinese dialogue stays outside Omni prompts and is assigned exactly once in bundle metadata.
 5. Dialogue IDs and local timings are valid, and no Segment receives another Segment's dialogue.

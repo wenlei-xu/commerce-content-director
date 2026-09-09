@@ -11,6 +11,12 @@ This is the only execution path for every active video first-frame request (job 
 
 Do not infer an alias, use `chatgpt-image-latest`, select another GPT Image model, call Flow2API for images, or silently switch providers. A missing or unverified GPT Image 2 route stops the run.
 
+## ChatGPT2API response-state semantics
+
+`text_review` is an upstream response mode, not human review and not an approval stage. It means ChatGPT2API received text from the upstream image route instead of an image asset. The text may be a policy notice, request error, content refusal, or other generation-failure explanation; the UI may display this state as “审核”.
+
+Treat a Job as image-generation success only when its terminal state is `succeeded`, `result_asset_ids` is non-empty, and `chatgpt_download_asset` (or the asset resource) returns image bytes. A Job whose state or latest backend state is `text_review` has no usable first-frame output, even if the Job is shown as active or the request acknowledgement was successful. Read and preserve the returned text/error evidence, classify the output as missing or failed, and repair only that request under the retry rules below. Never wait for human approval or count `text_review` as a completed image.
+
 ## Prepare and execute
 
 1. Route only approved inputs under [reference-asset-contract.md](reference-asset-contract.md). Use `scripts/prepare_image_inputs.py` for Feishu image assets. Preserve the complete uncropped image, MIME type, source hash, prepared-image hash, local path, role, and input order.

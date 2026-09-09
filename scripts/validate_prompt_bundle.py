@@ -36,6 +36,7 @@ from compile_generation_prompts import (
     validate_first_frame,
     validate_subject_strategy,
     validate_target_time_range,
+    FINAL_VIDEO_MODELS,
 )
 
 
@@ -156,6 +157,27 @@ def validate_bundle(
             errors.append(f"voiceover_provider must be {expected_provider} for this final-video bundle")
         if bundle.get("omni_audio_policy") != expected_policy:
             errors.append(f"omni_audio_policy must be {expected_policy} for this final-video bundle")
+        target_seconds = bundle.get("target_duration_seconds")
+        duration_plan = bundle.get("duration_plan")
+        if not isinstance(target_seconds, (int, float)) or isinstance(target_seconds, bool) or target_seconds <= 0:
+            errors.append("final_video target_duration_seconds must be positive")
+        if not isinstance(duration_plan, list) or len(duration_plan) != len(prompts):
+            errors.append("final_video duration_plan must contain one entry per Segment")
+        else:
+            planned_total = 0.0
+            for index, item in enumerate(duration_plan):
+                if not isinstance(item, dict):
+                    errors.append(f"duration_plan[{index}] must be an object")
+                    continue
+                seconds = item.get("segment_seconds")
+                if seconds not in {4, 6, 8, 10}:
+                    errors.append(f"duration_plan[{index}].segment_seconds must be 10, 8, 6, or 4")
+                    continue
+                if index < len(duration_plan) - 1 and seconds != 10:
+                    errors.append("only the final-video Segment may use a 4-second, 6-second, or 8-second tail")
+                planned_total += float(seconds)
+            if isinstance(target_seconds, (int, float)) and not isinstance(target_seconds, bool) and abs(planned_total - float(target_seconds)) > 1e-6:
+                errors.append("final_video duration_plan total must equal target_duration_seconds")
     if kind == "first_frame_image" and isinstance(target_seconds, (int, float)) and not isinstance(target_seconds, bool):
         expected_count = int(float(target_seconds) / float(raw_seconds))
         versions = bundle.get("versions")
@@ -225,9 +247,20 @@ def validate_bundle(
         if THAI.search(control_text) or HAN.search(control_text):
             errors.append(f"{prefix} contains non-English control text")
         try:
+            segment_seconds = entry.get("segment_seconds", raw_seconds)
+            if kind == "final_video":
+                if segment_seconds not in {4, 6, 8, 10}:
+                    errors.append(f"{prefix}.segment_seconds must be 10, 8, 6, or 4")
+                    segment_seconds = raw_seconds
+                expected_model = FINAL_VIDEO_MODELS[int(segment_seconds)]
+                if entry.get("video_model") != expected_model:
+                    errors.append(
+                        f"{prefix}.video_model must be {expected_model} for {segment_seconds:g}s"
+                    )
             segment = {
                 "segment_id": segment_id,
                 "target_time_range": entry.get("target_time_range"),
+                "segment_seconds": segment_seconds,
                 "source_narrative_segment_ids": entry.get("source_narrative_segment_ids"),
                 "inputs": entry.get("inputs"),
                 "beats": entry.get("beats"),
@@ -237,7 +270,7 @@ def validate_bundle(
                 "first_frame": entry.get("first_frame"),
             }
             inputs = validate_inputs(segment, kind)
-            validate_beats(segment, float(raw_seconds))
+            validate_beats(segment, float(segment_seconds))
             if kind == "first_frame_image":
                 product_visual_lock = validate_product_visual_lock(segment)
                 if product_visual_lock and product_visual_lock not in prompt:
@@ -330,7 +363,7 @@ def validate_bundle(
                 try:
                     start = float(line["start"])
                     end = float(line["end"])
-                    if start < 0 or end <= start or end > float(raw_seconds):
+                    if start < 0 or end <= start or end > float(segment_seconds):
                         errors.append(f"{prefix}.dialogue[{line_index}] timing is outside the Segment")
                 except (KeyError, TypeError, ValueError):
                     errors.append(f"{prefix}.dialogue[{line_index}] must have valid start/end times")
