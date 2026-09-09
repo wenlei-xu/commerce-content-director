@@ -8,6 +8,7 @@ from pathlib import Path
 
 from assemble_final_video import subtitle_filter
 from build_emphasis_subtitles import build_ass
+from build_subtitles import caption_text
 from validate_structured_script import validate
 
 
@@ -78,8 +79,10 @@ class EmphasisSubtitleTests(unittest.TestCase):
         report = validate(script)
         self.assertTrue(report["ok"], report)
         ass = build_ass(script, {"cues": [{"line_id": "L01", "start": 0, "end": 2.5, "text": "ได้ขนมใน 10 วินาที"}]})
-        self.assertIn(r"{\c&H0000FFFF&\b1\fscx130\fscy130}10 วินาที{\rDefault}", ass)
+        self.assertIn(r"{\c&H0000FFFF&\b1}10 วินาที{\rDefault}", ass)
         self.assertIn("Dialogue: 0,0:00:00.00,0:00:02.50", ass)
+        self.assertIn("WrapStyle: 2", ass)
+        self.assertNotIn(r"\N", ass)
 
     def test_validator_rejects_keyword_not_in_dialogue(self) -> None:
         script = valid_script()
@@ -100,6 +103,22 @@ class EmphasisSubtitleTests(unittest.TestCase):
         value = subtitle_filter(Path("captions.ass"), "unused", 95)
         self.assertNotIn("force_style", value)
         self.assertIn("captions.ass", value)
+
+    def test_final_assembler_disables_automatic_wrapping(self) -> None:
+        value = subtitle_filter(Path("captions.srt"), "SimHei", 95)
+        self.assertIn("WrapStyle=2", value)
+
+    def test_explicit_emphasis_wrapping_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "one-line subtitle policy"):
+            build_ass(
+                valid_script(),
+                {"cues": [{"line_id": "L01", "start": 0, "end": 2.5, "text": "ได้ขนมใน 10 วินาที"}]},
+                wrap_chars=5,
+            )
+
+    def test_ordinary_subtitles_reject_embedded_line_breaks(self) -> None:
+        with self.assertRaisesRegex(ValueError, "one-line subtitle policy"):
+            caption_text("first line\nsecond line")
 
 
 if __name__ == "__main__":

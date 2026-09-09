@@ -25,6 +25,8 @@ def caption_text(value: object) -> str | None:
     text = str(value).strip()
     if text.lower() in EMPTY_CAPTIONS:
         return None
+    if "\n" in text or "\r" in text:
+        raise ValueError("one-line subtitle policy forbids embedded line breaks")
     return text
 
 

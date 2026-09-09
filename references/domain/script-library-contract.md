@@ -29,3 +29,16 @@ Use the smallest accurate set. Do not treat `脚本类型` as a replacement for 
 ## Retrieval
 
 When selecting a reusable template, filter by `脚本类型`, applicable category, product scope, audience and core problem. If the user names a type such as `带货` or `悬疑`, map it to the closest controlled value and preserve any second type when the template genuinely has both functions.
+
+## Direct reuse and light adaptation
+
+When the user asks to use a script from `脚本沉淀库`, select one matching approved complete script and use its original copy and structure as the working base. Reuse the script directly; do not synthesize a new script from the template's metadata or combine multiple templates unless the user explicitly asks for that.
+
+Only make the smallest changes required to:
+
+- replace the source product name with the selected product;
+- correct product facts, permitted claims, interaction steps or scene details to match the freshly verified product record;
+- repair grammar, reference words or transitions caused by that substitution;
+- make a necessary subject, prop or setting adaptation while preserving the original line's function.
+
+Preserve the original hook, line/sentence count where compatible, order, pain-benefit-proof progression, rhythm, emotional curve, CTA wording/position and overall spoken length. Do not rewrite, polish, compress, expand, add a new CTA, change the selling-point order or introduce a new creative angle by default. If a source line conflicts with product facts or cannot be made truthful with a light edit, stop that adaptation and record the conflict instead of inventing a replacement claim. Record the selected template record ID and a concise adaptation-diff note in the local run package.

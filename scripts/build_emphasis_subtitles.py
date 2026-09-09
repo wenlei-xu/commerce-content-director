@@ -51,33 +51,10 @@ def render_caption(text: str, spans: list[dict[str, Any]]) -> str:
 
 
 def wrap_rendered_caption(rendered: str, max_chars: int) -> str:
-    """Insert explicit ASS line breaks without splitting inline style tags."""
-    if max_chars <= 0:
-        return rendered
-    output: list[str] = []
-    visible_chars = 0
-    index = 0
-    while index < len(rendered):
-        if rendered[index] == "{":
-            end = rendered.find("}", index + 1)
-            if end < 0:
-                raise ValueError("unterminated ASS style tag")
-            output.append(rendered[index : end + 1])
-            index = end + 1
-            continue
-        if rendered[index] == "\\" and rendered[index : index + 2] == r"\N":
-            output.append(r"\N")
-            visible_chars = 0
-            index += 2
-            continue
-        punctuation = "，。！？；：、）》」』”’"
-        if visible_chars >= max_chars and rendered[index] not in punctuation:
-            output.append(r"\N")
-            visible_chars = 0
-        output.append(rendered[index])
-        visible_chars += 1
-        index += 1
-    return "".join(output)
+    """Keep emphasized captions on one line; explicit wrapping is forbidden."""
+    if max_chars > 0:
+        raise ValueError("one-line subtitle policy forbids explicit line wrapping")
+    return rendered
 
 
 def timing_cues(value: Any) -> list[dict[str, Any]]:
@@ -113,6 +90,8 @@ def build_ass(
         line = lines[line_id]
         if text != str(line.get("text", "")).strip():
             raise ValueError(f"subtitle text differs from approved dialogue: {line_id}")
+        if "\n" in text or "\r" in text:
+            raise ValueError("one-line subtitle policy forbids embedded line breaks")
         start, end = float(cue["start"]), float(cue["end"])
         if start < 0 or end <= start:
             raise ValueError(f"invalid subtitle timing: {line_id}")
@@ -123,7 +102,7 @@ def build_ass(
 ScriptType: v4.00+
 PlayResX: 1080
 PlayResY: 1920
-WrapStyle: 0
+WrapStyle: 2
 ScaledBorderAndShadow: yes
 
 [V4+ Styles]
@@ -144,7 +123,7 @@ def main() -> int:
     parser.add_argument("--font-name", default="Leelawadee UI")
     parser.add_argument("--font-size", type=int, default=68)
     parser.add_argument("--margin-v", type=int, default=150)
-    parser.add_argument("--wrap-chars", type=int, default=0, help="Maximum visible characters per subtitle line; 0 disables explicit wrapping")
+    parser.add_argument("--wrap-chars", type=int, default=0, help="Deprecated compatibility option; non-zero values are rejected by the one-line subtitle policy")
     args = parser.parse_args()
     try:
         script = json.loads(args.script.read_text(encoding="utf-8"))

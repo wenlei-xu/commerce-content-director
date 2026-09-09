@@ -24,7 +24,7 @@ def subtitle_filter(path: Path, font_name: str, margin_v: int, font_weight: str 
     bold = "-1" if font_weight == "bold" else "0"
     style = (
         f"FontName={font_name},Bold={bold},FontSize=13,PrimaryColour=&H00FFFFFF,"
-        f"OutlineColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,Alignment=2,MarginV={margin_v}"
+        f"OutlineColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,WrapStyle=2,Alignment=2,MarginV={margin_v}"
     )
     return f"subtitles=filename='{escaped}':charenc=UTF-8:force_style='{style}'"
 
