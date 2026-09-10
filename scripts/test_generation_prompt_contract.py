@@ -12,8 +12,8 @@ from validate_prompt_bundle import validate_bundle
 IMAGE_PLAN = {
     "schema": "commerce-generation-prompt-plan-v1",
     "job_kind": "first_frame_image",
-    "executor": "gpt_image_2",
-    "model": "gpt-image-2",
+    "executor": "gpt_image_2_5",
+    "model": "gpt-image-2.5",
     "generation_unit": "target_production_segment",
     "prompt_language": "en",
     "target_spoken_language": "zh-CN",
@@ -70,7 +70,7 @@ def main() -> None:
     assert bundle["candidates_per_segment"] == 2
     assert bundle["expected_candidate_job_count"] == 2
     assert bundle["expected_job_count"] == 2
-    assert bundle["submission_policy"]["method"] == "gpt_image_2_concurrent"
+    assert bundle["submission_policy"]["method"] == "gpt_image_2_5_concurrent"
     assert bundle["submission_policy"]["max_concurrency"] == 5
     assert bundle["submission_policy"]["scope"] == "single_script_single_stage"
     assert len(bundle["execution_jobs"]) == 2
@@ -184,7 +184,7 @@ def main() -> None:
     assert len(thirty_second_bundle["prompts"]) == 3
     assert thirty_second_bundle["expected_candidate_job_count"] == 6
     assert thirty_second_bundle["expected_job_count"] == 6
-    assert thirty_second_bundle["submission_policy"]["method"] == "gpt_image_2_concurrent"
+    assert thirty_second_bundle["submission_policy"]["method"] == "gpt_image_2_5_concurrent"
     assert thirty_second_bundle["submission_policy"]["max_concurrency"] == 5
     assert len(thirty_second_bundle["execution_jobs"]) == 6
     assert not validate_bundle(thirty_second_bundle, {"en", "zh-CN"})
@@ -192,13 +192,13 @@ def main() -> None:
     single_job_plan = copy.deepcopy(IMAGE_PLAN)
     single_job_plan["candidates_per_segment"] = 1
     single_job_bundle = compile_plan(single_job_plan)
-    assert single_job_bundle["submission_policy"]["method"] == "gpt_image_2_single"
+    assert single_job_bundle["submission_policy"]["method"] == "gpt_image_2_5_single"
     assert not validate_bundle(single_job_bundle, {"en", "zh-CN"})
 
     wrong_submission_policy = copy.deepcopy(bundle)
-    wrong_submission_policy["submission_policy"]["method"] = "gpt_image_2_single"
+    wrong_submission_policy["submission_policy"]["method"] = "gpt_image_2_5_single"
     assert any(
-        "concurrent GPT Image 2" in error
+        "concurrent GPT Image 2.5" in error
         for error in validate_bundle(wrong_submission_policy, {"en", "zh-CN"})
     )
 
@@ -216,7 +216,7 @@ def main() -> None:
     try:
         compile_plan(flow_image_plan)
     except ValueError as error:
-        assert "gpt_image_2" in str(error)
+        assert "gpt_image_2_5" in str(error)
     else:
         raise AssertionError("Flow2API must be rejected for first-frame generation")
 
@@ -229,16 +229,16 @@ def main() -> None:
     try:
         compile_plan(missing_image_model)
     except ValueError as error:
-        assert "gpt-image-2" in str(error)
+        assert "gpt-image-2.5" in str(error)
     else:
-        raise AssertionError("first-frame generation without GPT Image 2 must fail")
+        raise AssertionError("first-frame generation without GPT Image 2.5 must fail")
 
     wrong_image_model = copy.deepcopy(IMAGE_PLAN)
     wrong_image_model["model"] = "chatgpt-image-latest"
     try:
         compile_plan(wrong_image_model)
     except ValueError as error:
-        assert "gpt-image-2" in str(error)
+        assert "gpt-image-2.5" in str(error)
     else:
         raise AssertionError("first-frame generation with another image model must fail")
 

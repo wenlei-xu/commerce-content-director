@@ -20,7 +20,7 @@ Completion requires both local evidence and a fresh remote read of the A/B scrip
 version records. A plausible file, cached attachment, or successful upload
 response without matching `最终首帧图` attachments is not completion.
 
-For concurrent GPT Image 2 first-frame requests, persist the complete
+For concurrent GPT Image 2.5 first-frame requests, persist the complete
 request-to-Segment/version mapping, exact model/output settings, input hashes
 and deterministic idempotency identities before execution. Resume only missing
 requests after transport interruption. A partial request-group failure creates

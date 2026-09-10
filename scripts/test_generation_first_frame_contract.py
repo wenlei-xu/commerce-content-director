@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression checks for the GPT Image 2 portrait first-frame validator."""
+"""Regression checks for the GPT Image 2.5 portrait first-frame validator."""
 
 from __future__ import annotations
 

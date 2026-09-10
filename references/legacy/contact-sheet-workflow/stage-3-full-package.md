@@ -3,7 +3,7 @@
 Read `delivery-contract.md` and `dynamic-master-review.md`. This stage produces reviewed replacement batches and chronological masters only; final video, subtitles, and voiceover belong to the final-video workflow.
 
 1. Process `plan/reference-batches.json` in order. A full batch has six adjacent RFs in a 3x2 source sheet; a tail batch is horizontal.
-2. Use the fixed GPT Image 2 storyboard capability (`executor=gpt_image_2`, `model=gpt-image-2`) for local product replacement and save `replacement-contact-sheet.png`. Record the model, request identity and output hash in the run snapshot. This file is the reviewed batch artifact; do not split, crop, or resubmit it before it passes.
+2. Use the fixed GPT Image 2.5 storyboard capability (`executor=gpt_image_2_5`, `model=gpt-image-2.5`) for local product replacement and save `replacement-contact-sheet.png`. Record the model, request identity and output hash in the run snapshot. This file is the reviewed batch artifact; do not split, crop, or resubmit it before it passes.
 3. Save `batch-image-prompt.md`, `batch-review.md`, and `manifest.json`. Review product facts, shot fidelity, product relative scale, full-sheet aspect, and 9:16 panel geometry. Regenerate a failed batch once only.
 4. Calculate `plan/master-groups.json` before assembly. With `N` valid RFs, create `K = ceil(N/15)` chronological groups; distribute RFs as evenly as possible so counts differ by at most one. Validate exact coverage, unique RF IDs, chronological order, and a maximum of 15 per group.
 5. After all batches pass, run `scripts/assemble_storyboard_masters.py <run> --out masters`. It must refuse unreviewed/failed or materially geometry-drifted inputs and must read only the current run's accepted batch sheets.

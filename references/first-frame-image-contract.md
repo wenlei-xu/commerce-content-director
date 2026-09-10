@@ -10,8 +10,8 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
 {
   "schema": "commerce-generation-prompt-plan-v1",
   "job_kind": "first_frame_image",
-  "executor": "gpt_image_2",
-  "model": "gpt-image-2",
+  "executor": "gpt_image_2_5",
+  "model": "gpt-image-2.5",
   "replication_mode": "high_fidelity_replication",
   "generation_unit": "target_production_segment",
   "prompt_language": "en",
@@ -56,9 +56,9 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
 }
 ```
 
-`executor` must be exactly `gpt_image_2`. `model` must be exactly `gpt-image-2`, and `model_catalog.image_model` in `plan/content-system-config-snapshot.json` plus the approved execution route must agree on that exact ID and its usable input limit. `image_output` is fixed to `1152x2048`, high quality, PNG so each generated first frame is an exact 9:16 portrait image. These values are execution requirements, not illustrative examples. Another GPT Image model, `chatgpt-image-latest`, Flow2API image generation, or a compiler/validator mismatch blocks submission.
+`executor` must be exactly `gpt_image_2_5`. `model` must be exactly `gpt-image-2.5`, and `model_catalog.image_model` in `plan/content-system-config-snapshot.json` plus the approved execution route must agree on that exact ID and its usable input limit. `image_output` is fixed to `1152x2048`, high quality, PNG so each generated first frame is an exact 9:16 portrait image. These values are execution requirements, not illustrative examples. Another GPT Image model, `chatgpt-image-latest`, Flow2API image generation, or a compiler/validator mismatch blocks submission.
 
-Every first-frame plan (schema key `first_frame_image`) uses `generation_unit=target_production_segment`, `raw_segment_seconds=10`, one contiguous target time range per Segment and exactly two complete packages (`versions=["A", "B"]`). `target_duration_seconds` must be divisible by 10 and the number of logical Segment entries must equal `target_duration_seconds / 10`; the compiled bundle expands those Segments by version, records the version and Segment for every Job, and writes only the ordered A/B first-frame packages to the script table. Its `submission_policy` must select concurrent GPT Image 2 execution whenever `expected_job_count >= 2`, with maximum concurrency 5; a bundle that silently chooses serial submission fails validation. A transport retry reuses the same logical Segment/version plan and idempotency key; it does not add a Segment or approval record. `target_time_range` is global within the target film; each Segment's `beats` use local `0–10s` timing and `first_frame` represents local `t=0`.
+Every first-frame plan (schema key `first_frame_image`) uses `generation_unit=target_production_segment`, `raw_segment_seconds=10`, one contiguous target time range per Segment and exactly two complete packages (`versions=["A", "B"]`). `target_duration_seconds` must be divisible by 10 and the number of logical Segment entries must equal `target_duration_seconds / 10`; the compiled bundle expands those Segments by version, records the version and Segment for every Job, and writes only the ordered A/B first-frame packages to the script table. Its `submission_policy` must select concurrent GPT Image 2.5 execution whenever `expected_job_count >= 2`, with maximum concurrency 5; a bundle that silently chooses serial submission fails validation. A transport retry reuses the same logical Segment/version plan and idempotency key; it does not add a Segment or approval record. `target_time_range` is global within the target film; each Segment's `beats` use local `0–10s` timing and `first_frame` represents local `t=0`.
 
 For each first-frame image, `Director` owns one first-frame decision per Segment. Its output must declare `camera`, `composition`, one directly observable entering-state `static_moment`, `performance`, inherited `continuity`, and `human_presence` as `none`, `one_hand`, `partial_person`, or `full_person`. The decision is anchored at local `t=0` and must not depict the full 10-second process. The Director output is a derived plan and may not mutate the locked script.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate single portrait GPT Image 2 first frames before Feishu upload."""
+"""Validate single portrait GPT Image 2.5 first frames before Feishu upload."""
 
 from __future__ import annotations
 

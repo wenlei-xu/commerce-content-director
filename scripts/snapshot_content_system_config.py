@@ -15,8 +15,8 @@ from feishu_api import Feishu, text
 SKILL_DIR = Path(__file__).resolve().parents[1]
 SCHEMA_PATH = SKILL_DIR / "config" / "base-schema.json"
 FIXED_VIDEO_MODEL = "omni_portrait"
-FIXED_IMAGE_EXECUTOR = "gpt_image_2"
-FIXED_IMAGE_MODEL = "gpt-image-2"
+FIXED_IMAGE_EXECUTOR = "gpt_image_2_5"
+FIXED_IMAGE_MODEL = "gpt-image-2.5"
 FIXED_IMAGE_SIZE = "1152x2048"
 FIXED_IMAGE_QUALITY = "high"
 FIXED_IMAGE_FORMAT = "png"

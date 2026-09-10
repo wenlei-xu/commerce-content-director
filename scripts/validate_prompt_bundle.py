@@ -397,7 +397,7 @@ def validate_bundle(
     expected_policy = build_submission_policy(kind, len(expected_execution_jobs))
     if bundle.get("submission_policy") != expected_policy:
         errors.append(
-            "submission_policy must match concurrent GPT Image 2 execution for "
+            "submission_policy must match concurrent GPT Image 2.5 execution for "
             "first-frame images or Flow2API batch execution for final video"
         )
     return errors

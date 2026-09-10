@@ -31,8 +31,8 @@ FINAL_VIDEO_MODELS = {
     6: "gemini_omni_r2v_portrait_6s",
 }
 FIXED_FIRST_FRAME_RATIO = "9:16"
-FIXED_FIRST_FRAME_EXECUTOR = "gpt_image_2"
-FIXED_FIRST_FRAME_MODEL = "gpt-image-2"
+FIXED_FIRST_FRAME_EXECUTOR = "gpt_image_2_5"
+FIXED_FIRST_FRAME_MODEL = "gpt-image-2.5"
 FIXED_FIRST_FRAME_SIZE = "1152x2048"
 FIXED_FIRST_FRAME_QUALITY = "high"
 FIXED_FIRST_FRAME_FORMAT = "png"
@@ -705,7 +705,7 @@ def build_submission_policy(job_kind: str, job_count: int) -> dict[str, Any]:
             "scope": BATCH_SCOPE,
             "ready_job_count": job_count,
             "batch_threshold": BATCH_SUBMISSION_THRESHOLD,
-            "method": "gpt_image_2_concurrent" if is_batch else "gpt_image_2_single",
+            "method": "gpt_image_2_5_concurrent" if is_batch else "gpt_image_2_5_single",
             "max_concurrency": DEFAULT_FIRST_FRAME_CONCURRENCY if is_batch else 1,
             "request_group_id_template": f"{{run_id}}:{stage_name}:initial",
             "single_submit_allowed_only_when": [

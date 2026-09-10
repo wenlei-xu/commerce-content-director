@@ -68,9 +68,9 @@ def build_ass(
     script: dict[str, Any],
     timing: Any,
     *,
-    font_name: str = "Leelawadee UI",
-    font_size: int = 68,
-    margin_v: int = 150,
+    font_name: str = "SimHei",
+    font_size: int = 50,
+    margin_v: int = 130,
     wrap_chars: int = 0,
 ) -> str:
     if (script.get("runtime") or {}).get("subtitle_mode") != "emphasis_from_final_audio":
@@ -100,14 +100,14 @@ def build_ass(
         events.append(f"Dialogue: 0,{ass_time(start)},{ass_time(end)},Default,,0,0,0,,{rendered}")
     header = f"""[Script Info]
 ScriptType: v4.00+
-PlayResX: 1080
-PlayResY: 1920
+PlayResX: 720
+PlayResY: 1280
 WrapStyle: 2
 ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Default,{font_name},{font_size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H64000000,0,0,0,0,100,100,0,0,1,2,0,2,70,70,{margin_v},1
+Style: Default,{font_name},{font_size},&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,1,0,0,0,100,100,0,0,1,1,0,2,28,28,{margin_v},1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
@@ -120,9 +120,9 @@ def main() -> int:
     parser.add_argument("timing", type=Path, help="Final-audio subtitle timing JSON with line_id/start/end/text")
     parser.add_argument("--script", required=True, type=Path, help="Validated structured_script JSON")
     parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument("--font-name", default="Leelawadee UI")
-    parser.add_argument("--font-size", type=int, default=68)
-    parser.add_argument("--margin-v", type=int, default=150)
+    parser.add_argument("--font-name", default="SimHei")
+    parser.add_argument("--font-size", type=int, default=50)
+    parser.add_argument("--margin-v", type=int, default=130)
     parser.add_argument("--wrap-chars", type=int, default=0, help="Deprecated compatibility option; non-zero values are rejected by the one-line subtitle policy")
     args = parser.parse_args()
     try:

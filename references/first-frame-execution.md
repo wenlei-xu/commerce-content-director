@@ -1,15 +1,15 @@
-# GPT Image 2 first-frame execution
+# GPT Image 2.5 first-frame execution
 
-This is the only execution path for every active video first-frame request (job kind `first_frame_image`). The prompt compiler owns what to generate; GPT Image 2 owns image generation and reference-image editing. Flow2API remains the final-video provider and is never an image-generation fallback.
+This is the only execution path for every active video first-frame request (job kind `first_frame_image`). The prompt compiler owns what to generate; GPT Image 2.5 owns image generation and reference-image editing. Flow2API remains the final-video provider and is never an image-generation fallback.
 
 ## Resolve capability and model
 
 1. Run `python scripts/preflight.py --workflow first_frame_generation --json`, adding `--mode high_fidelity_replication` when applicable.
-2. Use the standard Streamable HTTP MCP endpoint from `CHATGPT2API_MCP_HTTP_URL`; the configured cloud endpoint is `http://43.153.49.143:38300/mcp`. Read authentication from `CHATGPT2API_MCP_HTTP_TOKEN`; never persist the token in prompts, manifests or logs. Call `chatgpt_health` and `chatgpt_list_models`, and require the exact model ID `gpt-image-2` before submitting work.
-3. Record `executor=gpt_image_2`, `model=gpt-image-2`, `size=1152x2048`, `quality=high`, and `format=png` in `plan/content-system-config-snapshot.json`, `plan/generation-prompt-plan.json`, and the compiled prompt bundle.
+2. Use the standard Streamable HTTP MCP endpoint from `CHATGPT2API_MCP_HTTP_URL`; the configured cloud endpoint is `http://43.153.49.143:38300/mcp`. Read authentication from `CHATGPT2API_MCP_HTTP_TOKEN`; never persist the token in prompts, manifests or logs. Call `chatgpt_health` and `chatgpt_list_models`, and require the exact model ID `gpt-image-2.5` before submitting work.
+3. Record `executor=gpt_image_2_5`, `model=gpt-image-2.5`, `size=1152x2048`, `quality=high`, and `format=png` in `plan/content-system-config-snapshot.json`, `plan/generation-prompt-plan.json`, and the compiled prompt bundle.
 4. Confirm that the selected route accepts the planned ordered reference-image count. A route that hides or cannot guarantee its model binding is not valid evidence.
 
-Do not infer an alias, use `chatgpt-image-latest`, select another GPT Image model, call Flow2API for images, or silently switch providers. A missing or unverified GPT Image 2 route stops the run.
+Do not infer an alias, use `chatgpt-image-latest`, select another GPT Image model, call Flow2API for images, or silently switch providers. A missing or unverified GPT Image 2.5 route stops the run.
 
 ## ChatGPT2API response-state semantics
 
@@ -31,6 +31,6 @@ Treat a Job as image-generation success only when its terminal state is `succeed
 2. Hash the saved output and update the request manifest with completion state, request ID, artifact path, artifact hash, timing, and error evidence when applicable.
 3. Run `scripts/validate_generation_first_frames.py` with the active configuration snapshot, then perform the workflow's first-frame visual, product-fidelity and script-coverage preflight. This is machine/agent preflight evidence, not final human approval.
 4. Count qualified first-frame images per script version and Segment. Retry only missing or failed requests; never regenerate a successful image merely because another concurrent request failed.
-5. Retry only within the configured execution limit and only with `gpt-image-2`. If authentication, model access, rate limits, input compatibility, execution or validation cannot be restored, stop and report the resumable failure. Never retry through Flow2API or another image model.
+5. Retry only within the configured execution limit and only with `gpt-image-2.5`. If authentication, model access, rate limits, input compatibility, execution or validation cannot be restored, stop and report the resumable failure. Never retry through Flow2API or another image model.
 
 Final-video generation begins only after a human locks one complete first-frame version. That later stage follows the separate Flow2API video contract.

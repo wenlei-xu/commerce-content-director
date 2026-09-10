@@ -1,5 +1,5 @@
 {
-  "schema_version": 22,
+  "schema_version": 23,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -278,7 +278,7 @@
         "dialogue_manifest": "台词清单",
         "screen_text_manifest": "屏幕文字清单",
         "audio_performance_plan": "声音与表演",
-        "interaction_plan": "互动计划",
+        "interaction_plan": "产品动作",
         "segment_handoff_plan": "分段衔接",
         "loop_ledger": "悬念回收",
         "ending_and_cta": "结尾与CTA",
@@ -329,6 +329,7 @@
         "template_id": "脚本模板 ID",
         "script_type": "脚本类型",
         "reference_video": "参考视频",
+        "reuse_notes": "复用说明",
         "applicable_category": "适用品类",
         "product_scope": "适用产品范围",
         "target_audience": "目标人群",

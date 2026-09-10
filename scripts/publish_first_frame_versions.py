@@ -137,11 +137,43 @@ def build_version_fields(
     for key in (attachment_field, fields["first_frame_status"], fields.get("first_frame_review_notes", "")):
         if key:
             source_fields.pop(key, None)
+    # Feishu returns empty lookup/link fields with only table metadata. Those
+    # response-shaped values are not valid create payloads; retain only the
+    # actual linked record IDs and rebuild the version links below.
+    relation_fields = (
+        fields.get("parent_script_link"),
+        fields.get("product_link"),
+        fields.get("person_subject_link"),
+        fields.get("animal_subject_link"),
+        "来源创意方向",
+    )
+    relation_ids = {key: linked_ids(source_fields.get(key)) for key in relation_fields if key}
+    for key in relation_fields:
+        if key:
+            source_fields.pop(key, None)
+    # Numeric fields are returned as formatted strings by this base schema;
+    # Feishu's create endpoint requires JSON numbers for version records.
+    for key in (
+        fields.get("script_revision"),
+        fields.get("execution_limit"),
+        fields.get("accepted_film_count"),
+        fields.get("remaining_executions"),
+        fields.get("video_duration"),
+        "目标时长（秒）",
+    ):
+        if key and key in source_fields and isinstance(source_fields[key], str) and source_fields[key].strip():
+            try:
+                source_fields[key] = float(source_fields[key]) if "." in source_fields[key] else int(source_fields[key])
+            except ValueError:
+                source_fields.pop(key, None)
     source_name = text(source_fields.get(fields["name"])) or source_id
     source_script_id = text(source_fields.get(fields["script_id"])) or source_id
     source_fields[fields["name"]] = f"{source_name}｜版本 {version}"
     source_fields[fields["script_id"]] = f"{source_script_id}:{version}"
     source_fields[fields["parent_script_link"]] = [source_id]
+    for key in (fields.get("product_link"), fields.get("person_subject_link"), fields.get("animal_subject_link")):
+        if key and relation_ids.get(key):
+            source_fields[key] = relation_ids[key]
     if fields.get("parent_script_record_id"):
         source_fields[fields["parent_script_record_id"]] = source_id
     source_fields[fields["script_version"]] = version

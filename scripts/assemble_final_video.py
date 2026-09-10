@@ -23,8 +23,8 @@ def subtitle_filter(path: Path, font_name: str, margin_v: int, font_weight: str 
         return f"subtitles=filename='{escaped}':charenc=UTF-8"
     bold = "-1" if font_weight == "bold" else "0"
     style = (
-        f"FontName={font_name},Bold={bold},FontSize=13,PrimaryColour=&H00FFFFFF,"
-        f"OutlineColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,WrapStyle=2,Alignment=2,MarginV={margin_v}"
+        f"FontName={font_name},Bold=1,FontSize=50,PrimaryColour=&H00FFFFFF,"
+        f"OutlineColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,WrapStyle=2,Alignment=2,MarginL=28,MarginR=28,MarginV={margin_v}"
     )
     return f"subtitles=filename='{escaped}':charenc=UTF-8:force_style='{style}'"
 
@@ -104,7 +104,7 @@ def main() -> None:
         default="bold",
         help="Font weight for ordinary SRT subtitles; ignored for ASS tracks",
     )
-    parser.add_argument("--subtitle-margin-v", type=int, default=95, help="Bottom subtitle margin in pixels; smaller is lower")
+    parser.add_argument("--subtitle-margin-v", type=int, default=130, help="Fixed bottom subtitle margin for Chinese 720x1280 output")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 

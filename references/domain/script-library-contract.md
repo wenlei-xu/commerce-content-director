@@ -32,13 +32,13 @@ When selecting a reusable template, filter by `脚本类型`, applicable categor
 
 ## Direct reuse and light adaptation
 
-When the user asks to use a script from `脚本沉淀库`, select one matching approved complete script and use its original copy and structure as the working base. Reuse the script directly; do not synthesize a new script from the template's metadata or combine multiple templates unless the user explicitly asks for that.
+When the user asks to use a script from `脚本沉淀库`, select one matching approved complete script and treat its `完整口播` as a locked copy baseline. Copy the original voiceover and structure into the working draft first; do not synthesize a new script from the template's metadata or combine multiple templates unless the user explicitly asks for that.
 
-Only make the smallest changes required to:
+Only make the smallest whitelist changes required to:
 
 - replace the source product name with the selected product;
 - correct product facts, permitted claims, interaction steps or scene details to match the freshly verified product record;
 - repair grammar, reference words or transitions caused by that substitution;
 - make a necessary subject, prop or setting adaptation while preserving the original line's function.
 
-Preserve the original hook, line/sentence count where compatible, order, pain-benefit-proof progression, rhythm, emotional curve, CTA wording/position and overall spoken length. Do not rewrite, polish, compress, expand, add a new CTA, change the selling-point order or introduce a new creative angle by default. If a source line conflicts with product facts or cannot be made truthful with a light edit, stop that adaptation and record the conflict instead of inventing a replacement claim. Record the selected template record ID and a concise adaptation-diff note in the local run package.
+The whitelist does not include general polishing, shortening, expansion, sentence replacement, line reordering or creative optimization. Preserve the original hook, line/sentence count where compatible, order, pain-benefit-proof progression, rhythm, emotional curve, CTA wording/position and overall spoken length. Source-only features such as squeak, TPR or another product's material must not survive unless the current product record explicitly verifies the same fact. If a source line conflicts with product facts or cannot be made truthful with a whitelist substitution, stop that adaptation and record the conflict instead of inventing a replacement claim. Before locking the current script, compare the source `完整口播` with the working voiceover; any diff outside the whitelist is a hard failure. Record the selected template record ID and a concise adaptation-diff note in the local run package.

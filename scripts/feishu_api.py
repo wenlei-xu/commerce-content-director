@@ -82,6 +82,14 @@ class Feishu:
             json={"fields": fields},
         )
 
+    def create_record(self, app: str, table: str, fields: dict[str, Any]) -> dict[str, Any]:
+        return self.call(
+            "POST",
+            f"/bitable/v1/apps/{app}/tables/{table}/records",
+            headers={"Content-Type": "application/json"},
+            json={"fields": fields},
+        )
+
 
 def config() -> dict[str, Any]:
     return json.loads((SKILL / "config" / "base-schema.json").read_text(encoding="utf-8"))
