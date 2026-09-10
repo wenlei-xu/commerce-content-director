@@ -37,6 +37,7 @@ from compile_generation_prompts import (
     validate_subject_strategy,
     validate_target_time_range,
     FINAL_VIDEO_MODELS,
+    SUPPORTED_PRODUCTION_SEGMENT_SECONDS,
 )
 
 
@@ -137,8 +138,9 @@ def validate_bundle(
     if kind == "first_frame_image":
         if not isinstance(target_seconds, (int, float)) or isinstance(target_seconds, bool) or target_seconds <= 0:
             errors.append("first_frame_image target_duration_seconds must be positive")
-        elif abs(float(target_seconds) % float(raw_seconds)) > 1e-6:
-            errors.append("first_frame_image target_duration_seconds must be divisible by raw_segment_seconds")
+        # First-frame packages now follow the same ASR-timed 4/6/8/10-second
+        # Segment plan as final video; raw_segment_seconds remains the 10s
+        # clip-production default and is not a divisibility rule.
     prompts = bundle.get("prompts")
     if not isinstance(prompts, list) or not prompts:
         return errors + ["prompts must be a non-empty list"]
@@ -173,13 +175,15 @@ def validate_bundle(
                 if seconds not in {4, 6, 8, 10}:
                     errors.append(f"duration_plan[{index}].segment_seconds must be 10, 8, 6, or 4")
                     continue
-                if index < len(duration_plan) - 1 and seconds != 10:
-                    errors.append("only the final-video Segment may use a 4-second, 6-second, or 8-second tail")
                 planned_total += float(seconds)
             if isinstance(target_seconds, (int, float)) and not isinstance(target_seconds, bool) and abs(planned_total - float(target_seconds)) > 1e-6:
                 errors.append("final_video duration_plan total must equal target_duration_seconds")
+    expected_count = None
     if kind == "first_frame_image" and isinstance(target_seconds, (int, float)) and not isinstance(target_seconds, bool):
-        expected_count = int(float(target_seconds) / float(raw_seconds))
+        expected_count = bundle.get("logical_segment_count")
+        if not isinstance(expected_count, int) or isinstance(expected_count, bool) or expected_count < 1:
+            errors.append("first_frame_image logical_segment_count must be a positive integer")
+            expected_count = 0
         versions = bundle.get("versions")
         version_count = len(versions) if isinstance(versions, list) and versions else 1
         if len(prompts) != expected_count * version_count:
@@ -210,6 +214,7 @@ def validate_bundle(
     # metadata below instead of accepting/rejecting prompts by heading count.
     headings = IMAGE_HEADINGS if kind == "first_frame_image" else ()
     dialogue_ids: dict[str, str] = {}
+    first_frame_cursors: dict[str, float] = {}
     for index, entry in enumerate(prompts):
         prefix = f"prompt {index}"
         if not isinstance(entry, dict):
@@ -249,7 +254,7 @@ def validate_bundle(
         try:
             segment_seconds = entry.get("segment_seconds", raw_seconds)
             if kind == "final_video":
-                if segment_seconds not in {4, 6, 8, 10}:
+                if segment_seconds not in SUPPORTED_PRODUCTION_SEGMENT_SECONDS:
                     errors.append(f"{prefix}.segment_seconds must be 10, 8, 6, or 4")
                     segment_seconds = raw_seconds
                 expected_model = FINAL_VIDEO_MODELS[int(segment_seconds)]
@@ -277,15 +282,21 @@ def validate_bundle(
                     errors.append(
                         f"{prefix}: product_visual_lock must be copied verbatim into the prompt"
                     )
-                validate_first_frame(segment, float(raw_seconds))
+                validate_first_frame(segment, float(segment_seconds))
                 validate_string_list(
                     entry.get("visual_continuity"),
                     f"{prefix}.visual_continuity",
                 )
-                segment_position = index
-                if isinstance(versions, list) and set(versions) == {"A", "B"}:
-                    segment_position = index % expected_count
-                validate_target_time_range(segment, segment_position, float(raw_seconds))
+                version_key = str(entry.get("version") or "single")
+                expected_start = first_frame_cursors.get(version_key, 0.0)
+                validate_target_time_range(
+                    segment,
+                    index,
+                    float(raw_seconds),
+                    expected_start=expected_start,
+                    expected_duration=float(segment_seconds),
+                )
+                first_frame_cursors[version_key] = expected_start + float(segment_seconds)
                 validate_source_narrative_mapping(segment, bundle.get("replication_mode"))
             if kind == "first_frame_image" and bundle.get("replication_mode") in HIGH_FIDELITY_REPLICATION_MODES:
                 roles = [item.get("role") for item in entry.get("inputs") or []]

@@ -100,6 +100,35 @@ class StoryboardVersionWritebackTests(unittest.TestCase):
             self.assertEqual(record["fields"]["首帧状态"], "待审核")
             self.assertEqual(len(record["fields"]["最终首帧图"]), 2)
 
+    def test_write_versions_accepts_non_ten_second_segment_plan(self) -> None:
+        api = FakeApi()
+        api.add("rec-source", {"脚本名称": "源脚本", "脚本ID": "SCRIPT-2", "脚本检查状态": "通过", "目标时长（秒）": 14})
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            paths = []
+            for index in range(1, 4):
+                path = root / f"Segment-{index:02d}.png"
+                Image.new("RGB", (18, 32), "white").save(path)
+                paths.append(path)
+            manifest = {
+                "run_id": "run-short",
+                "source_script_record_id": "rec-source",
+                "segment_durations": [4, 6, 4],
+                "versions": {
+                    version: {
+                        "variant_delta": f"{version} delta",
+                        "first_frames": [
+                            {"segment_id": f"Segment-{index:02d}", "path": str(paths[index - 1]), "segment_seconds": seconds}
+                            for index, seconds in enumerate((4, 6, 4), start=1)
+                        ],
+                    }
+                    for version in ("A", "B")
+                },
+            }
+            result = write_versions(api=api, uploader=FakeUploader(api), schema=schema(), source_script_record_id="rec-source", manifest=manifest)
+        self.assertEqual(result["segment_durations"], [4, 6, 4])
+        self.assertEqual(len(result["versions"]), 2)
+
 
 if __name__ == "__main__":
     unittest.main()

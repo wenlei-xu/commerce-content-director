@@ -21,6 +21,7 @@ FIXED_IMAGE_SIZE = "1152x2048"
 FIXED_IMAGE_QUALITY = "high"
 FIXED_IMAGE_FORMAT = "png"
 FIXED_RAW_SEGMENT_SECONDS = 10
+SUPPORTED_PRODUCTION_SEGMENT_SECONDS = [4, 6, 8, 10]
 FIXED_VIDEO_RATIO = "9:16"
 
 
@@ -94,7 +95,7 @@ def snapshot(record: dict[str, Any], table: dict[str, Any], target: int, image_m
             "image_max_inputs": image_max_inputs,
             "video_max_inputs": video_max_inputs,
             "raw_segment_seconds": FIXED_RAW_SEGMENT_SECONDS,
-            "supported_tail_seconds": [8, 6, 4],
+            "supported_segment_seconds": SUPPORTED_PRODUCTION_SEGMENT_SECONDS,
             "video_ratio": FIXED_VIDEO_RATIO,
         },
     }

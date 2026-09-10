@@ -99,6 +99,28 @@ def main() -> None:
     assert "Static moment: One frozen entering-state moment at local t=0." in prompt
     assert "Human presence: No person or human body part visible." in prompt
 
+    short_first_frame_plan = copy.deepcopy(IMAGE_PLAN)
+    short_first_frame_plan["target_duration_seconds"] = 14
+    short_first_frame_plan["versions"] = ["A", "B"]
+    short_first_frame_plan["candidates_per_segment"] = 1
+    short_first_frame_plan["segments"] = []
+    for index, seconds in enumerate((4, 6, 4)):
+        segment = copy.deepcopy(IMAGE_PLAN["segments"][0])
+        segment["segment_id"] = f"Segment-short-{index + 1:02d}"
+        start = sum((4, 6, 4)[:index])
+        segment["segment_seconds"] = seconds
+        segment["target_time_range"] = {"start": start, "end": start + seconds}
+        segment["beats"] = [{
+            "start": 0,
+            "end": seconds,
+            "description": f"One clear entering-state action for this {seconds}-second Segment.",
+        }]
+        short_first_frame_plan["segments"].append(segment)
+    short_first_frame_bundle = compile_plan(short_first_frame_plan)
+    assert short_first_frame_bundle["logical_segment_count"] == 3
+    assert [entry["segment_seconds"] for entry in short_first_frame_bundle["prompts"]] == [4, 6, 4, 4, 6, 4]
+    assert not validate_bundle(short_first_frame_bundle, {"en", "zh-CN"})
+
     missing_visual_continuity = copy.deepcopy(IMAGE_PLAN)
     missing_visual_continuity["segments"][0].pop("visual_continuity")
     try:
@@ -355,9 +377,9 @@ def main() -> None:
     try:
         compile_plan(source_timed_plan)
     except ValueError as error:
-        assert "raw_segment_seconds must be 10" in str(error)
+        assert "first_frame_image raw_segment_seconds must be 10" in str(error)
     else:
-        raise AssertionError("replication must use the same 10-second production unit as original")
+        raise AssertionError("production Segments must use a supported direct duration")
 
     wrong_layout = copy.deepcopy(IMAGE_PLAN)
     wrong_layout["first_frame_layout"] = {"aspect_ratio": "1:1"}
@@ -373,9 +395,9 @@ def main() -> None:
     try:
         compile_plan(wrong_job_count)
     except ValueError as error:
-        assert "requires 2 target production Segment" in str(error)
+        assert "Segment durations total 10s" in str(error)
     else:
-        raise AssertionError("Job count must equal target duration divided by 10 seconds")
+        raise AssertionError("Segment durations must cover the target duration")
 
     missing_source_mapping = copy.deepcopy(HIGH_FIDELITY_PLAN)
     missing_source_mapping["segments"][0].pop("source_narrative_segment_ids")
@@ -502,6 +524,33 @@ def main() -> None:
     twenty_six_second_tail_plan["segments"][-1]["dialogue"][0]["end"] = 6
     twenty_six_second_tail_bundle = compile_plan(twenty_six_second_tail_plan)
     assert twenty_six_second_tail_bundle["prompts"][-1]["video_model"] == "gemini_omni_r2v_portrait_6s"
+
+    short_montage_plan = copy.deepcopy(video_plan)
+    short_montage_plan["target_duration_seconds"] = 14
+    short_montage_plan["segments"] = []
+    for index, seconds in enumerate((4, 6, 4)):
+        segment = copy.deepcopy(video_plan["segments"][0])
+        segment["segment_id"] = f"Segment-montage-{index + 1:02d}"
+        start = sum((4, 6, 4)[:index])
+        segment["segment_seconds"] = seconds
+        segment["target_time_range"] = {"start": start, "end": start + seconds}
+        segment["beats"] = [{
+            "start": 0,
+            "end": seconds,
+            "description": f"One clear action for this {seconds}-second Segment.",
+        }]
+        segment["dialogue"][0]["line_id"] = f"line-montage-{index + 1:02d}"
+        segment["dialogue"][0]["start"] = 0
+        segment["dialogue"][0]["end"] = seconds
+        short_montage_plan["segments"].append(segment)
+    short_montage_bundle = compile_plan(short_montage_plan)
+    assert [entry["segment_seconds"] for entry in short_montage_bundle["duration_plan"]] == [4, 6, 4]
+    assert [entry["video_model"] for entry in short_montage_bundle["duration_plan"]] == [
+        "gemini_omni_r2v_portrait_4s",
+        "gemini_omni_r2v_portrait_6s",
+        "gemini_omni_r2v_portrait_4s",
+    ]
+    assert not validate_bundle(short_montage_bundle, {"en", "zh-CN"})
 
     arbitrary_video_model = copy.deepcopy(video_plan)
     arbitrary_video_model["segments"][0]["model"] = "some_other_video_model"

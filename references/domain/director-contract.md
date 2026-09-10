@@ -23,7 +23,7 @@ First-frame decision. A First-frame decision contains:
 - the version-level `variant_delta`.
 
 The first frame represents the Segment's entering state at local `t=0`. It does
-not depict the full 10-second action or replace the locked Beat timeline.
+not depict the full Segment action or replace the locked Beat timeline.
 
 The output is a new local first-frame plan consumed by the prompt compiler. It
 must include `script_mutation=forbidden`. The Director cannot edit the locked

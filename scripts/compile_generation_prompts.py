@@ -24,6 +24,7 @@ SOURCE_VISUAL_STYLE_FIELDS = ("style_fingerprint_en", "anti_style_constraints_en
 TARGET_PRODUCTION_UNIT = "target_production_segment"
 FIXED_RAW_SEGMENT_SECONDS = 10
 SUPPORTED_FINAL_SEGMENT_SECONDS = {4, 6, 8, 10}
+SUPPORTED_PRODUCTION_SEGMENT_SECONDS = SUPPORTED_FINAL_SEGMENT_SECONDS
 FINAL_VIDEO_MODELS = {
     4: "gemini_omni_r2v_portrait_4s",
     10: "omni_portrait",
@@ -79,17 +80,20 @@ def positive_integer(value: object, field: str) -> int:
 def segment_seconds_for(
     plan: dict[str, Any], segment: dict[str, Any]
 ) -> float:
-    """Return the exact local runtime for one final-video Segment."""
-    raw_seconds = number(
-        segment.get("segment_seconds", plan.get("raw_segment_seconds")),
-        f"{segment.get('segment_id', '<unknown>')}.segment_seconds",
-    )
-    if plan.get("job_kind") == "final_video":
-        if raw_seconds not in SUPPORTED_FINAL_SEGMENT_SECONDS:
-            raise fail(
-                f"{segment.get('segment_id', '<unknown>')}: final-video segment_seconds "
-                "must be one of 10, 8, 6, or 4"
-            )
+    """Return the exact local runtime for one production Segment."""
+    value = segment.get("segment_seconds")
+    if value is None:
+        target_range = segment.get("target_time_range")
+        if isinstance(target_range, dict) and target_range.get("start") is not None and target_range.get("end") is not None:
+            value = number(target_range.get("end"), "target_time_range.end") - number(target_range.get("start"), "target_time_range.start")
+        else:
+            value = plan.get("raw_segment_seconds")
+    raw_seconds = number(value, f"{segment.get('segment_id', '<unknown>')}.segment_seconds")
+    if plan.get("job_kind") in {"first_frame_image", "final_video"} and raw_seconds not in SUPPORTED_PRODUCTION_SEGMENT_SECONDS:
+        raise fail(
+            f"{segment.get('segment_id', '<unknown>')}: segment_seconds "
+            "must be one of 10, 8, 6, or 4"
+        )
     return raw_seconds
 
 
@@ -172,7 +176,7 @@ def validate_source_visual_style(plan: dict[str, Any]) -> dict[str, str] | None:
 def validate_first_frame(
     segment: dict[str, Any], raw_seconds: float
 ) -> dict[str, Any]:
-    """Validate the single entering-state image decision for one 10s Segment."""
+    """Validate the single entering-state image decision for one Segment."""
     validate_beats(segment, raw_seconds)
     first_frame = segment.get("first_frame")
     if not isinstance(first_frame, dict):
@@ -342,8 +346,8 @@ def validate_plan(plan: dict[str, Any]) -> None:
         if abs(raw_seconds - FIXED_RAW_SEGMENT_SECONDS) > 1e-6:
             raise fail(f"first_frame_image raw_segment_seconds must be {FIXED_RAW_SEGMENT_SECONDS}")
         target_seconds = number(plan.get("target_duration_seconds"), "target_duration_seconds")
-        if target_seconds <= 0 or abs(target_seconds % raw_seconds) > 1e-6:
-            raise fail("first_frame_image target_duration_seconds must be positive and divisible by raw_segment_seconds")
+        if target_seconds <= 0:
+            raise fail("first_frame_image target_duration_seconds must be positive")
         first_frame_layout = plan.get("first_frame_layout")
         if not isinstance(first_frame_layout, dict) or first_frame_layout.get("aspect_ratio") != FIXED_FIRST_FRAME_RATIO:
             raise fail("first_frame_image output must declare aspect_ratio=9:16")
@@ -368,13 +372,6 @@ def validate_plan(plan: dict[str, Any]) -> None:
     segments = plan.get("segments")
     if not isinstance(segments, list) or not segments:
         raise fail("segments must be a non-empty list")
-    if job_kind == "first_frame_image":
-        expected_count = int(float(plan["target_duration_seconds"]) / raw_seconds)
-        if len(segments) != expected_count:
-            raise fail(
-                f"first_frame_image requires {expected_count} target production Segment(s) for "
-                f"{plan['target_duration_seconds']:g}s"
-            )
     if job_kind == "final_video":
         target_seconds = number(plan.get("target_duration_seconds"), "target_duration_seconds")
         if target_seconds <= 0:
@@ -384,8 +381,6 @@ def validate_plan(plan: dict[str, Any]) -> None:
             if not isinstance(planned_segment, dict):
                 raise fail("segment must be an object")
             local_seconds = segment_seconds_for(plan, planned_segment)
-            if index < len(segments) - 1 and local_seconds != FIXED_RAW_SEGMENT_SECONDS:
-                raise fail("only the final-video Segment may use a 4-second, 6-second, or 8-second tail")
             segment_model_for(plan, planned_segment)
             planned_seconds += local_seconds
         if abs(planned_seconds - target_seconds) > 1e-6:
@@ -426,7 +421,7 @@ def validate_plan(plan: dict[str, Any]) -> None:
         inputs = validate_inputs(segment, job_kind)
         if job_kind == "first_frame_image":
             validate_product_visual_lock(segment)
-            validate_first_frame(segment, raw_seconds)
+            validate_first_frame(segment, local_seconds)
             validate_string_list(
                 segment.get("visual_continuity"),
                 f"{segment_id}.visual_continuity",
@@ -441,8 +436,15 @@ def validate_plan(plan: dict[str, Any]) -> None:
                 f"{segment_id}.negative_constraints",
                 allow_empty=True,
             )
-            validate_target_time_range(segment, segment_index, raw_seconds)
+            validate_target_time_range(
+                segment,
+                segment_index,
+                raw_seconds,
+                expected_start=timeline_cursor,
+                expected_duration=local_seconds,
+            )
             validate_source_narrative_mapping(segment, plan.get("replication_mode"))
+            timeline_cursor += local_seconds
         if job_kind == "final_video":
             validate_target_time_range(
                 segment,
@@ -461,6 +463,13 @@ def validate_plan(plan: dict[str, Any]) -> None:
             validate_subject_strategy(segment, plan.get("replication_mode"), inputs)
         if job_kind == "first_frame_image" and segment.get("dialogue"):
             raise fail("first-frame image plans must not contain dialogue")
+    if job_kind == "first_frame_image":
+        target_seconds = number(plan.get("target_duration_seconds"), "target_duration_seconds")
+        if abs(timeline_cursor - target_seconds) > 1e-6:
+            raise fail(
+                f"first_frame_image Segment durations total {timeline_cursor:g}s, "
+                f"expected target_duration_seconds {target_seconds:g}s"
+            )
 
 
 def timing_lines(beats: list[dict[str, Any]]) -> list[str]:
@@ -550,7 +559,7 @@ def compile_first_frame(plan: dict[str, Any], segment: dict[str, Any]) -> str:
     return "\n\n".join([
         "REFERENCE IMAGE ROLE\n" + "\n".join(authority),
         "OUTPUT SPECIFICATION\n"
-        f"Generate exactly one {first_frame_layout['aspect_ratio']} portrait first-frame image for the {plan['raw_segment_seconds']:g}-second target production Segment. "
+        f"Generate exactly one {first_frame_layout['aspect_ratio']} portrait first-frame image for this {segment_seconds_for(plan, segment):g}-second target production Segment. "
         "Show one static entering state at local t=0; do not generate a grid, contact sheet, multiple panels, divider or border.",
         "CREATIVE INTENT\n" + f"Viewer read: {director_output['variant_delta']}",
         "CAMERA OPERATOR VIEWPOINT\n" + "\n".join([
@@ -806,6 +815,8 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
         "omni_audio_policy": plan.get("omni_audio_policy"),
         "target_duration_seconds": plan.get("target_duration_seconds"),
         "raw_segment_seconds": plan["raw_segment_seconds"],
+        "supported_segment_seconds": sorted(SUPPORTED_PRODUCTION_SEGMENT_SECONDS),
+        "logical_segment_count": len(plan["segments"]),
         "duration_plan": [
             {
                 "segment_id": segment["segment_id"],

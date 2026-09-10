@@ -20,6 +20,7 @@ from feishu_api import Feishu
 
 VERSIONS = ("A", "B")
 RAW_SEGMENT_SECONDS = 10
+SUPPORTED_SEGMENT_SECONDS = {4, 6, 8, 10}
 
 
 def text(value: Any) -> str:
@@ -91,8 +92,29 @@ def load_manifest(path: Path) -> dict[str, Any]:
     return value
 
 
-def validate_package(package: dict[str, Any], target_duration: int) -> list[tuple[str, Path, str]]:
-    expected = target_duration // RAW_SEGMENT_SECONDS
+def resolve_segment_durations(manifest: dict[str, Any], target_duration: int) -> list[int]:
+    """Resolve the ordered first-frame Segment durations from the run manifest."""
+    raw_plan = manifest.get("segment_durations") or manifest.get("duration_plan")
+    if isinstance(raw_plan, list) and raw_plan:
+        durations: list[int] = []
+        for index, item in enumerate(raw_plan, start=1):
+            value = item.get("segment_seconds") if isinstance(item, dict) else item
+            if not isinstance(value, (int, float)) or isinstance(value, bool) or int(value) != value:
+                raise ValueError(f"segment duration {index} must be an integer")
+            seconds = int(value)
+            if seconds not in SUPPORTED_SEGMENT_SECONDS:
+                raise ValueError(f"segment duration {index} must be 4, 6, 8, or 10 seconds")
+            durations.append(seconds)
+        if sum(durations) != target_duration:
+            raise ValueError("segment duration plan must total the source script target duration")
+        return durations
+    if target_duration <= 0 or target_duration % RAW_SEGMENT_SECONDS:
+        raise ValueError("manifest.segment_durations is required when target duration is not divisible by 10")
+    return [RAW_SEGMENT_SECONDS] * (target_duration // RAW_SEGMENT_SECONDS)
+
+
+def validate_package(package: dict[str, Any], segment_durations: list[int]) -> list[tuple[str, Path, str]]:
+    expected = len(segment_durations)
     first_frames = package["first_frames"]
     if len(first_frames) != expected:
         raise ValueError(f"first-frame version requires {expected} first frames, got {len(first_frames)}")
@@ -101,6 +123,9 @@ def validate_package(package: dict[str, Any], target_duration: int) -> list[tupl
         expected_segment = f"Segment-{index:02d}"
         if first_frame["segment_id"] != expected_segment:
             raise ValueError(f"first_frames must be ordered and named {expected_segment}")
+        declared_duration = first_frame.get("segment_seconds", first_frame.get("duration_seconds"))
+        if declared_duration is not None and declared_duration != segment_durations[index - 1]:
+            raise ValueError(f"{expected_segment} duration does not match the duration plan")
         path = Path(first_frame["path"]).expanduser().resolve()
         if not path.is_file():
             raise FileNotFoundError(path)
@@ -206,22 +231,23 @@ def write_versions(
         target_duration = int(float(duration_value))
     except (TypeError, ValueError) as error:
         raise RuntimeError("source script has an invalid target duration") from error
-    if target_duration <= 0 or target_duration % RAW_SEGMENT_SECONDS:
-        raise RuntimeError("source script target duration must be positive and divisible by 10")
+    if target_duration <= 0:
+        raise RuntimeError("source script target duration must be positive")
     if manifest.get("source_script_record_id") and str(manifest["source_script_record_id"]) != source_script_record_id:
         raise ValueError("manifest source_script_record_id does not match the CLI source record")
     run_id = text(manifest.get("run_id"))
     if not run_id:
         raise ValueError("manifest.run_id is required")
+    segment_durations = resolve_segment_durations(manifest, target_duration)
 
-    results: dict[str, Any] = {"source_script_record_id": source_script_record_id, "run_id": run_id, "versions": {}}
+    results: dict[str, Any] = {"source_script_record_id": source_script_record_id, "run_id": run_id, "segment_durations": segment_durations, "versions": {}}
     for version in VERSIONS:
         package = manifest["versions"][version]
-        first_frames = validate_package(package, target_duration)
+        first_frames = validate_package(package, segment_durations)
         delta = text(package.get("variant_delta"))
         if not delta:
             raise ValueError(f"manifest.versions.{version}.variant_delta is required")
-        notes = "run_id=" + run_id + "; variant_delta=" + delta + "; " + "; ".join(f"{segment}={digest}" for segment, _path, digest in first_frames)
+        notes = "run_id=" + run_id + "; segment_durations=" + ",".join(map(str, segment_durations)) + "; variant_delta=" + delta + "; " + "; ".join(f"{segment}={digest}" for segment, _path, digest in first_frames)
         existing = find_version_record(api, app, table["table_id"], fields, source_script_record_id, version)
         if existing:
             version_id = str(existing["record_id"])
