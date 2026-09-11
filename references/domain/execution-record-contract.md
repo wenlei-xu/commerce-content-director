@@ -44,4 +44,7 @@ Prompt 由 Agent 在当前阶段直接写成自然语言。程序只补充和检
 
 ## 运行目录
 
-每次运行使用 `commerce_runs/<run_id>/`，至少保存创作稿快照、TTS/ASR、执行记录、实际提交 Prompt、素材映射、结果和审核证据。飞书记录继续承担资产查询和用户审批；本地执行记录承担恢复和追溯。
+每次运行使用 Skill 根目录下的 `runs/<run_id>/`，至少保存创作稿快照、TTS/ASR、
+执行记录、实际提交 Prompt、素材映射、结果和审核证据。目录结构与写入边界见
+[run-artifact-contract.md](../invariants/run-artifact-contract.md)。飞书记录继续承担
+资产查询和用户审批；本地执行记录承担恢复和追溯。

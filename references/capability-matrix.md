@@ -2,17 +2,17 @@
 
 `config/workflow-capabilities.json` is the machine-readable authority for service and local-runtime requirements. Resolve the selected workflow and its known mode before any external call. A `not_required` capability must not be probed as part of that workflow's preflight.
 
-| Workflow | Feishu | GPT Image | Flow2API | ffmpeg/ffprobe | ASR | Image tools |
-| --- | --- | --- | --- | --- | --- | --- |
-| `creative_direction` | required | not required | not required | not required | not required | not required |
-| `script_production` | required | not required | not required | not required | not required | not required |
-| `first_frame_generation` | required | required | not required | not required | not required | required |
-| `final_video` | required | not required | required | required | required for `spoken` or `sparse_spoken`; not required for `natural_sound_only` | required |
-| `lifecycle` | required | not required | not required | not required | not required | not required |
+| Workflow | Feishu | GPT Image | Flow2API | ffmpeg/ffprobe | Remotion | ASR | Image tools |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `creative_direction` | required | not required | not required | not required | not required | not required | not required |
+| `script_production` | required | not required | not required | not required | not required | not required | not required |
+| `first_frame_generation` | required | required | not required | not required | not required | not required | required |
+| `final_video` | required | not required | required | required | conditional when `render_backend=remotion|hybrid` | required for `spoken` or `sparse_spoken`; not required for `natural_sound_only` | required |
+| `lifecycle` | required | not required | not required | not required | not required | not required | not required |
 
 ## Workflow-scoped preflight
 
-1. Run `python scripts/preflight.py --workflow <workflow> --json`. Add `--mode high_fidelity_replication` for a full-replication first-frame run. Add `--audio-mode spoken|sparse_spoken|natural_sound_only` for a final-video run.
+1. Run `python scripts/preflight.py --workflow <workflow> --json`. Add `--mode high_fidelity_replication` for a full-replication first-frame run. Add `--audio-mode spoken|sparse_spoken|natural_sound_only` for a final-video run. Add `--render-backend ffmpeg|remotion|hybrid` when a final-video run chooses its renderer.
 2. When `feishu` is required, make a read-only Feishu metadata call only for the logical tables used by that workflow.
 3. When `gpt_image` is required, use the configured standard ChatGPT2API MCP endpoint, verify with `chatgpt_health` and `chatgpt_list_models` that it can execute the exact model `gpt-image-2.5`, and confirm it accepts the planned reference count before following [first-frame-execution.md](first-frame-execution.md). Do not switch to a direct API, Flow2API, another image model or another provider.
 4. When `flow2api` is required, call the registered Sidecar MCP `flow_get_service_health(include_dependencies=true)` and `flow_list_models(include_unavailable=true)`. This is the final-video path only. Do not call Flow2API for a workflow where it is `not_required`.

@@ -14,6 +14,7 @@ import wave
 from pathlib import Path
 
 from runtime import find_binary, skill_asr_python
+from run_context import open_run
 
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
@@ -176,13 +177,26 @@ def main():
     expose_ffmpeg_on_path()
     parser = argparse.ArgumentParser()
     parser.add_argument("video", type=Path)
-    parser.add_argument("--out", required=True, type=Path, help="Normalized timestamped transcript JSON")
+    parser.add_argument("--out", type=Path, help="Normalized timestamped transcript JSON; defaults inside --run-id")
     parser.add_argument("--audio-out", type=Path, help="Extracted mono 16 kHz WAV evidence")
     parser.add_argument("--backend", choices=["auto", "mlx-whisper", "faster-whisper", "openai-whisper", "whisper-cli"], default="auto")
     parser.add_argument("--model", help="Backend model; defaults to small or mlx-community/whisper-small-mlx")
     parser.add_argument("--language", help="Optional ISO language hint; omit for auto-detection")
     parser.add_argument("--extract-only", action="store_true", help="Diagnostic only; Stage 1 may not use this as a transcription substitute")
+    parser.add_argument("--run-id", help="Write transcript and extracted audio under runs/<run_id>/audio/asr")
     args = parser.parse_args()
+
+    run = open_run(args.run_id) if args.run_id else None
+    if run:
+        output = run.path("audio/asr/transcript.json")
+        audio_output = run.path("audio/asr/audio.wav")
+        if args.out is not None and args.out.resolve() != output:
+            raise SystemExit("--out must be runs/<run_id>/audio/asr/transcript.json when --run-id is used")
+        if args.audio_out is not None and args.audio_out.resolve() != audio_output:
+            raise SystemExit("--audio-out must be runs/<run_id>/audio/asr/audio.wav when --run-id is used")
+        args.out, args.audio_out = output, audio_output
+    elif args.out is None:
+        raise SystemExit("--out is required when --run-id is not supplied")
 
     if not args.video.exists():
         raise SystemExit(f"Video not found: {args.video}")
@@ -217,6 +231,10 @@ def main():
     }
     result = functions[backend](audio_out, model, args.language)
     write_json(args.out, normalize_result(result, backend, model, args.video, audio_out))
+    if run:
+        run.register(args.out, artifact_type="asr_transcript")
+        run.register(audio_out, artifact_type="asr_audio")
+        run.update(current_stage="audio")
 
 
 if __name__ == "__main__":

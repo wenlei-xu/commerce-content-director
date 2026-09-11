@@ -19,6 +19,14 @@ artifacts/
 .tmp_*/
 migration-backups/
 
+# Remotion dependencies and generated render output
+renderers/**/node_modules/
+renderers/**/out/
+renderers/**/renders/
+
+# Local planning and execution artifacts
+plan/
+
 # OS/editor noise
 .DS_Store
 Thumbs.db

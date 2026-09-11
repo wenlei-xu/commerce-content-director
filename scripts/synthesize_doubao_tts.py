@@ -14,6 +14,7 @@ from typing import Any
 import websockets
 
 from doubao_tts_protocol import EventType, Message, MsgType, event_message
+from run_context import open_run
 
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
@@ -40,7 +41,7 @@ def parse_args() -> argparse.Namespace:
     source = parser.add_mutually_exclusive_group(required=True)
     source.add_argument("--text", help="Literal text to synthesize")
     source.add_argument("--text-file", type=Path, help="UTF-8 text file to synthesize")
-    parser.add_argument("--output", type=Path, required=True, help="Output .mp3 path")
+    parser.add_argument("--output", type=Path, help="Output .mp3 path; defaults inside --run-id")
     parser.add_argument("--language", choices=("zh-CN", "th"), default="zh-CN")
     parser.add_argument("--speaker", help="Override the configured speaker ID")
     parser.add_argument("--context", action="append", default=[], help="Optional 2.0 voice instruction")
@@ -49,6 +50,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG)
     parser.add_argument("--env-file", type=Path, default=DEFAULT_ENV)
     parser.add_argument("--report", type=Path, help="Write a non-secret JSON execution report")
+    parser.add_argument("--run-id", help="Write output and report under runs/<run_id>/audio/tts")
     parser.add_argument("--dry-run", action="store_true", help="Validate configuration without calling the API")
     return parser.parse_args()
 
@@ -199,6 +201,17 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
 
 def main() -> int:
     args = parse_args()
+    run = open_run(args.run_id) if args.run_id else None
+    if run:
+        output = run.path("audio/tts/full-voiceover.mp3")
+        report_path = run.path("audio/tts/full-voiceover.json")
+        if args.output is not None and args.output.resolve() != output:
+            raise SystemExit("--output must be runs/<run_id>/audio/tts/full-voiceover.mp3 when --run-id is used")
+        if args.report is not None and args.report.resolve() != report_path:
+            raise SystemExit("--report must be runs/<run_id>/audio/tts/full-voiceover.json when --run-id is used")
+        args.output, args.report = output, report_path
+    elif args.output is None:
+        raise SystemExit("--output is required when --run-id is not supplied")
     text = read_text(args)
     config, api_key, speaker, audio = resolve_settings(args)
     report = {
@@ -214,6 +227,8 @@ def main() -> int:
     if args.dry_run:
         if args.report:
             write_json(args.report, report)
+            if run:
+                run.register(args.report, artifact_type="tts_report")
         print(json.dumps(report, ensure_ascii=False))
         return 0
 
@@ -235,6 +250,11 @@ def main() -> int:
     report.update({"status": "succeeded", "output": str(args.output.resolve()), "bytes": len(audio_bytes), "usage": usage})
     if args.report:
         write_json(args.report, report)
+        if run:
+            run.register(args.report, artifact_type="tts_report")
+    if run:
+        run.register(args.output, artifact_type="tts_audio")
+        run.update(current_stage="audio")
     print(json.dumps(report, ensure_ascii=False))
     return 0
 

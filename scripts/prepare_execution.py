@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from run_context import get_run
 from workbook import load_and_validate
 
 
@@ -152,29 +153,40 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("workbook", type=Path)
     parser.add_argument("--stage", choices=("first_frame_image", "final_video"), required=True)
-    parser.add_argument("--prompt-dir", type=Path)
+    parser.add_argument("--prompt-dir", type=Path, help="Only the current run's prompts directory is allowed")
     parser.add_argument("--segment-id", action="append", dest="segment_ids")
     parser.add_argument("--require-prompts", action="store_true")
     parser.add_argument("--assets", type=Path, help="JSON map of segment IDs to ordered asset roles")
-    parser.add_argument("--run-id")
-    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--run-id", help="Resume an existing run or create this run ID")
     args = parser.parse_args()
     try:
+        run = get_run(args.run_id, workflow=f"generation:{args.stage}")
+        workbook_snapshot = run.snapshot(args.workbook, "inputs/workbook.md")
+        prompt_dir = run.path("prompts")
+        if args.prompt_dir is not None and args.prompt_dir.resolve() != prompt_dir:
+            raise ValueError("--prompt-dir must be the current run's prompts directory")
+        assets_path = None
+        if args.assets is not None:
+            assets_path = run.snapshot(args.assets, "inputs/assets.json", artifact_type="asset_roles")
         plan = build_plan(
-            args.workbook,
+            workbook_snapshot,
             stage=args.stage,
-            prompt_dir=args.prompt_dir,
+            prompt_dir=prompt_dir,
             segment_ids=set(args.segment_ids or []),
             require_prompts=args.require_prompts,
-            assets_path=args.assets,
-            run_id=args.run_id,
+            assets_path=assets_path,
+            run_id=run.run_id,
         )
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps(plan, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        plan["workbook_path"] = "inputs/workbook.md"
+        for segment in plan["segments"]:
+            if segment["prompt_source"]:
+                segment["prompt_source"] = Path(segment["prompt_source"]).relative_to(run.root).as_posix()
+        output = run.write_json("planning/execution-plan.json", plan, artifact_type="execution_plan")
+        run.update(current_stage="planning", current_workbook_revision=plan["workbook_revision"])
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
         return 2
-    print(json.dumps({"ok": True, "run_id": plan["run_id"], "segments": len(plan["segments"]), "out": str(args.out)}, ensure_ascii=False))
+    print(json.dumps({"ok": True, "run_id": plan["run_id"], "segments": len(plan["segments"]), "out": str(output)}, ensure_ascii=False))
     return 0
 
 

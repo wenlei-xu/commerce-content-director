@@ -1,41 +1,42 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "capability_states": ["required", "conditional", "not_required"],
   "workflows": {
     "creative_direction": {
-      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "not_required", "remotion": "not_required", "asr": "not_required", "image_tools": "not_required"}
     },
     "short_video_breakdown": {
-      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "required", "asr": "conditional", "image_tools": "required"},
+      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "required", "remotion": "not_required", "asr": "conditional", "image_tools": "required"},
       "conditions": {"asr": "source_has_audio=true"}
     },
     "sentence_pattern_learning": {
-      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "not_required", "remotion": "not_required", "asr": "not_required", "image_tools": "not_required"}
     },
     "script_production": {
-      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "not_required", "remotion": "not_required", "asr": "not_required", "image_tools": "not_required"}
     },
     "first_frame_generation": {
-      "capabilities": {"feishu": "required", "gpt_image": "required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "required"},
+      "capabilities": {"feishu": "required", "gpt_image": "required", "flow2api": "not_required", "ffmpeg": "not_required", "remotion": "not_required", "asr": "not_required", "image_tools": "required"},
       "default_replication_mode": "high_fidelity_replication",
       "modes": {
         "high_fidelity_replication": {
-          "capabilities": {"ffmpeg": "not_required", "asr": "not_required"}
+          "capabilities": {"ffmpeg": "not_required", "remotion": "not_required", "asr": "not_required"}
         }
       }
     },
     "final_video": {
-      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "required", "ffmpeg": "required", "asr": "conditional", "audio_separator": "conditional", "image_tools": "required"},
+      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "required", "ffmpeg": "required", "remotion": "conditional", "asr": "conditional", "audio_separator": "conditional", "image_tools": "required"},
       "conditions": {
+        "remotion": "render_backend=remotion|hybrid",
         "asr": "audio_mode=spoken|sparse_spoken",
         "audio_separator": "target_spoken_language=zh-CN&audio_mode=spoken|sparse_spoken"
       }
     },
     "clip_production": {
-      "capabilities": {"feishu": "required", "gpt_image": "required", "flow2api": "required", "ffmpeg": "required", "asr": "not_required", "image_tools": "required"}
+      "capabilities": {"feishu": "required", "gpt_image": "required", "flow2api": "required", "ffmpeg": "required", "remotion": "not_required", "asr": "not_required", "image_tools": "required"}
     },
     "lifecycle": {
-      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "not_required", "asr": "not_required", "image_tools": "not_required"}
+      "capabilities": {"feishu": "required", "gpt_image": "not_required", "flow2api": "not_required", "ffmpeg": "not_required", "remotion": "not_required", "asr": "not_required", "image_tools": "not_required"}
     }
   }
 }

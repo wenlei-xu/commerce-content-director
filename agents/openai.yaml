@@ -1,4 +1,4 @@
 interface:
   display_name: "电商内容生产总控"
-  short_description: "从创作需求、创意方向和执行脚本到成片验收"
-  default_prompt: "使用 $commerce-content-director：围绕一份 Markdown 创作稿对齐口播、TTS、ASR 和画面，按需生成提示词，完成首帧、视频和成片验收。"
+  short_description: "从创作需求、创意方向和执行脚本到 FFmpeg/Remotion 成片验收"
+  default_prompt: "使用 $commerce-content-director：围绕一份 Markdown 创作稿对齐口播、TTS、ASR 和画面，按需生成提示词，使用 FFmpeg 或 Remotion 自动渲染 MP4，并完成首帧、视频和成片验收。"

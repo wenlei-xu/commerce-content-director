@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from run_context import open_run
 
 FINAL_VIDEO_MODELS = {
     4: "gemini_omni_r2v_portrait_4s",
@@ -162,20 +163,21 @@ def compile_plan(plan: dict[str, Any]) -> dict[str, Any]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("execution_plan", type=Path)
-    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--run-id", required=True, help="Run containing planning/execution-plan.json")
     args = parser.parse_args()
     try:
-        plan = json.loads(args.execution_plan.read_text(encoding="utf-8"))
+        run = open_run(args.run_id)
+        execution_plan = run.path("planning/execution-plan.json")
+        plan = json.loads(execution_plan.read_text(encoding="utf-8"))
         if not isinstance(plan, dict):
             raise ValueError("execution plan must be an object")
         bundle = compile_plan(plan)
-        args.out.parent.mkdir(parents=True, exist_ok=True)
-        args.out.write_text(json.dumps(bundle, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        output = run.write_json("planning/execution-bundle.json", bundle, artifact_type="execution_bundle")
+        run.update(current_stage="compiled")
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
         return 2
-    print(json.dumps({"ok": True, "run_id": bundle["run_id"], "jobs": len(bundle["execution_jobs"]), "out": str(args.out)}, ensure_ascii=False))
+    print(json.dumps({"ok": True, "run_id": bundle["run_id"], "jobs": len(bundle["execution_jobs"]), "out": str(output)}, ensure_ascii=False))
     return 0
 
 

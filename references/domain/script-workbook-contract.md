@@ -61,10 +61,11 @@ ASR：...
 ## 执行适配
 
 执行前，Agent 为需要生成的段落保存独立 Prompt：
-`prompts/<segment_id>.<stage>.prompt.md`，其中 `stage` 为
+`runs/<run_id>/prompts/<segment_id>.<stage>.prompt.md`，其中 `stage` 为
 `first_frame_image` 或 `final_video`。随后运行
-`scripts/prepare_execution.py`，把创作稿、Prompt、段落时间和版本摘要组装成
-执行计划；再由 `scripts/compile_generation_prompts.py` 只补充模型、尺寸、时长和音频等技术约束。
+`scripts/prepare_execution.py --run-id <run_id>`，把创作稿、Prompt、段落时间和
+版本摘要组装成 `runs/<run_id>/planning/execution-plan.json`；再由
+`scripts/compile_generation_prompts.py --run-id <run_id>` 只补充模型、尺寸、时长和音频等技术约束。
 编译器不得重写画面事件，也不得从模板库补动作。
 
 ## 修订规则

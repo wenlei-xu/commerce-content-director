@@ -11,6 +11,18 @@ import tempfile
 from pathlib import Path
 
 from runtime import find_binary
+from subtitle_track import (
+    SUBTITLE_ALIGNMENT,
+    SUBTITLE_FONT_NAME,
+    SUBTITLE_FONT_SIZE,
+    SUBTITLE_MARGIN_BOTTOM,
+    SUBTITLE_MARGIN_LEFT,
+    SUBTITLE_MARGIN_RIGHT,
+    SUBTITLE_OUTLINE_PX,
+    SUBTITLE_SHADOW_PX,
+    validate_ass_text,
+    validate_subtitle_layout,
+)
 
 
 def concat_entry(path: Path) -> str:
@@ -21,10 +33,16 @@ def subtitle_filter(path: Path, font_name: str, margin_v: int, font_weight: str 
     escaped = path.resolve().as_posix().replace("'", r"\'").replace(":", r"\:")
     if path.suffix.lower() == ".ass":
         return f"subtitles=filename='{escaped}':charenc=UTF-8"
-    bold = "-1" if font_weight == "bold" else "0"
+    if font_name != SUBTITLE_FONT_NAME or margin_v != SUBTITLE_MARGIN_BOTTOM or font_weight != "bold":
+        raise ValueError(
+            "Chinese subtitle placement/style is fixed by subtitle_track.py: "
+            f"font={SUBTITLE_FONT_NAME}, weight=bold, bottom_margin={SUBTITLE_MARGIN_BOTTOM}"
+        )
     style = (
-        f"FontName={font_name},Bold=1,FontSize=50,PrimaryColour=&H00FFFFFF,"
-        f"OutlineColour=&H00000000,BorderStyle=1,Outline=1,Shadow=0,WrapStyle=2,Alignment=2,MarginL=28,MarginR=28,MarginV={margin_v}"
+        f"FontName={SUBTITLE_FONT_NAME},Bold=1,FontSize={SUBTITLE_FONT_SIZE},PrimaryColour=&H00FFFFFF,"
+        f"OutlineColour=&H00000000,BorderStyle=1,Outline={SUBTITLE_OUTLINE_PX},Shadow={SUBTITLE_SHADOW_PX},"
+        f"WrapStyle=2,Alignment={SUBTITLE_ALIGNMENT},MarginL={SUBTITLE_MARGIN_LEFT},"
+        f"MarginR={SUBTITLE_MARGIN_RIGHT},MarginV={SUBTITLE_MARGIN_BOTTOM}"
     )
     return f"subtitles=filename='{escaped}':charenc=UTF-8:force_style='{style}'"
 
@@ -104,7 +122,10 @@ def main() -> None:
         default="bold",
         help="Font weight for ordinary SRT subtitles; ignored for ASS tracks",
     )
-    parser.add_argument("--subtitle-margin-v", type=int, default=130, help="Fixed bottom subtitle margin for Chinese 720x1280 output")
+    parser.add_argument(
+        "--subtitle-margin-v", type=int, default=SUBTITLE_MARGIN_BOTTOM,
+        help="Fixed bottom subtitle margin for Chinese 720x1280 output",
+    )
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
 
@@ -127,6 +148,19 @@ def main() -> None:
     subtitles = args.subtitles.resolve()
     if not subtitles.is_file():
         raise SystemExit(f"Missing subtitle file: {subtitles}")
+    layout_path = subtitles.parent / "subtitle-layout.json"
+    if layout_path.is_file():
+        try:
+            validate_subtitle_layout(json.loads(layout_path.read_text(encoding="utf-8")))
+        except (OSError, TypeError, ValueError, json.JSONDecodeError) as error:
+            raise SystemExit(f"Invalid subtitle layout contract: {error}") from error
+    elif subtitles.suffix.lower() in {".srt", ".ass"}:
+        raise SystemExit(f"Missing subtitle layout contract next to subtitle file: {layout_path}")
+    if subtitles.suffix.lower() == ".ass":
+        try:
+            validate_ass_text(subtitles.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as error:
+            raise SystemExit(f"Invalid ASS subtitle geometry: {error}") from error
     output = args.out.resolve()
     if output.exists() and not args.overwrite:
         raise SystemExit(f"Output exists: {output}. Pass --overwrite to replace it.")

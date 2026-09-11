@@ -57,4 +57,4 @@
 
 ## 执行适配器
 
-使用 `scripts/prepare_execution.py` 将当前创作稿解析为执行记录。它只复制段落内容和明确素材引用，不生成默认动作、Beat 或互动计划。Prompt 由 Agent 写入当前阶段的 Prompt 文件后，再由 `scripts/compile_generation_prompts.py` 生成可提交的执行请求包。
+使用 `scripts/prepare_execution.py --run-id <run_id>` 将当前创作稿解析为执行记录。它只复制段落内容和明确素材引用，不生成默认动作、Beat 或互动计划。Prompt 由 Agent 写入当前运行的 `runs/<run_id>/prompts/` 后，再由 `scripts/compile_generation_prompts.py --run-id <run_id>` 生成可提交的执行请求包。

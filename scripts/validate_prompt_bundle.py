@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from run_context import open_run
 
 HAN = re.compile(r"[\u3400-\u4DBF\u4E00-\u9FFF]")
 THAI = re.compile(r"[\u0E00-\u0E7F]")
@@ -102,10 +103,12 @@ def validate_bundle(bundle: dict[str, Any]) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("bundle", type=Path)
+    parser.add_argument("--run-id", required=True, help="Run containing planning/execution-bundle.json")
     args = parser.parse_args()
     try:
-        bundle = json.loads(args.bundle.read_text(encoding="utf-8"))
+        run = open_run(args.run_id)
+        bundle_path = run.path("planning/execution-bundle.json")
+        bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
         if not isinstance(bundle, dict):
             raise ValueError("bundle must be an object")
         errors = validate_bundle(bundle)
@@ -115,7 +118,8 @@ def main() -> int:
     if errors:
         print("\n".join(f"FAIL {error}" for error in errors))
         return 1
-    print(f"PASS {args.bundle}: {len(bundle['prompts'])} prompt(s)")
+    run.update(current_stage="validated")
+    print(f"PASS {bundle_path}: {len(bundle['prompts'])} prompt(s)")
     return 0
 
 

@@ -13,11 +13,11 @@ Agent 写 prompts/<segment_id>.first_frame_image.prompt.md
         ↓
 scripts/prepare_execution.py
         ↓
-plan/execution-plan.json
+runs/<run_id>/planning/execution-plan.json
         ↓
 scripts/compile_generation_prompts.py
         ↓
-plan/execution-bundle.json
+runs/<run_id>/planning/execution-bundle.json
 ```
 
 适配器只复制创作稿的段落内容、版本摘要、时间和素材角色；它不补动作、不
@@ -63,9 +63,9 @@ plan/execution-bundle.json
 ## 编译与校验
 
 ```powershell
-python scripts/prepare_execution.py script.md --stage first_frame_image --prompt-dir prompts --require-prompts --out plan/execution-plan.json
-python scripts/compile_generation_prompts.py plan/execution-plan.json --out plan/execution-bundle.json
-python scripts/validate_prompt_bundle.py plan/execution-bundle.json
+python scripts/prepare_execution.py script.md --stage first_frame_image --require-prompts --run-id <run_id>
+python scripts/compile_generation_prompts.py --run-id <run_id>
+python scripts/validate_prompt_bundle.py --run-id <run_id>
 ```
 
 缺少 Prompt、段落没有画面事件、稿件版本不合法、时长不是 4/6/8/10 秒，或

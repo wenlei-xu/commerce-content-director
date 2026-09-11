@@ -68,6 +68,32 @@ class PreflightContractTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "--audio-mode"):
             resolve_requirements(self.policy, "final_video", target_spoken_language="zh-CN")
 
+    def test_final_video_resolves_remotion_only_for_selected_render_backend(self) -> None:
+        ffmpeg = resolve_requirements(
+            self.policy,
+            "final_video",
+            audio_mode="natural_sound_only",
+            target_spoken_language="zh-CN",
+            render_backend="ffmpeg",
+        )
+        remotion = resolve_requirements(
+            self.policy,
+            "final_video",
+            audio_mode="natural_sound_only",
+            target_spoken_language="zh-CN",
+            render_backend="remotion",
+        )
+        hybrid = resolve_requirements(
+            self.policy,
+            "final_video",
+            audio_mode="natural_sound_only",
+            target_spoken_language="zh-CN",
+            render_backend="hybrid",
+        )
+        self.assertEqual(ffmpeg["remotion"], "not_required")
+        self.assertEqual(remotion["remotion"], "required")
+        self.assertEqual(hybrid["remotion"], "required")
+
 
 if __name__ == "__main__":
     unittest.main()

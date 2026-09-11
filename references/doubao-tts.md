@@ -13,7 +13,7 @@ Use this provider as the mandatory Chinese external voiceover route in the final
 For continuous Chinese narration, concatenate all exact approved dialogue in chronological order and synthesize it once. Keep a sidecar manifest mapping the complete take back to the ordered `line_id` values and exact texts:
 
 ```powershell
-python scripts/synthesize_doubao_tts.py --language zh-CN --text-file audio/full-voiceover.txt --speech-rate 15 --output audio/full-voiceover.mp3 --report audio/full-voiceover.json
+python scripts/synthesize_doubao_tts.py --language zh-CN --text-file runs/<run_id>/inputs/full-voiceover.txt --speech-rate 15 --run-id <run_id>
 ```
 
 Use separate requests only for genuinely non-contiguous sparse-spoken blocks. Do not split a continuous narration line by line merely to fit planned windows. If the generated take is slightly too long, derive inter-sentence gaps from ASR word timestamps or silence detection and remove only the excess gap duration, retaining at least 80 ms at each sentence boundary. Do not cut phonemes, apply global `atempo`, or silently increase `speech_rate`; if reducing breath gaps is insufficient, revise the copy and obtain approval before synthesizing again.
@@ -23,8 +23,8 @@ Run `--dry-run` to validate local configuration without submitting a billable sy
 For Chinese final assembly, first isolate the BGM from the exact approved reference video and pass the residual-speech gate:
 
 ```powershell
-python scripts/separate_reference_bgm.py reference.mp4 --background-music audio/reference-bgm.wav --asr-report audio/reference-bgm-asr.json --gate audio/source-bgm-gate.json
-python scripts/assemble_final_video.py segment-01.mp4 segment-02.mp4 --subtitles audio/final.srt --voiceover audio/aligned-voiceover.mp3 --background-music audio/reference-bgm.wav --background-music-gate audio/source-bgm-gate.json --audio-policy chinese_external_tts --profile plan/content-system-config-snapshot.json --out final.mp4
+python scripts/separate_reference_bgm.py runs/<run_id>/inputs/reference.mp4 --background-music runs/<run_id>/audio/reference-bgm.wav --asr-report runs/<run_id>/audio/reference-bgm-asr.json --gate runs/<run_id>/audio/source-bgm-gate.json
+python scripts/assemble_final_video.py runs/<run_id>/generation/video/segment-01.mp4 runs/<run_id>/generation/video/segment-02.mp4 --subtitles runs/<run_id>/subtitles/final.srt --voiceover runs/<run_id>/audio/tts/aligned-voiceover.mp3 --background-music runs/<run_id>/audio/reference-bgm.wav --background-music-gate runs/<run_id>/audio/source-bgm-gate.json --audio-policy chinese_external_tts --profile runs/<run_id>/planning/content-system-config-snapshot.json --out runs/<run_id>/delivery/final.mp4
 ```
 
 The final subtitle timing comes from the aligned complete Doubao take. Recover each `line_id` boundary from actual ASR/silence timing and use the exact approved text. Never time subtitles from Omni audio or from unaligned script estimates.

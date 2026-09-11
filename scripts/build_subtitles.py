@@ -1,88 +1,33 @@
 #!/usr/bin/env python3
-"""Build a global SRT subtitle file from validated narration manifests."""
+"""Build the ordinary SRT track for one Skill-local production run."""
 
 from __future__ import annotations
 
 import argparse
 import json
-from pathlib import Path
+
+from run_context import open_run
+from subtitle_track import build_srt, subtitle_layout_spec
+from workbook import load_and_validate
 
 
-EMPTY_CAPTIONS = {"", "none", "null", "n/a", "无", "无字幕", "无口播", "无对白"}
-
-
-def format_time(seconds: float) -> str:
-    milliseconds = max(0, round(seconds * 1000))
-    hours, remainder = divmod(milliseconds, 3_600_000)
-    minutes, remainder = divmod(remainder, 60_000)
-    seconds, milliseconds = divmod(remainder, 1_000)
-    return f"{hours:02}:{minutes:02}:{seconds:02},{milliseconds:03}"
-
-
-def caption_text(value: object) -> str | None:
-    if value is None:
-        return None
-    text = str(value).strip()
-    if text.lower() in EMPTY_CAPTIONS:
-        return None
-    if "\n" in text or "\r" in text:
-        raise ValueError("one-line subtitle policy forbids embedded line breaks")
-    return text
-
-
-def resolve_inside(root: Path, value: str) -> Path:
-    path = (root / value).resolve()
-    try:
-        path.relative_to(root)
-    except ValueError as exc:
-        raise ValueError(f"Manifest path escapes package directory: {value}") from exc
-    return path
-
-
-def manifest_paths(segment: dict) -> list[str]:
-    values = segment.get("manifests")
-    if values is None and segment.get("manifest"):
-        values = [segment["manifest"]]
-    if not isinstance(values, list) or not values:
-        raise ValueError(f"{segment.get('id', '?')} has no manifests")
-    return values
-
-
-def build(package_dir: Path) -> list[tuple[float, float, str]]:
-    package = json.loads((package_dir / "package.json").read_text(encoding="utf-8"))
-    captions: list[tuple[float, float, str]] = []
-    for segment in package["segments"]:
-        for manifest_value in manifest_paths(segment):
-            manifest = json.loads(
-                resolve_inside(package_dir, manifest_value).read_text(encoding="utf-8")
-            )
-            narration_cues = manifest.get("narration_cues")
-            if narration_cues is not None:
-                for cue in narration_cues:
-                    text = caption_text(cue.get("text"))
-                    if text:
-                        captions.append((float(cue["start"]), float(cue["end"]), text))
-            else:
-                raise ValueError(f"{manifest_value} must contain narration_cues")
-    return sorted(captions, key=lambda item: (item[0], item[1]))
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("package_dir", type=Path)
-    parser.add_argument("--out", required=True, type=Path)
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--run-id", required=True)
     args = parser.parse_args()
-
-    package_dir = args.package_dir.resolve()
-    captions = build(package_dir)
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    blocks = [
-        f"{index}\n{format_time(start)} --> {format_time(end)}\n{text}"
-        for index, (start, end, text) in enumerate(captions, start=1)
-    ]
-    args.out.write_text("\n\n".join(blocks) + ("\n" if blocks else ""), encoding="utf-8")
-    print(f"Wrote {len(captions)} subtitle cue(s): {args.out}")
+    try:
+        run = open_run(args.run_id)
+        workbook = load_and_validate(run.path("inputs/workbook.md"))
+        timing_path = run.path("audio/timing-map.json")
+        timing = json.loads(timing_path.read_text(encoding="utf-8"))
+        output = run.write_text("subtitles/final.srt", build_srt(workbook, timing), artifact_type="subtitle_srt")
+        run.write_json("subtitles/subtitle-layout.json", subtitle_layout_spec(), artifact_type="subtitle_layout")
+        run.update(current_stage="subtitles")
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"Unable to build subtitles: {exc}") from exc
+    print(f"Wrote subtitles: {output}")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
