@@ -77,7 +77,7 @@ def main() -> int:
             products_table["table_id"],
             product["record_id"],
             {
-                products_table["fields"]["interaction_constraints"]: seed["constraints"],
+                products_table["fields"]["interaction_capabilities"]: seed["constraints"],
             },
         )
         updated_products.append(name)
@@ -107,8 +107,8 @@ def main() -> int:
     fresh_template_by_name = records_by_field(fresh_templates, templates_table["fields"]["template_name"])
     for name, seed in PRODUCT_SEED.items():
         actual = fresh_product_by_name[name].get("fields", {})
-        if text(actual.get(products_table["fields"]["interaction_constraints"])) != seed["constraints"]:
-            raise RuntimeError(f"product interaction-constraint verification failed: {name}")
+        if text(actual.get(products_table["fields"]["interaction_capabilities"])) != seed["constraints"]:
+            raise RuntimeError(f"product interaction-capability verification failed: {name}")
     for seed in TEMPLATES:
         actual = fresh_template_by_name[seed["name"]].get("fields", {})
         if text(actual.get(templates_table["availability_field"])) != templates_table["availability_active"]:

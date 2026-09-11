@@ -1,5 +1,5 @@
 {
-  "schema_version": 23,
+  "schema_version": 24,
   "app_token": "QQ1ib0FTHahCUhstRH8cVx9in7S",
   "base_name": "短视频内容创意库",
   "language_policy": {
@@ -49,12 +49,18 @@
       "fields": {
         "name": "产品名称",
         "product_id": "产品ID",
-        "hard_facts": "产品硬事实与禁忌",
-        "generation_notes": "生成注意事项",
+        "one_line_positioning": "一句话产品定位",
+        "core_benefits": "核心卖点",
+        "target_audience": "目标人群",
+        "typical_pain": "典型痛点",
+        "typical_scene": "典型使用场景",
+        "interaction_capabilities": "交互能力",
+        "key_structure_locks": "关键结构锁",
         "default_anchor": "默认产品锚点",
+        "product_views": "产品三视图",
         "detail_assets": "产品细节图",
         "scene_assets": "产品场景图",
-        "interaction_constraints": "交互限制"
+        "other_assets": "其他产品素材"
       }
     },
     "content_interaction_templates": {

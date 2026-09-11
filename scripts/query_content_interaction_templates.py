@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Return cross-SKU interaction templates eligible for one confirmed product.
 
-This is a read-only adapter.  A product supplies hard facts and interaction
-constraints; a template supplies a reusable content pattern. Compatibility is
+This is a read-only adapter.  A product supplies confirmed interaction
+capabilities; a template supplies a reusable content pattern. Compatibility is
 reviewed by the script workflow against the current product record.
 """
 
@@ -80,7 +80,7 @@ def query_templates(
     return {
         "ok": True,
         "product_record_id": product_record_id,
-        "interaction_constraints": text(product_fields.get(product_field_names["interaction_constraints"])),
+        "interaction_capabilities": text(product_fields.get(product_field_names["interaction_capabilities"])),
         "templates": candidates,
         "template_count": len(candidates),
         "include_ineligible": include_ineligible,

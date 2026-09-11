@@ -34,7 +34,7 @@ def field(name: str, type_: int = 1, property_: dict[str, Any] | None = None) ->
 
 
 PRODUCT_FIELDS = (
-    field("交互限制"),
+    field("交互能力"),
 )
 TEMPLATE_FIELDS = (
     field("内容功能", 4, {"options": [{"name": option, "color": index % 55} for index, option in enumerate(["兴趣", "互动", "情绪", "节奏", "证明", "转场", "CTA"])]}),
@@ -100,7 +100,7 @@ def plan(schema: dict[str, Any], before: dict[str, Any], run_id: str) -> dict[st
         ],
         "retained_legacy_fields": ["产品", "关联卖点（可选）", "是否可用"],
         "post_apply_required": [
-            "Keep product hard facts and 交互限制 authoritative.",
+            "Keep product interaction capabilities and 关键结构锁 authoritative.",
             "Create or normalize only genuinely cross-SKU interaction templates.",
             "Set 模板状态=可用 only after template review; legacy rows are set to 待整理.",
             "Do not delete retained legacy fields or rows until the normalized templates have been verified.",

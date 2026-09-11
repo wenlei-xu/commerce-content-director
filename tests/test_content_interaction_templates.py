@@ -33,7 +33,7 @@ class ContentInteractionTemplateTest(unittest.TestCase):
                     "status_field": "状态",
                     "status_active": "可用",
                     "fields": {
-                        "interaction_constraints": "交互限制",
+                        "interaction_capabilities": "交互能力",
                     },
                 },
                 "content_interaction_templates": {
@@ -51,8 +51,8 @@ class ContentInteractionTemplateTest(unittest.TestCase):
         }
         self.api = FakeFeishu({
             "products": [
-                {"record_id": "product-durian", "fields": {"状态": "可用", "交互限制": "只允许轻拉。"}},
-                {"record_id": "product-paused", "fields": {"状态": "停用", "交互限制": ""}},
+                {"record_id": "product-durian", "fields": {"状态": "可用", "交互能力": "支持日常磨牙与啃咬互动。"}},
+                {"record_id": "product-paused", "fields": {"状态": "停用", "交互能力": ""}},
             ],
             "templates": [
                 {"record_id": "template-1", "fields": {"互动模板": "引逗够取", "内容功能": ["兴趣", "互动"], "行为流程": "手持引逗后落地", "可视验收点": "狗狗主动够取", "模板状态": "可用"}},
