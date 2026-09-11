@@ -11,6 +11,15 @@ This Skill runs the production chain:
 创作需求 → 创意方向 / 片段意图 → 10秒视频片段 → 草稿库（暂存） → 精选片段库（沉淀） →（可选）最终成片
 ~~~
 
+## 粗剪与细剪
+
+视频后期分为两个明确阶段，不要在粗剪阶段提前堆叠音效和动效：
+
+- **粗剪**：完成素材取舍、镜头顺序、删废片、节奏、旁白/原声、时长和基础字幕。目标是确认“内容是否成立、画面是否连贯、节奏是否能看下去”。粗剪不加入音效、花字动效、复杂转场或装饰性动画。
+- **细剪**：在粗剪版本确认后，再处理字幕位置与样式、花字、弹出/震动/移动动画、音效卡点、背景音乐音量、转场和最终视觉统一。
+
+音效属于细剪内容。音效应绑定可见的动作峰值（出现、发现、叼起、跳跃、返回等），而不是机械地跟随每条字幕；短视频通常每 20–30 秒使用 3–5 个重点音效即可。优先使用 `assets/audio/jianying-sfx/` 中按场景分类的素材，音量以不遮挡旁白为准。
+
 For full-film work, one Markdown creation workbook is the content source that people and the Agent review together. It owns the approved spoken copy, ASR-timed segments, visual events, product facts used by the scene, continuity notes and links to generated results. Prompt text is written when a segment is prepared for generation and is saved as an execution record; it is not maintained as a second script. Clip-first work uses a lightweight clip brief and the draft/selected clip library contracts; it does not create a full-film workbook merely to generate a 10-second mother clip.
 
 ## Routing model
