@@ -12,7 +12,7 @@ Select by the current market or language, `场景类型`, the Beat's action surf
 
 ## Authority boundary
 
-Scene anchors may establish room geometry, light direction, camera position, scale context, open floor or counter space, and lived-in smartphone texture. They do not establish product geometry, product claims, subject identity, dialogue, text, logos or permitted interaction. Product records, selected subject anchors and the locked structured script remain authoritative for those facts.
+Scene anchors may establish room geometry, light direction, camera position, scale context, open floor or counter space, and lived-in smartphone texture. They do not establish product geometry, product claims, subject identity, dialogue, text, logos or permitted interaction. Product records, selected subject anchors and the locked Markdown creation workbook remain authoritative for those facts.
 
 ## Capture treatment
 

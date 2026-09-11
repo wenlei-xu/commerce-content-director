@@ -1,6 +1,6 @@
 # 脚本校验
 
-新任务检查 Markdown 创作稿的口播锁、ASR 时间、段落连续性、画面事件清晰度、产品事实和执行记录引用。阻断项包括：口播被擅自改写、段落时间与 ASR 冲突、动作与产品能力/结构锁冲突、Prompt 引用旧稿、素材角色错误或结果状态不明。`validate_structured_script.py` 只服务历史 JSON 任务。
+新任务检查 Markdown 创作稿的口播锁、ASR 时间、段落连续性、画面事件清晰度、产品事实和执行记录引用。阻断项包括：口播被擅自改写、段落时间与 ASR 冲突、动作与产品能力/结构锁冲突、Prompt 引用旧稿、素材角色错误或结果状态不明。
 
 批量任务还必须运行 `scripts/validate_batch_creativity.py`。它发现 Hook、Beat 功能骨架、互动形态和收束方式重复时，阻止脚本进入首帧生产；只有用户明确要求统一创意，并通过 `--allow-shared-structure --reason` 留下例外理由，才可继续。
 

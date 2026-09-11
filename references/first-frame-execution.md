@@ -6,7 +6,7 @@ This is the only execution path for every active video first-frame request (job 
 
 1. Run `python scripts/preflight.py --workflow first_frame_generation --json`, adding `--mode high_fidelity_replication` when applicable.
 2. Use the standard Streamable HTTP MCP endpoint from `CHATGPT2API_MCP_HTTP_URL`; the configured cloud endpoint is `http://43.153.49.143:38300/mcp`. Read authentication from `CHATGPT2API_MCP_HTTP_TOKEN`; never persist the token in prompts, manifests or logs. Call `chatgpt_health` and `chatgpt_list_models`, and require the exact model ID `gpt-image-2.5` before submitting work.
-3. Record `executor=gpt_image_2_5`, `model=gpt-image-2.5`, `size=1152x2048`, `quality=high`, and `format=png` in `plan/content-system-config-snapshot.json`, `plan/generation-prompt-plan.json`, and the compiled prompt bundle.
+3. Record `executor=gpt_image_2_5`, `model=gpt-image-2.5`, `size=1152x2048`, `quality=high`, and `format=png` in `plan/content-system-config-snapshot.json`, `plan/execution-plan.json`, and the compiled prompt bundle.
 4. Confirm that the selected route accepts the planned ordered reference-image count. A route that hides or cannot guarantee its model binding is not valid evidence.
 
 Do not infer an alias, use `chatgpt-image-latest`, select another GPT Image model, call Flow2API for images, or silently switch providers. A missing or unverified GPT Image 2.5 route stops the run.

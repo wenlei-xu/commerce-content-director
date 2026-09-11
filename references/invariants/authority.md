@@ -8,7 +8,7 @@ The source precedence is:
 2. Current product hard facts and assets;
 3. Approved `场景资产库` entries for spatial context, lighting and capture treatment; they may not override product or subject facts;
 4. Product `交互能力` / `关键结构锁` and confirmed `内容互动模板库` entries for reusable interaction patterns; templates may not override product facts;
-5. Locked creative direction and locked structured script;
+5. Locked creative direction and locked Markdown creation workbook;
 6. For first-frame generation and review, the two script-version records linked through their actual `来源脚本` relation, plus each record's ordered `最终首帧图`, `脚本版本` and `首帧状态`. There is no separate Segment mapping, candidate or review table;
 7. Local run package created for the current run.
 

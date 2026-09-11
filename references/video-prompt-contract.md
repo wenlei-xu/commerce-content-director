@@ -72,13 +72,14 @@ Validate the complete prompt set as one unit before submitting any Job: Thai nat
 
 ## Compiler input and evidence
 
-Create `plan/generation-prompt-plan.json` only as an automatically generated execution manifest from the Markdown creation workbook. It uses schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, `prompt_language: "en"`, the locked `target_spoken_language`, the duration plan, common approved constraints, and one entry per Segment. Each entry declares its exact `segment_seconds`, source workbook revision and segment ID, the workbook's visual event, input role map, hard constraints, subject identity, dialogue allocation, audio mode and continuity handoff. A `beats` timeline may be included when the workbook uses Beat labels; it is not required for simple segments and it must never supply a default action. Chinese spoken plans must declare `voiceover_provider: "doubao_tts_2_0"` and `omni_audio_policy: "environment_only"`; Thai spoken plans declare `voiceover_provider: "omni_native"` and `omni_audio_policy: "native_dialogue"`.
+Create `plan/execution-plan.json` only as an automatically generated execution manifest from the Markdown creation workbook. It uses schema `commerce-execution-plan-v1`, `stage: "final_video"`, `prompt_language: "en"`, the locked `target_spoken_language`, the duration plan, one entry per Segment, and the Agent-authored Prompt. Each entry declares its exact `segment_seconds`, source workbook revision and segment ID, the workbook's visual event, input role map, dialogue allocation, audio mode and continuity handoff. A Beat label may be included when the workbook uses one; it is never a default action. Chinese spoken plans declare external TTS and environment-only Omni audio; model-native dialogue plans carry only their approved current-segment dialogue.
 
 Compile and validate before submitting any Job:
 
 ```powershell
-python scripts/compile_generation_prompts.py plan/generation-prompt-plan.json --out plan/compiled-prompts.json
-python scripts/validate_prompt_bundle.py plan/compiled-prompts.json
+python scripts/prepare_execution.py script.md --stage final_video --prompt-dir prompts --require-prompts --out plan/execution-plan.json
+python scripts/compile_generation_prompts.py plan/execution-plan.json --out plan/execution-bundle.json
+python scripts/validate_prompt_bundle.py plan/execution-bundle.json
 ```
 
 Keep `package.json`, `generation-jobs.json`, `dialogue-allocation.json`, `quality-report.md`, the source plan, compiled prompts, validator output, asset role/hash mappings, and temporary outputs. This evidence supports a resumable run; it never replaces the approved Feishu records.

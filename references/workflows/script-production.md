@@ -1,6 +1,6 @@
 # Workflow: script production
 
-本流程以 [script-workbook-contract.md](../domain/script-workbook-contract.md) 为准。创作稿使用 Markdown，是人和 Agent 共同修改的内容中心；执行时产生的 Prompt、请求和结果写入 [execution-record-contract.md](../domain/execution-record-contract.md)。旧 `structured_script` 仅用于历史任务兼容和迁移。
+本流程以 [script-workbook-contract.md](../domain/script-workbook-contract.md) 为准。创作稿使用 Markdown，是人和 Agent 共同修改的内容中心；执行时产生的 Prompt、请求和结果写入 [execution-record-contract.md](../domain/execution-record-contract.md)。
 
 ## 进入条件
 
@@ -55,6 +55,6 @@
 
 修改画面事件会令对应首帧/视频执行记录过期，并触发相邻衔接检查。只修改摄影表达时可更新执行记录，但最终 Prompt 不能与画面事件冲突。只有当前创作稿修订和对应执行记录一致，才允许提交。
 
-## 兼容旧工具
+## 执行适配器
 
-现有 `validate_structured_script.py`、`build_script_package.py`、`render_script_views.py` 和旧生成计划继续服务历史 JSON 任务。新任务不得以它们作为创作入口，不得把旧 `build_packages.py` 的固定 Beat 骨架复制为新脚本。迁移旧任务时，将动作合并到 Markdown 段落，保留旧记录的来源和版本。
+使用 `scripts/prepare_execution.py` 将当前创作稿解析为执行记录。它只复制段落内容和明确素材引用，不生成默认动作、Beat 或互动计划。Prompt 由 Agent 写入当前阶段的 Prompt 文件后，再由 `scripts/compile_generation_prompts.py` 生成可提交的执行请求包。

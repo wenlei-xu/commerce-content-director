@@ -32,7 +32,7 @@ When the target product has a fixed integrated visual structure, preserve every 
 
 ## Visual-style contract
 
-Create `plan/source-visual-style-profile.json` from the accepted breakdown and available source evidence. Record the dimensions above, cite the evidence and separate stable global treatment from segment-specific variation. The profile must include `style_fingerprint_en` and `anti_style_constraints_en` as concise English control text. Copy both values verbatim into `source_visual_style` in `plan/generation-prompt-plan.json`; the compiler must pass them into every target first-frame Segment. If scene reuse is selected, route at most one cleaned `source_scene_reference` per Segment. It controls only scene space, camera, light and spatial staging; it must never control target subject, target product, text, logo or source-specific hardware identity. Source action frames remain planning evidence only.
+Create `plan/source-visual-style-profile.json` from the accepted breakdown and available source evidence. Record the dimensions above, cite the evidence and separate stable global treatment from segment-specific variation. The profile must include `style_fingerprint_en` and `anti_style_constraints_en` as concise English control text. Copy both values into the Markdown creation workbook's replication metadata and the generated execution context; the compiler must pass them into every target first-frame Segment. If scene reuse is selected, route at most one cleaned `source_scene_reference` per Segment. It controls only scene space, camera, light and spatial staging; it must never control target subject, target product, text, logo or source-specific hardware identity. Source action frames remain planning evidence only.
 
 ## Source-to-target contract
 

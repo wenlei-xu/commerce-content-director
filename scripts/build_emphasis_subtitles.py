@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build an ASS subtitle track with script-approved keyword emphasis."""
+"""Build an ASS subtitle track from a Markdown workbook and final ASR timing."""
 
 from __future__ import annotations
 
@@ -8,15 +8,10 @@ import json
 from pathlib import Path
 from typing import Any
 
-STYLE_TAGS = {
-    # Keep the production subtitle palette intentionally restrained:
-    # ordinary text is white and every approved emphasis span is yellow.
-    "keyword_yellow": r"{\c&H0000FFFF&\b1}",
-    "number_pop": r"{\c&H0000FFFF&\b1}",
-    "result_pop": r"{\c&H0000FFFF&\b1}",
-    "product_accent": r"{\c&H0000FFFF&\b1}",
-    "pain_point_red": r"{\c&H0000FFFF&\b1}",
-}
+from workbook import load_and_validate
+
+
+STYLE_TAG = r"{\c&H0000FFFF&\b1}"
 RESET = r"{\rDefault}"
 
 
@@ -32,71 +27,54 @@ def escape_ass(text: str) -> str:
     return text.replace("\\", r"\\").replace("{", r"\{").replace("}", r"\}").replace("\n", r"\N")
 
 
-def render_caption(text: str, spans: list[dict[str, Any]]) -> str:
+def _cues(timing: Any) -> list[dict[str, Any]]:
+    cues = timing.get("cues") if isinstance(timing, dict) else timing
+    if not isinstance(cues, list):
+        raise ValueError("timing must be a list or an object with cues")
+    return cues
+
+
+def _approved_text(workbook: dict[str, Any]) -> str:
+    return "".join(str(segment.get("voiceover") or "").strip() for segment in workbook["segments"])
+
+def _render(text: str, spans: list[dict[str, Any]]) -> str:
     cursor = 0
     parts: list[str] = []
     for span in spans:
-        fragment = str(span["text"])
+        fragment = str(span.get("text", ""))
         position = text.find(fragment, cursor)
-        if position < 0:
+        if not fragment or position < 0:
             raise ValueError(f"emphasis text is missing or out of order: {fragment}")
-        style = str(span["style"])
-        if style not in STYLE_TAGS:
-            raise ValueError(f"unsupported emphasis style: {style}")
         parts.append(escape_ass(text[cursor:position]))
-        parts.append(STYLE_TAGS[style] + escape_ass(fragment) + RESET)
+        parts.append(STYLE_TAG + escape_ass(fragment) + RESET)
         cursor = position + len(fragment)
     parts.append(escape_ass(text[cursor:]))
     return "".join(parts)
 
 
-def wrap_rendered_caption(rendered: str, max_chars: int) -> str:
-    """Keep emphasized captions on one line; explicit wrapping is forbidden."""
-    if max_chars > 0:
-        raise ValueError("one-line subtitle policy forbids explicit line wrapping")
-    return rendered
-
-
-def timing_cues(value: Any) -> list[dict[str, Any]]:
-    cues = (value.get("cues") or value.get("lines")) if isinstance(value, dict) else value
-    if not isinstance(cues, list):
-        raise ValueError("subtitle timing must be a list or an object with cues")
-    return cues
-
-
 def build_ass(
-    script: dict[str, Any],
+    workbook: dict[str, Any],
     timing: Any,
     *,
     font_name: str = "SimHei",
     font_size: int = 50,
     margin_v: int = 130,
-    wrap_chars: int = 0,
 ) -> str:
-    if (script.get("runtime") or {}).get("subtitle_mode") != "emphasis_from_final_audio":
-        raise ValueError("structured script is not in emphasis_from_final_audio mode")
-    lines = {str(line["line_id"]): line for line in script.get("dialogue", [])}
+    approved = _approved_text(workbook)
+    cursor = 0
     events: list[str] = []
-    for cue in timing_cues(timing):
+    for index, cue in enumerate(_cues(timing), start=1):
         text = str(cue.get("text", "")).strip()
-        line_id = str(cue.get("line_id", ""))
-        if not line_id:
-            matches = [candidate_id for candidate_id, candidate in lines.items() if str(candidate.get("text", "")).strip() == text]
-            if len(matches) != 1:
-                raise ValueError(f"subtitle timing without line_id must match exactly one approved line: {text}")
-            line_id = matches[0]
-        if line_id not in lines:
-            raise ValueError(f"unknown line_id in subtitle timing: {line_id}")
-        line = lines[line_id]
-        if text != str(line.get("text", "")).strip():
-            raise ValueError(f"subtitle text differs from approved dialogue: {line_id}")
-        if "\n" in text or "\r" in text:
-            raise ValueError("one-line subtitle policy forbids embedded line breaks")
+        if not text or "\n" in text or "\r" in text:
+            raise ValueError(f"cue {index} must contain one non-empty line")
+        position = approved.find(text, cursor)
+        if position < 0:
+            raise ValueError(f"cue {index} is not present in approved workbook voiceover")
+        cursor = position + len(text)
         start, end = float(cue["start"]), float(cue["end"])
         if start < 0 or end <= start:
-            raise ValueError(f"invalid subtitle timing: {line_id}")
-        spans = (line.get("caption") or {}).get("emphasis_spans") or []
-        rendered = wrap_rendered_caption(render_caption(text, spans), wrap_chars)
+            raise ValueError(f"invalid cue timing: {index}")
+        rendered = _render(text, cue.get("emphasis_spans") or [])
         events.append(f"Dialogue: 0,{ass_time(start)},{ass_time(end)},Default,,0,0,0,,{rendered}")
     header = f"""[Script Info]
 ScriptType: v4.00+
@@ -117,30 +95,19 @@ Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("timing", type=Path, help="Final-audio subtitle timing JSON with line_id/start/end/text")
-    parser.add_argument("--script", required=True, type=Path, help="Validated structured_script JSON")
+    parser.add_argument("timing", type=Path, help="final-audio timing JSON with cues/start/end/text")
+    parser.add_argument("--workbook", required=True, type=Path)
     parser.add_argument("--out", required=True, type=Path)
-    parser.add_argument("--font-name", default="SimHei")
-    parser.add_argument("--font-size", type=int, default=50)
-    parser.add_argument("--margin-v", type=int, default=130)
-    parser.add_argument("--wrap-chars", type=int, default=0, help="Deprecated compatibility option; non-zero values are rejected by the one-line subtitle policy")
     args = parser.parse_args()
     try:
-        script = json.loads(args.script.read_text(encoding="utf-8"))
+        workbook = load_and_validate(args.workbook)
         timing = json.loads(args.timing.read_text(encoding="utf-8"))
-        output = build_ass(
-            script,
-            timing,
-            font_name=args.font_name,
-            font_size=args.font_size,
-            margin_v=args.margin_v,
-            wrap_chars=args.wrap_chars,
-        )
+        output = build_ass(workbook, timing)
     except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as exc:
-        raise SystemExit(f"Unable to build emphasis subtitles: {exc}") from exc
+        raise SystemExit(f"Unable to build subtitles: {exc}") from exc
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(output, encoding="utf-8-sig")
-    print(f"Wrote emphasized ASS subtitles: {args.out}")
+    print(f"Wrote subtitles: {args.out}")
     return 0
 
 

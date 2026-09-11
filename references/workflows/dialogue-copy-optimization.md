@@ -15,4 +15,4 @@
 
 这些是建议和问题报告，不是另一套脚本字段。完整 TTS 生成后进行 ASR；最终字幕从最终音频产生。中文口播不按字幕行拆成多个 TTS 文件。
 
-旧 `review_dialogue_copy.py` 与 `validate_structured_script.py` 只服务旧 JSON 任务。新工作流的结果写入创作稿并由执行记录保存版本。
+`review_dialogue_copy.py` 读取创作稿并输出建议报告；新工作流的结果写入创作稿并由执行记录保存版本。

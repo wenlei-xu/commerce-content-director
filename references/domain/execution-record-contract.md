@@ -10,8 +10,8 @@
   "workbook_path": "script.md",
   "workbook_revision": 3,
   "segment_id": "S02",
-  "stage": "first_frame",
-  "source_revision_digest": "...",
+  "stage": "first_frame_image",
+  "workbook_digest": "...",
   "asset_roles": {"product_anchor": "...", "subject_anchor": "..."},
   "prompt": "...",
   "model": "...",
@@ -23,6 +23,11 @@
 ```
 
 Prompt 由 Agent 在当前阶段直接写成自然语言。程序只补充和检查模型、时长、素材顺序、产品事实锁、音频路径、禁止项和请求格式；程序不能用默认动作或兜底段落填充缺失创意。
+
+准备阶段的 `commerce-execution-plan-v1` 由 `scripts/prepare_execution.py` 生成；
+提交阶段的 `commerce-execution-bundle-v1` 由
+`scripts/compile_generation_prompts.py` 生成。两者都必须携带创作稿修订号和
+摘要。Bundle 中的每个 `prompt` 是 Agent Prompt 加技术执行尾部，不是新的脚本版本。
 
 首帧 Prompt 描述段落的进入瞬间；视频 Prompt 描述从首帧开始的变化。首帧生成并通过检查后，Agent 根据实际首帧再写视频 Prompt。
 
