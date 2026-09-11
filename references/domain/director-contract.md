@@ -1,57 +1,11 @@
-# Director deep-module contract
+# 首帧执行说明
 
-`Director` is the single seam between a locked script and first-frame image prompt
-execution. It is a pure derivation step, not a Feishu table and not a second
-script authority.
+当前 Skill 不把 `Director` 作为独立创意权威。首帧创意由 Agent 根据 Markdown 创作稿段落、产品事实、主体、场景和参考素材直接完成。
 
-## Input
+准备首帧时，Agent 写一个进入瞬间：画面从什么状态开始，观众先看到什么，主体处于什么姿态，产品的哪个事实需要保持可见。首帧不能试图展示整个后续动作链。
 
-- the freshly read, validated and locked script projection;
-- current product hard facts, subject anchors and selected product actions;
-- the resolved production mode and any evidence-backed source constraints;
-- the current run's visual goal and the two requested variants, A and B.
+准备视频时，Agent 观察已通过的首帧，再写从该状态开始的主要变化。提示词必须与创作稿的“画面”一致；它可以选择镜头表达，但不能替换动作或结果。
 
-## Output
+如果保留 `scripts/director.py`，它只能作为兼容性的首帧字段整理器或校验适配器。它不生成新的动作、机位、构图、表演或 A/B 创意，也不拥有脚本修改权。新流程不要求创建 Director 输出对象。
 
-For every target production Segment and each version, return exactly one ordered
-First-frame decision. A First-frame decision contains:
-
-- one directly observable `static_moment`;
-- `camera` and `composition`;
-- `performance` and permitted human presence;
-- inherited `continuity`;
-- the version-level `variant_delta`.
-
-The first frame represents the Segment's entering state at local `t=0`. It does
-not depict the full Segment action or replace the locked Beat timeline.
-
-The output is a new local first-frame plan consumed by the prompt compiler. It
-must include `script_mutation=forbidden`. The Director cannot edit the locked
-script, Beat timing, dialogue, product facts, product-action links or Feishu
-approval fields.
-
-## Authority and seam
-
-Product facts and safety constraints win over replication evidence; replication
-evidence and the locked script's semantics win over the Director's visual
-choices; historical examples are reference only. The prompt compiler formats
-Director output into the nine-block first-frame prompt architecture and performs
-structural checks; it does not choose camera, composition, performance or
-continuity.
-
-The only remote first-frame mutation is the complete A/B package written by
-`scripts/publish_first_frame_versions.py` to two script records linked through
-`来源脚本`. Retry artifacts and request manifests remain local.
-
-The writer manifest is intentionally small:
-
-```json
-{
-  "run_id": "RUN-...",
-  "source_script_record_id": "rec-source",
-  "versions": {
-    "A": {"variant_delta": "...", "first_frames": [{"segment_id": "Segment-01", "path": "...", "sha256": "..."}]},
-    "B": {"variant_delta": "...", "first_frames": [{"segment_id": "Segment-01", "path": "...", "sha256": "..."}]}
-  }
-}
-```
+A/B 需要时由 Agent 为整套创作稿分别写出具体视觉方案。单独写“更关注产品”与“更关注反应”不算有效差异；两版必须在可拍的视觉解法上有明确理由，同时保留产品事实和脚本事件。

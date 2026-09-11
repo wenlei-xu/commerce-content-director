@@ -1,6 +1,6 @@
 # Script library contract
 
-`脚本沉淀库` is a lightweight reusable-template library. It stores complete script templates for retrieval and adaptation; it does not replace the current script's `structured_script` or own the selected product, prop, subject or scene assets.
+`脚本沉淀库` is a lightweight reusable-template library. It stores complete script templates for retrieval and adaptation; it does not replace the current Markdown creation workbook or own the selected product, prop, subject or scene assets.
 
 `参考视频` is optional. When present, it is an active design input for the template, not merely an archive link. Extract and preserve the transferable dimensions that matter to the template: visual style, story structure, camera/viewpoint, shot scale, composition, pacing, transitions, emotional curve and dialogue-function order. Keep those dimensions in the template's content structure or reference notes rather than silently copying source-specific wording, product, logo, subject identity or unsupported claims.
 
@@ -32,7 +32,7 @@ When selecting a reusable template, filter by `脚本类型`, applicable categor
 
 ## Direct reuse and light adaptation
 
-When the user asks to use a script from `脚本沉淀库`, select one matching approved complete script and treat its `完整口播` as a locked copy baseline. Copy the original voiceover and structure into the working draft first; do not synthesize a new script from the template's metadata or combine multiple templates unless the user explicitly asks for that.
+When the user asks to use a script from `脚本沉淀库`, select one matching approved complete script and treat its `完整口播` as a locked copy baseline. Copy the original voiceover and any explicitly requested structure into the working workbook first; do not synthesize a new script from the template's metadata or combine multiple templates unless the user explicitly asks for that.
 
 Only make the smallest whitelist changes required to:
 

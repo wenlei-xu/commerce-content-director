@@ -1,16 +1,11 @@
-# Workflow: action direction
+# 动作创作说明
 
-Use this workflow before writing Beats for a pet-product short video. First read the current product record and eligible Feishu `内容互动模板库` entries using [content-interaction-template-library-contract.md](../domain/content-interaction-template-library-contract.md). Its only output is one complete **动作导演说明** paragraph that gives the scene's action arc; it is planning text, not a new JSON file, table field, or approval object.
+动作不是独立的交接阶段。它直接写进 Markdown 创作稿对应段落的“画面”里；本文件只提供创作判断，不产生第二份动作稿、JSON、表格字段或审批对象。
 
-Write one natural paragraph that describes, in order:
+先读取产品的 `交互能力`、`关键结构锁`、主体和当前场景。根据已经锁定的口播与 ASR 时间，写出一个能被看见的动作事件：谁先动、谁响应、发生什么变化、怎样结束。动作可以来自产品事实，也可以借鉴可用互动模板；模板没有匹配项时，直接创作产品事实支持的动作。
 
-1. where the pet first notices or approaches the product;
-2. how the pet, person, and product interact through verified contact points;
-3. how the pet's movement or reaction changes; and
-4. the intended rhythm and feeling of the scene.
+不要把任何产品默认成“闻嗅 → 扒动 → 推动 → 咬 → 寻食”。不要列动作清单，也不要为了填模板安排无关动作。只有确实需要证明某个已确认价值时，才写清观众必须看见的产品结果。
 
-Describe only visible scene, movement, and reaction. Do not turn the paragraph into a product-feature explanation, sales claim, mechanism proof, or action inventory. Choose a main interaction from the available templates, then verify its contact path against the current product's hard facts and interaction constraints. It may differ from the batch's already-used main interaction when the product record supports it. Choose the template's content function deliberately: interest, interaction, emotion, rhythm and transition do not need a benefit; proof requires a confirmed product value. If a template conflicts with the product record, stop and request a template or product-fact update instead of inventing an interaction.
+结构复杂时，在画面说明里补充真实接触点、受力方向或不可遮挡的连接关系。产品事实不足以支持安全、可见的动作时才停止；没有模板不是停止理由。
 
-For a replication task, preserve the source action's narrative function and visual rhythm while writing the target product's real contact path. The resulting script and first-frame plan must follow this paragraph; do not silently reduce the scene to the default sniffing, pawing, and searching sequence.
-
-When the selected product has a fixed integrated visual structure, the action paragraph must make the structure shootable: identify the pet's contact area on the product body, the person's real grip point, and a front or slight-front-side camera relationship that keeps the required connection and opening positions legible. Change the contact point, pull direction, or camera when a source action would hide or invert that structure; never solve the conflict by omitting a connected component.
+写完后，创作稿中的画面描述就是动作的唯一内容来源。首帧 Prompt 和视频 Prompt 从该段落临时派生，执行记录保存实际文本。

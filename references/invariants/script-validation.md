@@ -1,6 +1,8 @@
 # 脚本校验
 
-运行 scripts/validate_structured_script.py。阻断项包括：缺少策略或 CTA、ID 重复、时间线不连续、台词跨分段、自然声模式含台词、未回收钩子、CTA 不唯一、互动计划与产品能力/状态冲突或状态衔接失败。
+新任务检查 Markdown 创作稿的口播锁、ASR 时间、段落连续性、画面事件清晰度、产品事实和执行记录引用。阻断项包括：口播被擅自改写、段落时间与 ASR 冲突、动作与产品能力/结构锁冲突、Prompt 引用旧稿、素材角色错误或结果状态不明。`validate_structured_script.py` 只服务历史 JSON 任务。
+
+批量任务还必须运行 `scripts/validate_batch_creativity.py`。它发现 Hook、Beat 功能骨架、互动形态和收束方式重复时，阻止脚本进入首帧生产；只有用户明确要求统一创意，并通过 `--allow-shared-structure --reason` 留下例外理由，才可继续。
 
 `spoken` 与 `sparse_spoken` 可以填写 `dialogue_quality_gate` 作为口播复盘元数据：推荐记录 `instruction_manual_restatement_only`、痛点、利益、证明和自然 CTA 的台词 ID。缺少任一记录、仅用说明书式台词复述可见动作，或 CTA 与前文脱节，只生成审核提示，不阻断脚本锁定。
 

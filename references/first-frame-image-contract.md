@@ -4,7 +4,9 @@ Read this contract for every video first-frame Job, including original, hook/str
 
 ## Prompt-plan source
 
-Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
+The Markdown creation workbook is the content source. Only when a Segment is
+ready for image generation, create `plan/generation-prompt-plan.json` as an
+automatically generated execution manifest with this shape:
 
 ```json
 {
@@ -39,9 +41,9 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
       "Use the same room, floor surface and natural light at the Segment boundary."
     ],
     "inputs": [{"position": 1, "role": "product_anchor", "asset_id": "product-v1", "sha256": "...", "clean_for_generation": true, "reason": "Product is visible in beats 2–4."}],
-    "beats": [
-      {"start": 0, "end": 10, "description": "The locked Beat timeline for this 10-second Segment."}
-    ],
+    "workbook_revision": 3,
+    "visual_event": "The event written in the current workbook segment.",
+    "beats": [],
     "first_frame": {
       "camera": "Tight handheld close-up.",
       "composition": "Keep the entering product state and relevant subject/action context unobstructed.",
@@ -61,9 +63,18 @@ Before writing prose, create `plan/generation-prompt-plan.json` with this shape:
 
 Every first-frame plan (schema key `first_frame_image`) uses `generation_unit=target_production_segment`, direct `segment_seconds` values of 4, 6, 8 or 10, one contiguous target time range per Segment and exactly two complete packages (`versions=["A", "B"]`). `target_duration_seconds` equals the sum of the ordered Segment durations; it need not be divisible by 10. The compiled bundle expands those Segments by version, records the version and Segment for every Job, and writes only the ordered A/B first-frame packages to the script table. Its `submission_policy` must select concurrent GPT Image 2.5 execution whenever `expected_job_count >= 2`, with maximum concurrency 5; a bundle that silently chooses serial submission fails validation. A transport retry reuses the same logical Segment/version plan and idempotency key; it does not add a Segment or approval record. `target_time_range` is global within the target film; each Segment's `beats` use local `0–segment_seconds` timing and `first_frame` represents local `t=0`.
 
-For each first-frame image, `Director` owns one first-frame decision per Segment. Its output must declare `camera`, `composition`, one directly observable entering-state `static_moment`, `performance`, inherited `continuity`, and `human_presence` as `none`, `one_hand`, `partial_person`, or `full_person`. The decision is anchored at local `t=0` and must not depict the full Segment process. The Director output is a derived plan and may not mutate the locked script.
+For each first-frame image, the Agent writes one first-frame decision directly
+from the current workbook segment. It must describe `camera`, `composition`,
+one directly observable entering-state `static_moment`, `performance`,
+inherited `continuity`, and `human_presence` as `none`, `one_hand`,
+`partial_person`, or `full_person`. The decision is anchored at local `t=0`
+and must not depict the full Segment process. A legacy Director projection may
+be used by old JSON plans, but it is not required by the new workbook flow and
+does not own creative decisions.
 
-The first frame has no editorial panel duration. Use the locked Beat timeline to decide the Segment's action; the image only establishes the entering state and continuity handoff.
+The first frame has no editorial panel duration. Use the workbook segment's
+visual event and optional Beat label to decide its entering state; the image
+only establishes the entering state and continuity handoff.
 
 The control prompt uses English (`en`) only. It contains no Thai or Chinese because first-frame image generation has no spoken-dialogue payload.
 
@@ -89,7 +100,7 @@ Compile every first-frame image prompt from the plan with these required heading
 
 1. `REFERENCE IMAGE ROLE`: exact `Input N → role` mapping and concise identity ownership for every routed reference. The product anchor owns product appearance and topology; it is not a layout reference.
 2. `OUTPUT SPECIFICATION`: one 9:16 portrait first-frame image for the 4s, 6s, 8s or 10s Segment, representing the entering state at local `t=0`. Do not generate multiple images, a grid, a contact sheet, a divider, a border or multiple panels.
-3. `CREATIVE INTENT`: the viewer's intended first read, emotional cue or initial misunderstanding. Use the Director's variant direction as the priority signal.
+3. `CREATIVE INTENT`: the viewer's intended first read, emotional cue or initial misunderstanding. Derive it from the workbook segment and selected creative direction.
 4. `CAMERA OPERATOR VIEWPOINT`: camera height, viewpoint, framing, human presence and visual focus. Make the filming person observable when the scene requires a vlog or UGC feel.
 5. `SCENE EVENT`: one directly observable frozen situation at local `t=0`, plus only the environment and continuity facts needed to understand it. Do not describe the full video or future actions.
 6. `SUBJECT PERFORMANCE`: the selected subject's visible identity, expression, pose and performance in this entering state.

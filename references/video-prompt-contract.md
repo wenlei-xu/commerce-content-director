@@ -72,7 +72,7 @@ Validate the complete prompt set as one unit before submitting any Job: Thai nat
 
 ## Compiler input and evidence
 
-Create `plan/generation-prompt-plan.json` with schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, `prompt_language: "en"`, the locked `target_spoken_language`, the duration plan, common approved constraints, and one entry per Segment. Each entry declares its exact `segment_seconds` and uses a continuous `beats` timeline from `0.0` to that Segment's local duration. Chinese spoken plans must declare `voiceover_provider: "doubao_tts_2_0"` and `omni_audio_policy: "environment_only"`; Thai spoken plans declare `voiceover_provider: "omni_native"` and `omni_audio_policy: "native_dialogue"`. Each entry provides its input role map, hard constraints, subject identity, local dialogue allocation, audio mode, and continuity handoff.
+Create `plan/generation-prompt-plan.json` only as an automatically generated execution manifest from the Markdown creation workbook. It uses schema `commerce-generation-prompt-plan-v1`, `job_kind: "final_video"`, `prompt_language: "en"`, the locked `target_spoken_language`, the duration plan, common approved constraints, and one entry per Segment. Each entry declares its exact `segment_seconds`, source workbook revision and segment ID, the workbook's visual event, input role map, hard constraints, subject identity, dialogue allocation, audio mode and continuity handoff. A `beats` timeline may be included when the workbook uses Beat labels; it is not required for simple segments and it must never supply a default action. Chinese spoken plans must declare `voiceover_provider: "doubao_tts_2_0"` and `omni_audio_policy: "environment_only"`; Thai spoken plans declare `voiceover_provider: "omni_native"` and `omni_audio_policy: "native_dialogue"`.
 
 Compile and validate before submitting any Job:
 
@@ -90,8 +90,8 @@ The final-generation prompt uses the exact framework above. The compiler should 
 Keep the following checks because they protect execution integrity rather than prompt style:
 
 1. Input assets exist, are clean, and their position/role mapping matches the Job payload.
-2. The Segment has a valid continuous Beat timeline covering its declared `segment_seconds` duration.
-3. Product-visible Segments have the required product reference and use only confirmed product facts; semantic product correctness is reviewed against the product record and generated frames.
+2. The Segment has a valid time range and a clear workbook visual event. A Beat timeline is checked only when the workbook declares one.
+3. Product-visible Segments have the required product reference and use only confirmed product facts; semantic product correctness is reviewed against the workbook, product record and generated frames.
 4. The selected language, voiceover provider and Omni audio policy agree. Chinese dialogue stays outside Omni prompts and is assigned exactly once in bundle metadata.
 5. Dialogue IDs and local timings are valid, and no Segment receives another Segment's dialogue.
 6. The prompt is English control text, and the final Job/model/submission plan is valid.
